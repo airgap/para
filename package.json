@@ -1,0 +1,23 @@
+{
+  "name": "@para/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Para language ecosystem — packages, LSP, and UI tooling that consume the ParaBun runtime. Extracted from the parabun Bun-fork so the fork stays minimal/rebaseable against upstream Bun; this repo owns the para packages, their release, and (privately) the design docs.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "nx run-many --target=build --skip-nx-cache --parallel=99 --output-style=stream",
+    "test": "nx run-many --target=test --skip-nx-cache --parallel=99 --output-style=stream",
+    "lint": "nx run-many --target=lint --skip-nx-cache --parallel=99 --output-style=stream",
+    "typecheck": "nx run-many --target=typecheck --skip-nx-cache --parallel=99 --output-style=stream"
+  },
+  "devDependencies": {
+    "@nx/devkit": "^20.5.0",
+    "@nx/js": "^20.5.0",
+    "@nx/workspace": "^20.5.0",
+    "nx": "^20.5.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  }
+}
