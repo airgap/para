@@ -248,16 +248,24 @@ pipeline {
 					cd packages/para-svelte/packages/svelte
 					PKG_VERSION=$(node -p "require('./package.json').version")
 					if npm view "@lyku/para-ui@$PKG_VERSION" version >/dev/null 2>&1; then
-						echo "@lyku/para-ui@$PKG_VERSION already published, skipping"
-						exit 0
+						echo "@lyku/para-ui@$PKG_VERSION already published, skipping publish"
+					else
+						if node -p "require('./package.json').devDependencies?.['@lyku/para-signals']||''" | grep -q '^file:'; then
+							SIGNALS_VERSION="^$(npm view @lyku/para-signals version 2>/dev/null || echo 0.0.1-pre.0)"
+							sed -i 's|"@lyku/para-signals": "file:[^"]*"|"@lyku/para-signals": "'"$SIGNALS_VERSION"'"|' package.json
+						fi
+						pnpm install --frozen-lockfile=false
+						pnpm run build
+						npm publish --tag pre
 					fi
-					if node -p "require('./package.json').devDependencies?.['@lyku/para-signals']||''" | grep -q '^file:'; then
-						SIGNALS_VERSION="^$(npm view @lyku/para-signals version 2>/dev/null || echo 0.0.1-pre.0)"
-						sed -i 's|"@lyku/para-signals": "file:[^"]*"|"@lyku/para-signals": "'"$SIGNALS_VERSION"'"|' package.json
-					fi
-					pnpm install --frozen-lockfile=false
-					pnpm run build
-					npm publish --tag pre
+					# Always reconcile `latest` — same rationale as
+					# para-preprocess: the first publish pinned latest to the
+					# oldest pre.N and `--tag pre` never moves it, so bun's
+					# latest-following resolver keeps consumers (Lyku's
+					# `svelte: npm:@lyku/para-ui@^…` alias) on the stale build.
+					# Idempotent; self-heals on the already-published path.
+					npm dist-tag add "@lyku/para-ui@$PKG_VERSION" latest
+					echo "dist-tags now: $(npm view @lyku/para-ui dist-tags)"
 				'''
 				// .vsix — editors/{vscode,lsp,ts-plugin}. nx orchestrates the
 				// install + ts-plugin build + copy-assets bundling; vsce
