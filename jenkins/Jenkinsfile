@@ -239,9 +239,17 @@ pipeline {
 					echo "dist-tags now: $(npm view @lyku/para-preprocess dist-tags)"
 				'''
 				// @lyku/para-ui — pnpm-built Svelte fork. Idempotent: skip
-				// if the version is already on npm. The file:-dep on
-				// @lyku/para-signals is swapped to a real semver for the
-				// publish, reverted in post.always.
+				// if the version is already on npm. @lyku/para-signals is a
+				// `file:../../../para-signals` dep in `dependencies` for local
+				// dev; it MUST be swapped to a real npm semver before publish
+				// or every consumer's install fails (the relative path does
+				// not exist post-install: `failed to link @lyku/para-signals`).
+				// The swap is unconditional + idempotent: the sed only rewrites
+				// if the file:-pattern is present, and matches the dep in
+				// whichever section it lives (a prior bug guarded on
+				// devDependencies while the dep is in dependencies, so the
+				// swap silently no-op'd and pre.4 shipped the broken path).
+				// Reverted in post.always (`git checkout package.json`).
 				sh '''
 					set -eu
 					export HOME="${WORKSPACE}"
@@ -250,9 +258,11 @@ pipeline {
 					if npm view "@lyku/para-ui@$PKG_VERSION" version >/dev/null 2>&1; then
 						echo "@lyku/para-ui@$PKG_VERSION already published, skipping publish"
 					else
-						if node -p "require('./package.json').devDependencies?.['@lyku/para-signals']||''" | grep -q '^file:'; then
-							SIGNALS_VERSION="^$(npm view @lyku/para-signals version 2>/dev/null || echo 0.0.1-pre.0)"
-							sed -i 's|"@lyku/para-signals": "file:[^"]*"|"@lyku/para-signals": "'"$SIGNALS_VERSION"'"|' package.json
+						SIGNALS_VERSION="^$(npm view @lyku/para-signals version 2>/dev/null || echo 0.0.1-pre.0)"
+						sed -i 's|"@lyku/para-signals": "file:[^"]*"|"@lyku/para-signals": "'"$SIGNALS_VERSION"'"|' package.json
+						if grep -q '"@lyku/para-signals": "file:' package.json; then
+							echo "FATAL: @lyku/para-signals file: dep not swapped — refusing to publish a broken manifest" >&2
+							exit 1
 						fi
 						pnpm install --frozen-lockfile=false
 						pnpm run build
