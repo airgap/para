@@ -116,6 +116,7 @@ RUN arch=$(dpkg --print-architecture) && \
     curl -fsSL -o /tmp/bun.zip "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-${bun_arch}.zip" && \
     cd /tmp && unzip bun.zip && \
     install -m 0755 "bun-linux-${bun_arch}/bun" /usr/local/bin/bun && \
+    ln -s bun /usr/local/bin/bunx && \
     rm -rf bun.zip "bun-linux-${bun_arch}"
 
 # Doppler CLI — used by the Publish npm stage to fetch NPM_ACCESS_TOKEN
