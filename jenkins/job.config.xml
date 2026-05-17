@@ -1,0 +1,110 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<!--
+  Jenkins job definition for airgap/para (mirrors the `parabun` job).
+  Jenkins has no `para` job by default, so pushes to airgap/para build
+  NOTHING until this is installed. One-time setup (run as the jenkins
+  user / with sudo, then reload):
+
+    sudo install -d -o jenkins -g jenkins /var/lib/jenkins/jobs/para
+    sudo install -o jenkins -g jenkins -m 644 \
+      /raid/para/jenkins/job.config.xml /var/lib/jenkins/jobs/para/config.xml
+    # register without a full restart:
+    curl -fsS -X POST "http://localhost:8080/reload" --user <admin:token>
+    #   (or: Jenkins UI → Manage Jenkins → Reload Configuration from Disk)
+
+  After that: a push runs Codegen+Verify (no publish). To PUBLISH
+  @lyku/para-preprocess + @lyku/para-ui + .vsix, trigger a manual
+  "Build with Parameters" with PUBLISH_NPM=true (publish is deliberately
+  param-gated, never automatic on push).
+-->
+<flow-definition plugin="workflow-job@1571.1580.v18e46842c125">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2277.v00573e73ddf1"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2277.v00573e73ddf1">
+      <jobProperties>
+        <string>org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty</string>
+        <string>jenkins.model.BuildDiscarderProperty</string>
+      </jobProperties>
+      <triggers>
+        <string>hudson.triggers.SCMTrigger</string>
+      </triggers>
+      <parameters>
+        <string>PARABUN_PIN</string>
+        <string>RUN_CANARY</string>
+        <string>PUBLISH_NPM</string>
+      </parameters>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description>airgap/para CI: Codegen check + BLOCKING parity (vs pinned parabun) + nightly canary; publishes @lyku/para-preprocess + @lyku/para-ui + the .vsix when PUBLISH_NPM=true. Parameters self-reconcile from jenkins/Jenkinsfile on first build.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty plugin="github@1.46.0.1">
+      <projectUrl>https://github.com/airgap/para/</projectUrl>
+      <displayName>para</displayName>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>10</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+        <removeLastBuild>false</removeLastBuild>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
+      <abortPrevious>false</abortPrevious>
+    </org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <hudson.triggers.SCMTrigger>
+          <spec>H/5 * * * *</spec>
+          <ignorePostCommitHooks>false</ignorePostCommitHooks>
+        </hudson.triggers.SCMTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>PARABUN_PIN</name>
+          <description>airgap/parabun release tag to pin for the BLOCKING parity gate. Empty = read packages/parabun-bin/manifest.json (the committed pin).</description>
+          <defaultValue></defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>RUN_CANARY</name>
+          <description>Force the non-blocking canary (parity vs LATEST parabun). Auto-on for the nightly cron build.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>PUBLISH_NPM</name>
+          <description>Publish @lyku/para-preprocess + @lyku/para-ui (pnpm-built) + package the .vsix. Off by default; set true for explicit publish runs.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@4331.v9d06ed4658ff">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@5.10.1">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>https://github.com/airgap/para.git</url>
+          <credentialsId>github-pat</credentialsId>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/main</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="empty-list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>jenkins/Jenkinsfile</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <disabled>false</disabled>
+  <triggers/>
+</flow-definition>
