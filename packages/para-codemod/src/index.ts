@@ -12,8 +12,11 @@
 //     const x = $derived(\n…\n)    → derived x { return … }   (multi-line)
 //     const x = $derived.by(()=>{B}) → derived x { B }
 //  4  const x = $derived($store)   → source x = fromStore(store)  (+import)
-//  5  onMount(() => { B })         → mount { B }
-//     $effect(() => { B })         → effect { B }
+//  5  $effect(() => { B })         → effect { B }
+//     onMount(…) is left VERBATIM — the `mount` keyword was retired
+//     2026-05-17 (it mapped to onMount(), a library call, not a Para
+//     primitive). lowerPuiReactivity auto-imports onMount, so the
+//     codemod also strips it from the explicit `… from 'svelte'`.
 //  6  everything else: untouched (consts/types/fns/template/escape-hatch
 //     imports like untrack/tick, custom context accessors).
 
@@ -41,10 +44,10 @@ function findMatch(s: string, open: number, oc: string, cc: string): number {
 function transformScript(body: string, notes: string[]): { code: string; needsFromStore: boolean } {
   let needsFromStore = false;
 
-  // ── Rule 5: onMount → mount (sync OR async — `mount{}` now emits an
-  // async arrow on top-level await); $effect → effect (sync only —
-  // async effects are a footgun, leave `$effect(async…)` raw).
-  body = rewriteCallArrowBlock(body, "onMount", "mount", notes, /*allowAsync*/ true);
+  // ── Rule 5: $effect → effect (sync only — async effects are a footgun,
+  // leave `$effect(async…)` raw). onMount is deliberately NOT converted:
+  // the `mount` keyword was retired (it's a library call, not a Para
+  // primitive), so onMount(…) stays verbatim and lowering auto-imports it.
   body = rewriteCallArrowBlock(body, "$effect", "effect", notes);
 
   // ── Per-line passes (state/derived decls) ──
@@ -141,9 +144,13 @@ function transformScript(body: string, notes: string[]): { code: string; needsFr
   }
   body = out.join("\n");
 
-  // Drop `onMount` from a `import … from 'svelte'` iff no onMount calls
-  // remain (all converted). Keep untrack/tick etc. — by-design residual.
-  if (!/\bonMount\s*\(/.test(body)) {
+  // Drop `onMount` from a `import … from 'svelte'` unconditionally — the
+  // `mount` keyword was retired, so lowerPuiReactivity auto-imports
+  // onMount whenever it's called (PUI_RUNTIME_LIFECYCLE). Carrying the
+  // explicit import too is merely redundant (the lowering dedups it), but
+  // canonical .pui omits lifecycle-import boilerplate, so the codemod
+  // emits canonical output. Keep untrack/tick etc. — by-design residual.
+  {
     body = body.replace(/(import\s*\{)([^}]*)\}(\s*from\s*['"]svelte['"])/, (full, a, names, c) => {
       const kept = names
         .split(",")
@@ -151,7 +158,7 @@ function transformScript(body: string, notes: string[]): { code: string; needsFr
         .filter((s: string) => s && s !== "onMount");
       if (kept.length === names.split(",").filter((s: string) => s.trim()).length) return full;
       if (kept.length === 0) return ""; // whole import removed
-      notes.push("dropped now-unused `onMount` from the svelte import");
+      notes.push("dropped `onMount` from the svelte import (lowering auto-imports it)");
       return `${a} ${kept.join(", ")} }${c}`;
     });
     // NB: deliberately do NOT strip the body's leading whitespace here.
@@ -164,24 +171,14 @@ function transformScript(body: string, notes: string[]): { code: string; needsFr
   return { code: body, needsFromStore };
 }
 
-function rewriteCallArrowBlock(
-  src: string,
-  callName: string,
-  keyword: string,
-  notes: string[],
-  allowAsync = false,
-): string {
-  // callName(() => { BODY }) → keyword { BODY }. Zero-arg arrow only.
-  // `allowAsync`: also match `callName(async () => {…})` — safe ONLY for
-  // onMount (the `mount` keyword now emits an async arrow when its body
-  // has a top-level await; Svelte async-onMount can't return a cleanup
-  // anyway). NOT enabled for $effect (async effects are a footgun and
-  // `effect{}` is sync — leave `$effect(async …)` raw).
+function rewriteCallArrowBlock(src: string, callName: string, keyword: string, notes: string[]): string {
+  // callName(() => { BODY }) → keyword { BODY }. Zero-arg sync arrow only.
+  // The sole caller is $effect→effect; async effects are a footgun and
+  // `effect{}` is sync, so `$effect(async …)` is left raw.
   let out = "";
   let i = 0;
   const esc = callName.replace(/[$]/g, "\\$");
-  const asyncPart = allowAsync ? "(?:async\\s+)?" : "";
-  const re = new RegExp(`(^|[^\\w$.])${esc}\\s*\\(\\s*${asyncPart}\\(\\s*\\)\\s*=>\\s*\\{`, "g");
+  const re = new RegExp(`(^|[^\\w$.])${esc}\\s*\\(\\s*\\(\\s*\\)\\s*=>\\s*\\{`, "g");
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
     const pre = m[1] ?? "";

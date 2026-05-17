@@ -1,10 +1,15 @@
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { svelteToPui } from "../src/index.ts";
 import { lowerPuiReactivity } from "../../para-preprocess/src/index.ts";
 
 // Golden test: the real Lyku component the C4 precursor hand-mapped.
-const SRC = "/raid/lyku/libs/si-bits/src/NotificationsPage/NotificationsPage.svelte";
+// The .svelte source is vendored as a frozen fixture (NOT read from the
+// sibling /raid/lyku checkout) so the test is hermetic — para's CI does
+// not check out lyku. Refresh it deliberately if the codemod contract
+// changes, the same way you'd update any golden.
+const SRC = fileURLToPath(new URL("./fixtures/NotificationsPage.svelte", import.meta.url));
 const original = readFileSync(SRC, "utf8");
 const { code, notes } = svelteToPui(original);
 
@@ -31,14 +36,17 @@ test("rule 4 — $derived($store) → source + fromStore import", () => {
   expect(code).toContain('import { fromStore } from "@lyku/para-signals";');
 });
 
-test("rule 5 — onMount/$effect → mount/effect blocks", () => {
-  expect(code).toContain("mount {");
+test("rule 5 — $effect → effect block; onMount left verbatim (keyword retired)", () => {
+  // `mount` was retired 2026-05-17: it mapped to onMount(), a library
+  // call, not a Para primitive. The codemod no longer converts it — the
+  // onMount call survives verbatim and lowerPuiReactivity auto-imports it.
   expect(code).toContain("effect {");
-  expect(code).not.toMatch(/\bonMount\s*\(/);
+  expect(code).toMatch(/\bonMount\s*\(\s*\(\)\s*=>\s*\{/);
+  expect(code).not.toMatch(/\bmount\s*\{/);
   expect(code).not.toMatch(/\$effect\s*\(/);
 });
 
-test("rule 6 — onMount dropped from svelte import, untrack kept (by-design residual)", () => {
+test("rule 6 — onMount dropped from svelte import (lowering auto-imports it), untrack kept", () => {
   expect(code).toMatch(/import\s*\{\s*untrack\s*\}\s*from\s*['"]svelte['"]/);
   expect(code).not.toMatch(/import\s*\{[^}]*onMount[^}]*\}\s*from\s*['"]svelte['"]/);
 });
@@ -72,5 +80,5 @@ test("notes record what converted (audit trail)", () => {
   expect(notes.some(n => n.startsWith("rule4"))).toBe(true);
   expect(notes.some(n => n.startsWith("rule3b"))).toBe(true);
   expect(notes.some(n => n.startsWith("rule5"))).toBe(true);
-  expect(notes).toContain("dropped now-unused `onMount` from the svelte import");
+  expect(notes).toContain("dropped `onMount` from the svelte import (lowering auto-imports it)");
 });
