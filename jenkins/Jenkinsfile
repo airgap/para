@@ -220,13 +220,23 @@ pipeline {
 					export HOME="${WORKSPACE}"
 					PKG_VERSION=$(node -p "require('./packages/para-preprocess/package.json').version")
 					if npm view "@lyku/para-preprocess@$PKG_VERSION" version >/dev/null 2>&1; then
-						echo "@lyku/para-preprocess@$PKG_VERSION already published, skipping"
+						echo "@lyku/para-preprocess@$PKG_VERSION already published, skipping publish"
 					else
 						bun install --ignore-scripts --no-audit --no-fund
 						cd packages/para-preprocess
 						bun run build
 						npm publish --tag pre
+						cd "$WORKSPACE"
 					fi
+					# Always reconcile the `latest` dist-tag to the version this
+					# build carries. The very first publish (the old parabun job,
+					# pre.0) implicitly set latest=pre.0 and `--tag pre` never
+					# moved it since — so consumers on caret prerelease ranges
+					# (Lyku: ^0.0.1-pre.*) kept resolving the OLDEST publish via
+					# bun's latest-following resolver. Idempotent; runs even on
+					# the already-published path so a stale latest self-heals.
+					npm dist-tag add "@lyku/para-preprocess@$PKG_VERSION" latest
+					echo "dist-tags now: $(npm view @lyku/para-preprocess dist-tags)"
 				'''
 				// @lyku/para-ui — pnpm-built Svelte fork. Idempotent: skip
 				// if the version is already on npm. The file:-dep on
