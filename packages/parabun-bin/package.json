@@ -1,0 +1,41 @@
+{
+  "name": "@lyku/parabun-bin",
+  "version": "0.0.0-pin.0",
+  "description": "Resolver for the pinned `parabun` release binary. The installed version IS the pin (lockfile = pin contract); per-platform binaries ship as optional dependencies and are sha256-verified against the baked manifest. See /raid/para-design/para-parabun-boundary.md (P2).",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src/",
+    "manifest.json",
+    "README.md"
+  ],
+  "optionalDependencies": {
+    "@lyku/parabun-bin-linux-x64": "0.0.0-pin.0",
+    "@lyku/parabun-bin-linux-arm64": "0.0.0-pin.0",
+    "@lyku/parabun-bin-darwin-arm64": "0.0.0-pin.0",
+    "@lyku/parabun-bin-win32-x64": "0.0.0-pin.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/para.git",
+    "directory": "packages/parabun-bin"
+  },
+  "keywords": [
+    "parabun",
+    "para",
+    "binary",
+    "pin"
+  ]
+}

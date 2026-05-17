@@ -1,0 +1,6 @@
+node_modules
+.generated-docs
+packages/svelte/compiler
+packages/svelte/types
+packages/svelte/tests/**/_output
+packages/svelte/tests/**/expected*

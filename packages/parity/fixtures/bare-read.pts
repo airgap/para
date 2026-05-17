@@ -1,0 +1,11 @@
+signal count = 0;
+signal name = "world";
+signal active = false;
+
+effect { console.log(count); }
+effect { console.log(name, count); }
+
+when active { count = count + 1; }
+when not active { count++; }
+
+const greeting = name;

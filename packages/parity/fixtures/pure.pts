@@ -1,0 +1,10 @@
+pure function add(a: number, b: number): number {
+  return a + b;
+}
+
+const dbl = pure (x: number) => x * 2;
+const f = pure x => x;
+
+pure async function loadOne(p: Promise<number>) {
+  return await p;
+}

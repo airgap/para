@@ -1,0 +1,42 @@
+{
+  "name": "parabun-browser-shims",
+  "version": "0.3.0",
+  "description": "Browser-compatible shims for the few specifiers Parabun's parse-time desugarings emit that don't yet have @para/* packages: bun:wrap (the wrap-macro runtime), parabun:gpu (CPU + WebGPU backend), parabun:llm (throw-stub). The cross-runtime Lib modules (signals/parallel/simd/arena/etc.) have moved to individual @para/* npm packages — install those directly. This package is slated for removal in 0.4.x once the remaining shims migrate or get retired.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./wrap": "./src/wrap.js",
+    "./gpu": "./src/gpu.js",
+    "./llm": "./src/llm.js",
+    "./quant": "./src/quant.js"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "build:wasm": "bun scripts/build-wasm.ts",
+    "test": "USE_SYSTEM_BUN=1 bun test"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/parabun-browser-shims"
+  },
+  "keywords": [
+    "parabun",
+    "browser",
+    "shims",
+    "polyfill"
+  ],
+  "dependencies": {
+    "@para/decimal": "workspace:*",
+    "@para/simd": "workspace:*"
+  },
+  "devDependencies": {
+    "wabt": "1.0.37"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@para/parallel",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "pmap / preduce over a persistent Worker pool. Functions are shipped via fn.toString() so they must be pure (no closures). Runs on browsers, Node, Bun, Deno; in CSP-restricted contexts falls back to sequential execution. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "dependencies": {
+    "@lyku/para-signals": "workspace:*"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-parallel"
+  },
+  "keywords": [
+    "parallel",
+    "worker",
+    "pmap",
+    "para"
+  ]
+}

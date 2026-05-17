@@ -1,0 +1,131 @@
+# Parabun Linux CI image — used by the `Build Linux` stage in Jenkinsfile.
+#
+# Jenkins will build this from the pipeline via `agent { dockerfile { ... } }`,
+# so there's no separate "build once, tag locally" step. BuildKit caches
+# each RUN layer across pipeline runs, so only the first run pays the full
+# install cost.
+#
+# ubuntu:22.04 gets us glibc 2.35 — new enough to match Parabun's target,
+# old enough that the release binary still runs on Ubuntu 22.04+ / Debian
+# bookworm / modern RHEL/Fedora. Matches what upstream Bun uses for
+# distributable Linux artifacts (they use 20.04 for even wider reach;
+# 22.04 is the middle ground).
+
+FROM ubuntu:22.04
+
+ARG LLVM_VERSION=21
+ARG CMAKE_VERSION=3.30.5
+ENV DEBIAN_FRONTEND=noninteractive \
+    CI=true
+
+# Base toolchain + everything Bun's buildkite Dockerfile installs, minus the
+# arm64 cross-compile shim (we only build x86_64 here).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget curl git unzip ca-certificates gnupg lsb-release \
+        software-properties-common apt-transport-https \
+        python3 ninja-build \
+        ruby ruby-dev bison gawk perl make ccache golang \
+        libxml2-dev pkg-config xz-utils \
+        build-essential \
+        libasound2-dev \
+    && add-apt-repository -y ppa:ubuntu-toolchain-r/test \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc-13 g++-13 libgcc-13-dev libstdc++-13-dev \
+    && wget https://apt.llvm.org/llvm.sh \
+    && chmod +x llvm.sh \
+    && ./llvm.sh ${LLVM_VERSION} all \
+    && rm llvm.sh \
+    && rm -rf /var/lib/apt/lists/*
+
+# cmake from upstream — ubuntu's 3.22 is too old for Parabun's build scripts.
+RUN wget -O /tmp/cmake.sh \
+        "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh" \
+    && sh /tmp/cmake.sh --skip-license --prefix=/usr \
+    && rm /tmp/cmake.sh
+
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 130 \
+        --slave /usr/bin/g++ g++ /usr/bin/g++-13
+
+# GitHub CLI — used by the Publish release stage. Installed from the
+# upstream apt repo since ubuntu's archive gh is too old.
+RUN install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        | gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# LLVM ships each tool as e.g. /usr/lib/llvm-21/bin/clang — Parabun's build
+# expects them on PATH unsuffixed. Also wire cc/c++/ld to the clang toolchain
+# so CMake's default compiler detection picks up clang rather than gcc.
+RUN for f in /usr/lib/llvm-${LLVM_VERSION}/bin/*; do ln -sf "$f" /usr/bin; done \
+    && ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang \
+    && ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ \
+    && ln -sf /usr/bin/lld-${LLVM_VERSION} /usr/bin/lld \
+    && ln -sf /usr/bin/ld.lld /usr/bin/ld \
+    && ln -sf /usr/bin/clang /usr/bin/cc \
+    && ln -sf /usr/bin/clang++ /usr/bin/c++
+
+ENV CC=clang \
+    CXX=clang++ \
+    LD=lld
+
+# Node.js — Parabun's build scripts (scripts/build.ts and codegen) run under
+# node for some sub-steps even though the orchestrator is bun.
+ARG NODE_VERSION=24.3.0
+RUN arch=$(dpkg --print-architecture) && \
+    case "$arch" in \
+        amd64) node_arch=x64 ;; \
+        arm64) node_arch=arm64 ;; \
+    esac && \
+    curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_arch}.tar.gz" \
+        | tar -xz -C /usr/local --strip-components=1 \
+    && node --version
+
+# Rust toolchain — needed by vendored deps that compile from source
+# (lolhtml, etc.). Install system-wide so the non-root Jenkins container
+# user can invoke cargo. The repo's rust-toolchain.toml pins a specific
+# nightly; we preinstall it here so the common case hits the image cache,
+# but leave the dirs world-writable so rustup can fetch a new pin if the
+# toml bumps between image rebuilds.
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:/usr/local/bin:${PATH}
+ARG RUST_NIGHTLY=nightly-2025-12-10
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --default-toolchain "${RUST_NIGHTLY}" --profile minimal --no-modify-path \
+    && chmod -R a+rwX "${RUSTUP_HOME}" "${CARGO_HOME}" \
+    && cargo --version \
+    && rustc --version
+
+# Host bun — used to run the TypeScript build orchestrator. The release
+# binary we produce is what ends up published; this one just drives the build.
+# We install into /usr/local/bin (world-readable) rather than using the
+# bun.sh installer, because Jenkins runs the container as the host's jenkins
+# UID (not root) and can't read /root/.bun.
+RUN arch=$(dpkg --print-architecture) && \
+    case "$arch" in \
+        amd64) bun_arch=x64 ;; \
+        arm64) bun_arch=aarch64 ;; \
+        *) echo "unsupported arch: $arch" && exit 1 ;; \
+    esac && \
+    curl -fsSL -o /tmp/bun.zip "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-${bun_arch}.zip" && \
+    cd /tmp && unzip bun.zip && \
+    install -m 0755 "bun-linux-${bun_arch}/bun" /usr/local/bin/bun && \
+    rm -rf bun.zip "bun-linux-${bun_arch}"
+
+# Doppler CLI — used by the Publish npm stage to fetch NPM_ACCESS_TOKEN
+# from the shared ci-deploy/prd project. Lyku's CI base has this; we
+# add it here so parabun can publish without a separate image.
+RUN curl -fsSL https://cli.doppler.com/install.sh | sh
+
+# pnpm — needed for the @lyku/para-ui build (the fork ships a pnpm
+# workspace inside packages/para-svelte/). Pinned to match the
+# packageManager field in packages/para-svelte/package.json.
+RUN npm install -g pnpm@10.4.0
+
+WORKDIR /workspace

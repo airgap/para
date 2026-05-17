@@ -1,0 +1,49 @@
+{
+  "name": "@para/schema",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "Para schema type system — JSON Schema 2020-12 with 1:1 brand-type parity. Ships two variants: extended (parabun condition) for .pts projects with full constraint brands, and standard (default) for vanilla TS consumers that only want plain primitives. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.standard.ts",
+  "module": "./src/index.standard.ts",
+  "exports": {
+    ".": {
+      "parabun": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "default": {
+        "types": "./src/index.standard.ts",
+        "default": "./src/index.standard.ts"
+      }
+    },
+    "./types": {
+      "parabun": {
+        "types": "./src/types.ts",
+        "default": "./src/types.ts"
+      },
+      "default": {
+        "types": "./src/types.standard.ts",
+        "default": "./src/types.standard.ts"
+      }
+    }
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-schema"
+  },
+  "keywords": [
+    "schema",
+    "json-schema",
+    "validation",
+    "branded-types",
+    "para",
+    "parabun"
+  ]
+}

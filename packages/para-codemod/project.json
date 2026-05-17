@@ -1,0 +1,14 @@
+{
+  "name": "para-codemod",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/para-codemod/src",
+  "projectType": "library",
+  "tags": ["excluded-from-bun-workspace"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun test", "cwd": "packages/para-codemod" },
+      "dependsOn": ["para-svelte:build"]
+    }
+  }
+}

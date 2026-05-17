@@ -1,0 +1,16 @@
+{
+  "iconDefinitions": {
+    "_pts": { "iconPath": "./pts.svg" },
+    "_pjs": { "iconPath": "./pjs.svg" },
+    "_ptsx": { "iconPath": "./ptsx.svg" },
+    "_pjsx": { "iconPath": "./pjsx.svg" },
+    "_pui": { "iconPath": "./pui.svg" }
+  },
+  "fileExtensions": {
+    "pts": "_pts",
+    "pjs": "_pjs",
+    "ptsx": "_ptsx",
+    "pjsx": "_pjsx",
+    "pui": "_pui"
+  }
+}

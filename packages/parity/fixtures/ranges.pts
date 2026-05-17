@@ -1,0 +1,4 @@
+const exclusive = 0..5;
+const inclusive = 0..=5;
+const n = 10;
+const range = 0..n;

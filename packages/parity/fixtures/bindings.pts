@@ -1,0 +1,5 @@
+signal name = "world";
+const el = { innerHTML: "" } as any;
+
+name ~> el.innerHTML;
+name -> console.log;

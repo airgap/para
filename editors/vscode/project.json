@@ -1,0 +1,21 @@
+{
+  "name": "parabun-vscode",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "editors/vscode/parabun/src",
+  "projectType": "application",
+  "tags": ["standalone-bun-lock", "tier-b", "vsix"],
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun install", "cwd": "editors/vscode/parabun" }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p tsconfig.json && node scripts/copy-assets.js",
+        "cwd": "editors/vscode/parabun"
+      },
+      "dependsOn": ["install", "parabun-lsp:install", "parabun-ts-plugin:build"]
+    }
+  }
+}

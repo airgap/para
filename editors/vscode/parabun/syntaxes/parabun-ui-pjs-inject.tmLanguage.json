@@ -1,0 +1,14 @@
+{
+  "$comment": "Highlights <script lang=\"pjs\"> content inside .svelte files using the parabun JS grammar. Sibling to parabun-ui-inject.tmLanguage.json (which handles pts/parabun); kept separate so each grammar only targets one source.X.",
+  "scopeName": "inject.parabun.pui.pjs",
+  "injectionSelector": "L:(meta.script.svelte) (meta.lang.pjs) - (meta source)",
+  "patterns": [
+    {
+      "begin": "(?<=>)(?!</)",
+      "end": "(?=</)",
+      "name": "meta.embedded.block.svelte",
+      "contentName": "source.pjs",
+      "patterns": [{ "include": "source.pjs" }]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+function syncWork() {
+  defer cleanup();
+  defer log("done");
+  doWork();
+}
+
+async function asyncWork() {
+  defer await flush();
+  await fetchSomething();
+}

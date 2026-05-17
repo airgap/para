@@ -1,0 +1,7 @@
+const handler = err => err;
+const cleanup = () => 0;
+const a = fetch("/api") ..! handler;
+const b = fetch("/api") ..& cleanup;
+const c = fetch("/api") ..! handler ..& cleanup;
+const d = fetch("/api") ..! err => err;
+const e = fetch("/api") ..! err => err ..& () => 0;

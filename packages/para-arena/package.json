@@ -1,0 +1,28 @@
+{
+  "name": "@lyku/para-arena",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "Buffer-pool helpers (Pool) and a no-op scope() that exists so .pts code using `arena { … }` blocks compiles cleanly. Browsers don't expose GC control, so scope() is a passthrough; Pool is a real typed-array free-list. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-arena"
+  },
+  "keywords": [
+    "arena",
+    "pool",
+    "typed-arrays",
+    "para"
+  ]
+}

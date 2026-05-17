@@ -1,0 +1,12 @@
+memo fib(n: number): number {
+  return n < 2 ? n : fib(n - 1) + fib(n - 2);
+}
+
+memo add(a: number, b: number) { return a + b; }
+
+const dbl = memo (x: number) => x * 2;
+const id = memo x => x;
+
+memo async loadOne(p: Promise<number>) {
+  return await p;
+}

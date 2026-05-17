@@ -1,0 +1,16 @@
+{
+  "name": "parity",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/parity",
+  "projectType": "library",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun runner.ts", "cwd": "packages/parity" }
+    },
+    "canary": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun runner.ts --canary", "cwd": "packages/parity" }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "parabun-ts-plugin",
+  "version": "0.2.1",
+  "description": "TypeScript language service plugin — desugars Parabun syntax + resolves .pui imports with real component types (pui2tsx)",
+  "main": "out/index.js",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "build:tsc": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@lyku/para-preprocess": "file:../../packages/para-preprocess",
+    "esbuild": "^0.21.5",
+    "svelte": "^5.55.7",
+    "svelte2tsx": "^0.7.55",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "out"
+  ]
+}

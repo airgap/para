@@ -1,0 +1,34 @@
+{
+	"name": "@lyku/para-ui-workspace",
+	"version": "0.0.0-dev",
+	"description": "Workspace root for Para's fork of Svelte. See PARA-FORK.md.",
+	"private": true,
+	"type": "module",
+	"license": "MIT",
+	"packageManager": "pnpm@10.4.0",
+	"engines": {
+		"pnpm": ">=9.0.0"
+	},
+	"scripts": {
+		"build": "pnpm -r --filter=./packages/* build",
+		"check": "cd packages/svelte && pnpm build && cd ../../ && pnpm -r check",
+		"test": "vitest run",
+		"bench": "NODE_ENV=production node --allow-natives-syntax ./benchmarking/run.js",
+		"bench:compare": "NODE_ENV=production node --allow-natives-syntax ./benchmarking/compare/index.js",
+		"bench:debug": "NODE_ENV=production node --allow-natives-syntax --inspect-brk ./benchmarking/run.js"
+	},
+	"devDependencies": {
+		"@lyku/para-ui": "workspace:^",
+		"@types/node": "^20.11.5",
+		"@types/picomatch": "^4.0.2",
+		"@vitest/coverage-v8": "^2.1.9",
+		"jsdom": "25.0.1",
+		"playwright": "^1.58.0",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^3.5.2",
+		"svelte": "link:./packages/svelte",
+		"typescript": "^5.5.4",
+		"v8-natives": "^1.2.5",
+		"vitest": "^2.1.9"
+	}
+}

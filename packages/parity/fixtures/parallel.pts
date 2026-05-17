@@ -1,0 +1,28 @@
+const fetchUser = id => Promise.resolve({ id });
+const fetchPosts = id => Promise.resolve([]);
+const fetchComments = id => Promise.resolve([]);
+const id = 1;
+
+const expr = parallel { user: fetchUser(id), posts: fetchPosts(id), comments: fetchComments(id) };
+
+const exprShort = para { user: fetchUser(id), posts: fetchPosts(id) };
+
+async function loadStuff() {
+  parallel let theUser = fetchUser(id), thePosts = fetchPosts(id);
+  return { theUser, thePosts };
+}
+
+async function loadStuffShort() {
+  para let theUser = fetchUser(id), thePosts = fetchPosts(id);
+  return { theUser, thePosts };
+}
+
+async function loadWithFallback() {
+  parallel let user = fetchUser(id) ..! null, posts = fetchPosts(id) ..! null;
+  return { user, posts };
+}
+
+async function loadWithFallbackShort() {
+  para let user = fetchUser(id) ..! null, posts = fetchPosts(id) ..! null;
+  return { user, posts };
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@para/pipeline",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "Lazy streaming combinators for the |> operator. map / filter / take / collect / sum / reduce / forEach over any iterable or async iterable. Float32Array / Float64Array sources fuse adjacent map calls into a single pass via @para/simd; on the ParaBun runtime, single-affine chains opportunistically promote to parabun:gpu. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "dependencies": {
+    "@para/simd": "workspace:*",
+    "@para/parallel": "workspace:*"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-pipeline"
+  },
+  "keywords": [
+    "pipeline",
+    "streaming",
+    "fusion",
+    "para"
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "Function (fun)": {
+    "prefix": "fun",
+    "body": ["fun ${1:name}(${2:params}) {", "\t$0", "}"],
+    "description": "Function declaration (fun shorthand)"
+  },
+  "Pure Function": {
+    "prefix": "pfn",
+    "body": ["pure fun ${1:name}(${2:params}) {", "\t$0", "}"],
+    "description": "Pure function declaration"
+  },
+  "Pure Async Function": {
+    "prefix": "pafn",
+    "body": ["pure async fun ${1:name}(${2:params}) {", "\t$0", "}"],
+    "description": "Pure async function declaration"
+  },
+  "Pure Arrow Function": {
+    "prefix": "parrow",
+    "body": "pure (${1:params}) => ${0}",
+    "description": "Pure arrow function expression"
+  },
+  "Pipeline Chain": {
+    "prefix": "pipe",
+    "body": "${1:value} |> ${2:fn1} |> ${0:fn2}",
+    "description": "Pipeline operator chain: value |> f |> g"
+  },
+  "Error Catch": {
+    "prefix": "errc",
+    "body": "${1:promise} ..! ${0:errorHandler}",
+    "description": "Error catch operator: desugars to promise.catch(handler)"
+  },
+  "Finally": {
+    "prefix": "fin",
+    "body": "${1:promise} ..& ${0:cleanup}",
+    "description": "Finally operator: desugars to promise.finally(cleanup)"
+  },
+  "Error Chain": {
+    "prefix": "errchain",
+    "body": "${1:promise} ..! ${2:onError} ..& ${0:cleanup}",
+    "description": "Chained error handling: promise.catch(onError).finally(cleanup)"
+  },
+  "Pipeline with Pure Inline": {
+    "prefix": "pipefn",
+    "body": "${1:value} |> pure function(${2:x}) { return ${0} }",
+    "description": "Pipeline with inline pure function (gets inlined at transpile time)"
+  },
+  "Parallel Pipeline": {
+    "prefix": "ppipe",
+    "body": [
+      "import { pipeParallel } from \"para:pipeline\";",
+      "",
+      "const result = pipeParallel(${1:data}, [",
+      "\t{ stage: \"${2:map}\", fn: (${3:x}) => ${4:x * 2} },",
+      "\t$0",
+      "]);"
+    ],
+    "description": "Parallel pipeline with para:pipeline"
+  },
+  "SIMD Vector Op": {
+    "prefix": "simd",
+    "body": [
+      "import { ${1|f32x4Add,f32x4Mul,f32x4Sub,f32x4Div|} } from \"para:simd\";",
+      "",
+      "const result = ${1}(${2:a}, ${3:b});"
+    ],
+    "description": "SIMD vector operation with para:simd"
+  },
+  "Schema Declaration (record)": {
+    "prefix": "schema",
+    "body": [
+      "schema ${1:Name} = {",
+      "\ttype: \"object\",",
+      "\tproperties: {",
+      "\t\t${2:id}: { type: \"${3|bigint,string,number,boolean,integer,array,object,null|}\" },",
+      "\t\t$0",
+      "\t},",
+      "\trequired: [\"${2:id}\"],",
+      "}"
+    ],
+    "description": "Para schema — emits .parse + .schema + field-navigation accessors"
+  },
+  "Schema from JSON Schema": {
+    "prefix": "schemafrom",
+    "body": "schema ${1:Name} from ${0:schemaExpr}",
+    "description": "Ingest an existing JSON Schema at runtime — same .parse / .schema interface"
+  },
+  "Inline schema literal": {
+    "prefix": "schema{",
+    "body": "schema { type: \"${1|bigint,string,number,boolean|}\" }$0",
+    "description": "Inline schema { ... } expression — decorated JSON Schema as a value"
+  },
+  "Match Expression": {
+    "prefix": "match",
+    "body": ["match ${1:subject} {", "\t${2:pattern} => ${3:result},", "\t_ => ${0:fallback}", "}"],
+    "description": "Pattern matching — lowers to switch (literals/Result tags) or ternary"
+  },
+  "Validated Function": {
+    "prefix": "vfun",
+    "body": ["function ${1:name}(${2:req}:: ${3:Type}) {", "\t$0", "}"],
+    "description": "Function with `::` boundary validation — Type.parse(arg) injected at entry"
+  },
+  "Result Match": {
+    "prefix": "rmatch",
+    "body": ["match ${1:result} {", "\tOk(${2:value}) => ${3:onOk},", "\tErr(${4:err}) => ${0:onErr}", "}"],
+    "description": "Match on Result — tag-switch on Ok / Err"
+  },
+  "Effect Block": {
+    "prefix": "effect",
+    "body": ["effect {", "\t$0", "}"],
+    "description": "Reactive effect — re-runs when signals inside change"
+  },
+  "Signal Declaration": {
+    "prefix": "signal",
+    "body": "signal ${1:name} = ${0:initial}",
+    "description": "Reactive cell — auto-tracked by effects"
+  },
+  "When Block": {
+    "prefix": "when",
+    "body": ["when ${1:condition} {", "\t$0", "}"],
+    "description": "Guarded block — `when not` for else"
+  },
+  "Type Guard (is)": {
+    "prefix": "is",
+    "body": "${1:value} is ${2:Type}",
+    "description": "Runtime type-guard — lowers to (Type.parse(value).tag === \"Ok\")"
+  }
+}

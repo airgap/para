@@ -1,0 +1,26 @@
+{
+  "name": "@lyku/para-parity",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Para ↔ ParaBun boundary gate (P2). Feeds each fixture through the canonical pinned `parabun` binary AND the @lyku/para-transpile JS mirror, asserts normalized equality. CI-blocking: a mirror that drifts from the pinned parser fails here, by design, in one reviewable place. Never published.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/para.git",
+    "directory": "packages/parity"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@lyku/para-transpile": "workspace:*",
+    "@lyku/parabun-bin": "workspace:*",
+    "@babel/generator": "^7.29.1",
+    "@babel/parser": "^7.29.3",
+    "@babel/traverse": "^7.29.0",
+    "@babel/types": "^7.29.0"
+  },
+  "devDependencies": {
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
+    "@types/bun": "*"
+  }
+}

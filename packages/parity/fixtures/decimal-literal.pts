@@ -1,0 +1,7 @@
+const a = 0.1d;
+const b = 1d;
+const c = 1.5d;
+const d = 100.25d;
+const e = 0.1d.plus(0.2d);
+const f = 1d.dividedBy(3d);
+const g = [0.1d, 0.2d, 0.3d];

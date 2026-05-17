@@ -1,0 +1,268 @@
+// airgap/para CI. Owns the Para ecosystem's verification + the publishes
+// para owns (boundary doc /raid/para-design/para-parabun-boundary.md):
+//
+//   • parity gate (BLOCKING) — corpus vs the PINNED parabun binary (B3).
+//     A mirror that drifts from the pinned parser fails here.
+//   • nightly canary (NON-BLOCKING) — same corpus vs the LATEST parabun
+//     release. Early warning for "stale-but-green" pin drift; reports,
+//     never fails (P2-d).
+//   • @lyku/para-preprocess — owns the post-extraction source (the
+//     .pui lowering: multi-line derived, single-stmt effect, mount
+//     retirement, lifecycle auto-import, ./pui ambient). parabun's copy
+//     is a stale dup pending deletion and no longer published.
+//   • @lyku/para-ui (the para-svelte pnpm fork) + the .vsix
+//     (editors/{vscode,lsp,ts-plugin}) — extracted from parabun
+//     2026-05-16; para publishes them now.
+//
+// parabun's Jenkins still owns: the parabun binary, GH release, docker,
+// and the @lyku/parabun-bin-<os>-<arch> carriers + @lyku/para-signals.
+// @lyku/para-transpile stays unpublished (private/0.0.0-dev) until full
+// desugaring + parity completeness — NOT published here.
+
+pipeline {
+	agent none
+
+	environment {
+		CI = 'true'
+	}
+
+	triggers {
+		pollSCM('H/5 * * * *')
+		// Nightly canary — drift early-warning, decoupled from parabun's
+		// release cadence.
+		cron('H 3 * * *')
+	}
+
+	options {
+		timestamps()
+		ansiColor('xterm')
+		disableConcurrentBuilds()
+		buildDiscarder(logRotator(numToKeepStr: '10'))
+		timeout(time: 60, unit: 'MINUTES')
+	}
+
+	parameters {
+		string(name: 'PARABUN_PIN', defaultValue: '',
+		       description: 'airgap/parabun release tag to pin for the BLOCKING parity gate. Empty = read packages/parabun-bin/manifest.json version (the committed pin). The lockfile/manifest is the source of truth; this is an override.')
+		booleanParam(name: 'RUN_CANARY', defaultValue: false,
+		             description: 'Force the non-blocking canary (parity vs LATEST parabun). Auto-on for the nightly cron build.')
+		booleanParam(name: 'PUBLISH_NPM', defaultValue: false,
+		             description: 'Publish @lyku/para-preprocess + @lyku/para-ui (pnpm-built) + package the .vsix. Off by default. Uses Doppler NPM_ACCESS_TOKEN (ci-deploy/prd).')
+	}
+
+	stages {
+		// Catalog → derived-files drift check (grammars / LSP allowlist /
+		// splash highlighter from src/language-surface.ts). Extracted from
+		// parabun 2026-05-17 with editors/*. Fast, no build cost; runs
+		// first so a forgotten `bun run codegen` fails fast. para-site
+		// targets are skipped when /raid/para-site isn't checked out.
+		stage('Codegen check') {
+			agent {
+				dockerfile {
+					filename 'jenkins/Dockerfile.ci-linux'
+					label 'linux'
+					additionalBuildArgs '--pull'
+					customWorkspace '/raid/jenkins-workspaces/para-codegen'
+				}
+			}
+			steps {
+				checkout scm
+				sh 'bun run codegen:check'
+			}
+		}
+
+		stage('Verify (test + BLOCKING parity)') {
+			agent {
+				dockerfile {
+					filename 'jenkins/Dockerfile.ci-linux'
+					label 'linux'
+					additionalBuildArgs '--pull'
+					customWorkspace '/raid/jenkins-workspaces/para-verify'
+					args '-v /etc/default/jenkins-doppler:/etc/default/jenkins-doppler:ro'
+				}
+			}
+			steps {
+				checkout scm
+				withCredentials([usernamePassword(
+					credentialsId: 'github-pat',
+					usernameVariable: 'GH_USER',
+					passwordVariable: 'GH_TOKEN',
+				)]) {
+					sh '''
+						set -eu
+						export HOME="${WORKSPACE}"
+
+						# Resolve the PINNED parabun for the blocking gate. The
+						# committed manifest is the pin (B2); PARABUN_PIN param
+						# only overrides. Fetch the linux-x64 release asset from
+						# airgap/parabun and verify nothing silently floats.
+						PIN="${PARABUN_PIN:-}"
+						if [ -z "$PIN" ]; then
+							PIN=$(node -p "require('./packages/parabun-bin/manifest.json').version")
+						fi
+						echo "pinned parabun: $PIN"
+						mkdir -p .parabun
+						# Carrier version string is `0.0.0-pin-<sha>`; the GH
+						# release tag is `parabun-<sha>`. Map pin → tag.
+						TAG="parabun-${PIN##*-}"
+						gh release download "$TAG" --repo airgap/parabun \
+							--pattern 'parabun-linux-x64' --dir .parabun --clobber
+						chmod +x .parabun/parabun-linux-x64
+						export PARABUN_BIN="$PWD/.parabun/parabun-linux-x64"
+						"$PARABUN_BIN" --revision
+
+						bun install
+						# Standalone (out-of-bun-workspace) installs the nx
+						# graph needs: editors/* + para-svelte are pnpm/own-lock.
+						bunx nx run-many --target=install --projects=parabun-lsp,parabun-ts-plugin,parabun-vscode,para-svelte --parallel=4 || true
+
+						# Ecosystem tests + the BLOCKING parity gate. parity's
+						# nx target consumes PARABUN_BIN (the pinned binary).
+						bunx nx run-many --target=test \
+							--projects=para-transpile,para-preprocess,para-signals,para-codemod,parabun-bin,parity,parabun-lsp \
+							--parallel=4 --output-style=stream
+					'''
+				}
+			}
+		}
+
+		stage('Nightly canary (NON-BLOCKING)') {
+			when {
+				anyOf {
+					triggeredBy 'TimerTrigger'
+					expression { params.RUN_CANARY }
+				}
+			}
+			agent {
+				dockerfile {
+					filename 'jenkins/Dockerfile.ci-linux'
+					label 'linux'
+					customWorkspace '/raid/jenkins-workspaces/para-canary'
+				}
+			}
+			steps {
+				checkout scm
+				withCredentials([usernamePassword(
+					credentialsId: 'github-pat',
+					usernameVariable: 'GH_USER',
+					passwordVariable: 'GH_TOKEN',
+				)]) {
+					// Never fail the pipeline on drift — the canary only
+					// reports. runner.ts --canary already exits 0; catchError
+					// is belt-and-suspenders for the fetch/build steps.
+					catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+						sh '''
+							set -eu
+							export HOME="${WORKSPACE}"
+							# LATEST parabun release (not the pin).
+							LATEST=$(gh release list --repo airgap/parabun \
+								--limit 1 --json tagName --jq '.[0].tagName')
+							echo "latest parabun: $LATEST"
+							mkdir -p .parabun
+							gh release download "$LATEST" --repo airgap/parabun \
+								--pattern 'parabun-linux-x64' --dir .parabun --clobber
+							chmod +x .parabun/parabun-linux-x64
+							export PARABUN_BIN="$PWD/.parabun/parabun-linux-x64"
+
+							bun install
+							bunx nx run parity:canary --skip-nx-cache
+						'''
+					}
+				}
+			}
+		}
+
+		stage('Publish npm (@lyku/para-preprocess + @lyku/para-ui + .vsix)') {
+			when { expression { params.PUBLISH_NPM } }
+			agent {
+				dockerfile {
+					filename 'jenkins/Dockerfile.ci-linux'
+					label 'linux'
+					customWorkspace '/raid/jenkins-workspaces/para-npm-publish'
+					args '-v /etc/default/jenkins-doppler:/etc/default/jenkins-doppler:ro'
+				}
+			}
+			steps {
+				checkout scm
+				sh '''
+					set -eu
+					set +x
+					export HOME="${WORKSPACE}"
+					export DOPPLER_TOKEN=$(grep DOPPLER_TOKEN_CI_DEPLOY /etc/default/jenkins-doppler | cut -d= -f2)
+					NPM_TOKEN=$(doppler secrets get NPM_ACCESS_TOKEN --plain --project ci-deploy --config prd)
+					echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$HOME/.npmrc"
+					echo "auth ok: $(npm whoami)"
+				'''
+				// @lyku/para-preprocess — airgap/para owns this post-
+				// extraction (parabun's packages/para-preprocess is a stale
+				// dup, no longer published from there). tsc build then
+				// publish; idempotent (skip if the version is already on
+				// npm). This is what carries the .pui lowering fixes
+				// (multi-line derived, single-stmt effect, mount retirement,
+				// lifecycle auto-import, ./pui ambient) to Lyku's build.
+				sh '''
+					set -eu
+					export HOME="${WORKSPACE}"
+					PKG_VERSION=$(node -p "require('./packages/para-preprocess/package.json').version")
+					if npm view "@lyku/para-preprocess@$PKG_VERSION" version >/dev/null 2>&1; then
+						echo "@lyku/para-preprocess@$PKG_VERSION already published, skipping"
+					else
+						bun install --ignore-scripts --no-audit --no-fund
+						cd packages/para-preprocess
+						bun run build
+						npm publish --tag pre
+					fi
+				'''
+				// @lyku/para-ui — pnpm-built Svelte fork. Idempotent: skip
+				// if the version is already on npm. The file:-dep on
+				// @lyku/para-signals is swapped to a real semver for the
+				// publish, reverted in post.always.
+				sh '''
+					set -eu
+					export HOME="${WORKSPACE}"
+					cd packages/para-svelte/packages/svelte
+					PKG_VERSION=$(node -p "require('./package.json').version")
+					if npm view "@lyku/para-ui@$PKG_VERSION" version >/dev/null 2>&1; then
+						echo "@lyku/para-ui@$PKG_VERSION already published, skipping"
+						exit 0
+					fi
+					if node -p "require('./package.json').devDependencies?.['@lyku/para-signals']||''" | grep -q '^file:'; then
+						SIGNALS_VERSION="^$(npm view @lyku/para-signals version 2>/dev/null || echo 0.0.1-pre.0)"
+						sed -i 's|"@lyku/para-signals": "file:[^"]*"|"@lyku/para-signals": "'"$SIGNALS_VERSION"'"|' package.json
+					fi
+					pnpm install --frozen-lockfile=false
+					pnpm run build
+					npm publish --tag pre
+				'''
+				// .vsix — editors/{vscode,lsp,ts-plugin}. nx orchestrates the
+				// install + ts-plugin build + copy-assets bundling; vsce
+				// packages. PARABUN_VSIX_SKIP_BINARY_CHECK=1: CI ships no
+				// parabun on PATH (the check is a local-dev footgun guard).
+				sh '''
+					set -eu
+					export HOME="${WORKSPACE}"
+					export PARABUN_VSIX_SKIP_BINARY_CHECK=1
+					bun install
+					bunx nx build parabun-vscode --skip-nx-cache
+					cd editors/vscode/parabun
+					mkdir -p ../../../artifacts
+					npx --yes @vscode/vsce@^3 package --out ../../../artifacts/parabun.vsix
+				'''
+			}
+			post {
+				success {
+					archiveArtifacts artifacts: 'artifacts/parabun.vsix', allowEmptyArchive: true
+				}
+				always {
+					sh '''
+						export HOME="${WORKSPACE}"
+						# Revert the file: dep swap so local dev stays intact.
+						cd packages/para-svelte/packages/svelte
+						git checkout package.json || true
+						rm -f "$HOME/.npmrc" || true
+					'''
+				}
+			}
+		}
+	}
+}

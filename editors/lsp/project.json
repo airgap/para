@@ -1,0 +1,21 @@
+{
+  "name": "parabun-lsp",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "editors/lsp",
+  "projectType": "application",
+  "tags": ["standalone-bun-lock", "tier-b"],
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun install", "cwd": "editors/lsp" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "\"${PARABUN_BIN:-parabun}\" test/component-embedded.smoke.ts",
+        "cwd": "editors/lsp"
+      },
+      "dependsOn": ["install"]
+    }
+  }
+}

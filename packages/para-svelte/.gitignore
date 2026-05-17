@@ -1,0 +1,33 @@
+# Dependency directories
+node_modules/
+
+# IDE related
+.idea
+
+# Test coverage
+coverage
+*.lcov
+
+# Optional eslint cache
+.eslintcache
+
+# dotenv environment variables file
+.env
+.env.test
+
+# build output
+.vercel
+
+# OS-specific
+.DS_Store
+
+tmp
+
+benchmarking/.profiles
+benchmarking/compare/.results
+benchmarking/compare/.profiles
+
+# Para Svelte: generated docs from scripts/process-messages — pruned upstream
+# output target restored here as a scratch dir.
+packages/svelte/.generated-docs/
+packages/svelte/tests/.para-e2e-*/

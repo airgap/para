@@ -1,0 +1,6 @@
+signal ready = false;
+signal score = 0;
+
+when ready { console.log("ready"); }
+when not ready { console.log("not ready"); }
+when score >= 100 { console.log("100 reached"); }

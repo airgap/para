@@ -1,0 +1,32 @@
+{
+  "name": "@para/simd",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "Vector primitives over typed arrays — mulScalar / addScalar / add / mul / sum / dot / matVec / simdMap. WebAssembly v128 kernels with a scalar JS fallback. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./simd.wasm": "./src/simd.wasm"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "build:wasm": "bun ../parabun-browser-shims/scripts/build-wasm.ts && cp ../parabun-browser-shims/src/simd.wasm src/simd.wasm && cp ../parabun-browser-shims/src/simd.wat src/simd.wat"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-simd"
+  },
+  "keywords": [
+    "simd",
+    "wasm",
+    "typed-arrays",
+    "para"
+  ]
+}

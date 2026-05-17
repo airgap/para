@@ -1,0 +1,4 @@
+signal a = 0;
+signal b = 1;
+signal sum = a + b;
+signal label = `count is ${a}`;

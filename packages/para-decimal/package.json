@@ -1,0 +1,32 @@
+{
+  "name": "@para/decimal",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "Self-contained exact-decimal arithmetic for Para. Backs the `0.1d` numeric-literal suffix — `0.1d` lowers to `__paraDec(\"0.1\")`, and the resulting Decimal value composes via `.plus` / `.minus` / `.times` / `.dividedBy` / `.eq` / `.lt` etc. Internal repr is `{ coef: bigint, exp: number }`, so every operation that doesn't divide is exact. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "USE_SYSTEM_BUN=1 bun test"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-decimal"
+  },
+  "keywords": [
+    "decimal",
+    "bignumber",
+    "arbitrary-precision",
+    "exact-arithmetic",
+    "para"
+  ]
+}

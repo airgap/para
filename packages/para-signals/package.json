@@ -1,0 +1,31 @@
+{
+  "name": "@lyku/para-signals",
+  "version": "0.0.1-pre.4",
+  "description": "Reactive primitives — signal / derived / effect / batch / untrack / proxySignal. Pure JS, runs on any JS runtime. Foundation of the para:* library suite; other modules expose their state through this. Pre-release: API may change before 0.1.0.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./svelte": "./svelte.svelte.js"
+  },
+  "files": [
+    "src/",
+    "svelte.svelte.js",
+    "README.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-signals"
+  },
+  "keywords": [
+    "signals",
+    "reactive",
+    "para"
+  ]
+}

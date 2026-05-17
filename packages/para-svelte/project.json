@@ -1,0 +1,23 @@
+{
+  "name": "para-svelte",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/para-svelte/packages/svelte/src",
+  "projectType": "library",
+  "tags": ["pnpm-managed", "svelte-fork"],
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm install", "cwd": "packages/para-svelte" }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm build", "cwd": "packages/para-svelte" },
+      "dependsOn": ["install"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm test", "cwd": "packages/para-svelte" },
+      "dependsOn": ["install"]
+    }
+  }
+}

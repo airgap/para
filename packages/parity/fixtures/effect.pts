@@ -1,0 +1,12 @@
+signal n = 0;
+effect { console.log(n); }
+effect {
+  if (n > 5) console.log("big");
+  else console.log("small");
+}
+effect console.log(n);
+signal m = 1;
+effect track(n, m);
+effect store.sync(n)
+  ? a()
+  : b();

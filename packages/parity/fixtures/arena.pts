@@ -1,0 +1,6 @@
+function process() {
+  arena {
+    const buf = new Float32Array(1024);
+    work(buf);
+  }
+}

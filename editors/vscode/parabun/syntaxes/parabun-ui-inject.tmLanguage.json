@@ -1,0 +1,14 @@
+{
+  "$comment": "Highlights <script lang=\"pts\"> and <script lang=\"parabun\"> content inside .svelte files using the parabun TS grammar. Scope-based injection: only fires when Svelte's own tokenizer has already set meta.lang.pts or meta.lang.parabun (which it derives from the lang= attribute). The opening tag's HTML-attribute styling stays intact because Svelte tokenizes that first. See parabun-ui-pjs-inject.tmLanguage.json for the pjs counterpart.",
+  "scopeName": "inject.parabun.pui.pts",
+  "injectionSelector": "L:(meta.script.svelte) (meta.lang.pts | meta.lang.parabun) - (meta source)",
+  "patterns": [
+    {
+      "begin": "(?<=>)(?!</)",
+      "end": "(?=</)",
+      "name": "meta.embedded.block.svelte",
+      "contentName": "source.pts",
+      "patterns": [{ "include": "source.pts" }]
+    }
+  ]
+}

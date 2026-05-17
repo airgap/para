@@ -1,0 +1,22 @@
+{
+  "name": "parabun-lsp",
+  "version": "0.1.0",
+  "description": "Language Server Protocol implementation for Parabun (.pts/.pjs)",
+  "bin": {
+    "parabun-lsp": "./parabun-lsp.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "sass": "^1.99.0",
+    "vscode-css-languageservice": "^6.3.0",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "@jridgewell/trace-mapping": "^0.3.31",
+    "@lyku/para-preprocess": "file:../../packages/para-preprocess",
+    "@lyku/para-transpile": "file:../../packages/para-transpile",
+    "esbuild": "^0.21.5",
+    "svelte": "^5.55.7",
+    "svelte2tsx": "^0.7.55"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "para-decimal",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/para-decimal/src",
+  "projectType": "library",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun test", "cwd": "packages/para-decimal" }
+    }
+  }
+}

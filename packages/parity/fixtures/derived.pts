@@ -1,0 +1,9 @@
+signal a = 0;
+signal b = 1;
+derived sum = a + b;
+derived label = `count is ${a}`;
+derived chained = sum * 10;
+derived multi = a > 0 && b > 0
+  ? a + b
+  : a - b;
+derived afterMulti = sum + 1;

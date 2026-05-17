@@ -1,0 +1,12 @@
+{
+  "name": "para-schema",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/para-schema/src",
+  "projectType": "library",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun test", "cwd": "packages/para-schema" }
+    }
+  }
+}

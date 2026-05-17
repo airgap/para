@@ -1,0 +1,31 @@
+{
+  "name": "@para/rtp",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "RFC 3550 RTP packet pack/parse + sequence-aware jitter buffer. Pure JS, no native deps. Built to sit under @para/audio's Opus encoder for a WebRTC-style send/receive path. Depends on @lyku/para-signals for the buffer's reactive state. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "dependencies": {
+    "@lyku/para-signals": "workspace:*"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-rtp"
+  },
+  "keywords": [
+    "rtp",
+    "rfc-3550",
+    "media",
+    "para"
+  ]
+}

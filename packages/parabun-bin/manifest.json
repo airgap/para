@@ -1,0 +1,5 @@
+{
+  "$comment": "BAKED AT PUBLISH TIME by parabun's Jenkins (P2-c). version = the pinned parabun release; each platform entry's sha256 must match the binary shipped in the named per-platform package. This committed copy is a SCAFFOLD PLACEHOLDER: platforms is intentionally empty so resolveParabun() forces the PARABUN_BIN escape hatch until the real packages are published. Do NOT hand-edit sha256 values — that defeats B1 integrity.",
+  "version": "0.0.0-pin.0",
+  "platforms": {}
+}
