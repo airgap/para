@@ -1,41 +1,6 @@
 <?xml version='1.1' encoding='UTF-8'?>
-<!--
-  Jenkins job definition for airgap/para (mirrors the `parabun` job).
-  Jenkins has no `para` job by default, so pushes to airgap/para build
-  NOTHING until this is installed. One-time setup (run as the jenkins
-  user / with sudo, then reload):
-
-    sudo install -d -o jenkins -g jenkins /var/lib/jenkins/jobs/para
-    sudo install -o jenkins -g jenkins -m 644 \
-      /raid/para/jenkins/job.config.xml /var/lib/jenkins/jobs/para/config.xml
-    # register without a full restart:
-    curl -fsS -X POST "http://localhost:8080/reload" --user <admin:token>
-    #   (or: Jenkins UI → Manage Jenkins → Reload Configuration from Disk)
-
-  After that: a push runs Codegen+Verify (no publish). To PUBLISH
-  @lyku/para-preprocess + @lyku/para-ui + .vsix, trigger a manual
-  "Build with Parameters" with PUBLISH_NPM=true (publish is deliberately
-  param-gated, never automatic on push).
--->
 <flow-definition plugin="workflow-job@1571.1580.v18e46842c125">
-  <actions>
-    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2277.v00573e73ddf1"/>
-    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2277.v00573e73ddf1">
-      <jobProperties>
-        <string>org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty</string>
-        <string>jenkins.model.BuildDiscarderProperty</string>
-      </jobProperties>
-      <triggers>
-        <string>hudson.triggers.SCMTrigger</string>
-      </triggers>
-      <parameters>
-        <string>PARABUN_PIN</string>
-        <string>RUN_CANARY</string>
-        <string>PUBLISH_NPM</string>
-      </parameters>
-      <options/>
-    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
-  </actions>
+  <actions/>
   <description>airgap/para CI: Codegen check + BLOCKING parity (vs pinned parabun) + nightly canary; publishes @lyku/para-preprocess + @lyku/para-ui + the .vsix when PUBLISH_NPM=true. Parameters self-reconcile from jenkins/Jenkinsfile on first build.</description>
   <keepDependencies>false</keepDependencies>
   <properties>
