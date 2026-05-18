@@ -383,7 +383,16 @@ function expandEffectSingle(src: string): string {
   while ((m = re.exec(src)) !== null) {
     const kwStart = m.index + m[1]!.length;
     const bodyStart = re.lastIndex;
-    const end = derivedInitEnd(src, bodyStart);
+    // Clamp to the enclosing `</script>`: derivedInitEnd is a JS-expression
+    // scanner and is blind to the .pui/.svelte script boundary, so an
+    // unterminated trailing `effect EXPR` (no `;`, last statement) would
+    // otherwise read `<` of `</script>` as a less-than operator and
+    // swallow the markup into the effect body — a real build break. The
+    // LSP magic-string port already clamps (Math.min(..., bodyEnd)); this
+    // brings canonical into line. Parity-gated by
+    // editors/lsp/test/pui-lower-parity.smoke.ts.
+    const close = src.indexOf("</script", bodyStart);
+    const end = Math.min(derivedInitEnd(src, bodyStart), close === -1 ? src.length : close);
     const body = src.slice(bodyStart, end).trim();
     out += src.slice(last, kwStart);
     out += `${m[2]}$effect(() => ${body})`;

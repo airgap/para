@@ -15,9 +15,21 @@
  * `prop` destructure) the line is overwritten whole and is line-accurate
  * (the LSP additionally strips the `__sig_` prefix in hovers).
  *
- * `.code` is asserted byte-identical to @lyku/para-preprocess's proven
- * `lowerPuiReactivity(src,'@lyku/para-ui',true)` by puiLowerParity (test),
- * so the magic-string port is faithful and the generated map trustworthy.
+ * Parity contract (enforced by test/pui-lower-parity.smoke.ts): for the
+ * REACTIVITY lowering — `signal` / `derived` (expr + block) / `effect`
+ * (block + single-statement) / `prop` — `.code` is byte-identical to
+ * @lyku/para-preprocess's proven `lowerPuiReactivity(src,'@lyku/para-ui',
+ * true)`, so the magic-string port is faithful and the generated map
+ * trustworthy. Two deltas are INTENTIONAL and out of the byte-identity
+ * scope (the gate excludes them, by design — not drift):
+ *   1. Operator desugars (pure / |> / ..! / fun / is / ranges / decimal /
+ *      match-stub). The LSP applies these so the projection is valid TS;
+ *      canonical does not (the Zig parser does, at build). Different
+ *      layers — never expected identical.
+ *   2. Auto-injected imports (provide/inject/using/source/lifecycle/nav)
+ *      are placed INSIDE the `<script>` here (line-preserving, so
+ *      diagnostic positions map); canonical emits them before the tag.
+ *      Required for LSP sourcemap accuracy; deliberately divergent.
  *
  * Bundled self-contained via esbuild-pui-transform.mjs.
  */
@@ -228,7 +240,11 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         const end = Math.min(derivedInitEnd(raw, exprAbs), bodyEnd);
         const term = raw[end] === ";" ? end + 1 : end;
         repl(kwAbs, exprAbs, `$effect(() => `);
-        repl(end, term, `);`);
+        // `)` not `);` — byte-parity with canonical lowerPuiReactivity
+        // (para-preprocess emits `$effect(() => EXPR)`, no trailing
+        // semicolon; the original `;` is consumed via `term`). Enforced
+        // by test/pui-lower-parity.smoke.ts.
+        repl(end, term, `)`);
         consumedUntil = term;
         continue;
       }

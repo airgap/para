@@ -12,7 +12,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "\"${PARABUN_BIN:-parabun}\" test/component-embedded.smoke.ts",
+        "command": "\"${PARABUN_BIN:-parabun}\" test/pui-lower-parity.smoke.ts && \"${PARABUN_BIN:-parabun}\" test/component-embedded.smoke.ts",
         "cwd": "editors/lsp"
       },
       "dependsOn": ["install"]
