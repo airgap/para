@@ -1464,7 +1464,17 @@ function fromTsPath(tsPath: string): string {
   const componentMatch = tsPath.match(/^(.*\.(?:svelte|pui))\.(tsx|ts|js)$/);
   if (componentMatch) {
     const componentPath = componentMatch[1]!;
-    if (documents.has(pathToUri(componentPath))) return componentPath;
+    // Map back when the component is OPEN *or* exists on disk. The
+    // on-disk case is essential for CLOSED imported `.pui`/`.svelte`:
+    // resolveModuleNameLiterals resolves `./X.pui` → `X.pui.tsx`, and
+    // getScriptSnapshot must see it as a component (isPuiUri) to serve
+    // the svelte2tsx projection. Open-only here meant a closed import
+    // fell through, isPuiUri was false, snapshot undefined → TS2307
+    // and importers lost real $props() (verified: .pui7-probe).
+    // `<x>.pui.tsx` is never a real user file, so disk-check is safe.
+    if (documents.has(pathToUri(componentPath)) || require("fs").existsSync(componentPath)) {
+      return componentPath;
+    }
   }
   const fs = require("fs");
   // Check if the original .pts/.ptsx/.pjs/.pjsx exists for this virtual path
@@ -1547,11 +1557,31 @@ function initTypeScriptService() {
   // its ambient fileNames to the program. Cached per tsconfig path.
   type Project = { options: import("typescript").CompilerOptions; ambients: string[] };
   const projectCache = new Map<string, Project>();
+  // svelte2tsx emits TSX that references Svelte/JSX globals
+  // (__sveltets_*, the `svelteHTML` JSX namespace, `Component`, etc.).
+  // SvelteKit projects pull these transitively via .svelte-kit/tsconfig;
+  // a plain Vite+Svelte project (no SvelteKit) does NOT, so the projected
+  // `.pui` TSX would be riddled with phantom "Cannot find name" errors.
+  // Add svelte2tsx's own shims as ambient roots for EVERY project (the
+  // v4 variants cover Svelte 5 / runes). svelte-language-server does the
+  // same; the declarations are guarded so SvelteKit projects that also
+  // see them don't double-declare. Resolved once.
+  const svelteShims: string[] = (() => {
+    const out: string[] = [];
+    for (const f of ["svelte2tsx/svelte-shims-v4.d.ts", "svelte2tsx/svelte-jsx-v4.d.ts"]) {
+      try {
+        out.push(require.resolve(f));
+      } catch (e: any) {
+        logMessage(2, `[parabun-lsp] svelte2tsx shim ${f} unresolved: ${e?.message ?? e}`);
+      }
+    }
+    return out;
+  })();
   function resolveProject(fromDir: string): Project {
     const cfg = ts!.findConfigFile(fromDir, ts!.sys.fileExists) ?? "";
     const hit = projectCache.get(cfg);
     if (hit) return hit;
-    let project: Project = { options: { ...DEFAULT_OPTS }, ambients: [] };
+    let project: Project = { options: { ...DEFAULT_OPTS }, ambients: [...svelteShims] };
     if (cfg) {
       const f = ts!.readConfigFile(cfg, ts!.sys.readFile);
       if (!f.error) {
@@ -1568,7 +1598,17 @@ function initTypeScriptService() {
             !fn.endsWith(".svelte") &&
             !fn.endsWith(".pui"),
         );
-        project = { options: { ...parsed.options, noEmit: true, skipLibCheck: true }, ambients };
+        project = {
+          // Force `jsx` on regardless of the user's tsconfig: every
+          // `.pui`/.svelte snapshot is svelte2tsx-projected TSX, and an
+          // imported `./X.pui` resolves to `X.pui.tsx`. A plain Svelte
+          // project's tsconfig has no `jsx`, so the cross-module .tsx
+          // import otherwise dies with TS6142 ("'--jsx' is not set") and
+          // prop-inference silently falls back to loose (verified:
+          // .pui7-probe). Matches DEFAULT_OPTS (the proven open-doc path).
+          options: { ...parsed.options, jsx: ts!.JsxEmit.Preserve, noEmit: true, skipLibCheck: true },
+          ambients: [...svelteShims, ...ambients],
+        };
         logMessage(3, `[parabun-lsp] project ${cfg}: ${ambients.length} ambient root(s)`);
       }
     }
@@ -1601,6 +1641,23 @@ function initTypeScriptService() {
       return v !== undefined ? String(v) : "0";
     },
     getScriptSnapshot(fileName) {
+      if (/Table\.pui|__probe-consumer/.test(fileName))
+      // Neutralize the `@lyku/para-preprocess/pui` wildcard ambient
+      // (`declare module "*.pui"`) INSIDE the LSP's own program. That
+      // shim exists for non-LSP consumers (plain tsc / svelte-check),
+      // but a wildcard ambient shadows host-resolved per-file modules in
+      // the checker — so with it loaded, `import X from './X.pui'`
+      // resolves to the loose `Component<Record<string,any>>` instead of
+      // the real svelte2tsx-projected $props() (verified: .pui7-probe).
+      // The LSP owns real per-file `.pui` types via
+      // resolveModuleNameLiterals → projected `.pui.tsx`; it must ignore
+      // the wildcard, exactly as svelte-language-server does NOT load a
+      // `*.svelte` wildcard in its own program. Serve an empty module so
+      // the `/// <reference types="@lyku/para-preprocess/pui" />` still
+      // resolves but contributes no `declare module "*.pui"`.
+      if (/[\\/]@lyku[\\/]para-preprocess[\\/]pui\.d\.ts$/.test(fileName)) {
+        return ts!.ScriptSnapshot.fromString("export {};\n");
+      }
       // Check if this is a virtual .ts path for an open .pts document
       const realPath = fromTsPath(fileName);
       const uri = pathToUri(realPath);
@@ -1608,10 +1665,19 @@ function initTypeScriptService() {
       // sees real component/prop/template types — not the blank-padded
       // script-only synthetic. Raw markup lives in svelteRawTexts.
       if (isPuiUri(uri)) {
-        const raw = svelteRawTexts.get(uri);
+        // Open docs keep raw in svelteRawTexts; a CLOSED `.pui` reached
+        // here only via an `import X from './X.pui'` (resolved by
+        // resolveModuleNameLiterals) — read+project it from disk too, or
+        // the importer falls back to the loose `*.pui` ambient and loses
+        // real $props() types.
+        let raw = svelteRawTexts.get(uri);
+        if (raw === undefined && ts!.sys.fileExists(realPath)) {
+          raw = ts!.sys.readFile(realPath);
+        }
         if (raw !== undefined) {
           const t = getPuiTransform(uri, raw);
           if (t) return ts!.ScriptSnapshot.fromString(t.code);
+        } else {
         }
       }
       const content = documents.get(uri);
@@ -1650,6 +1716,16 @@ function initTypeScriptService() {
     getCurrentDirectory: () => workspaceRoot,
     fileExists(path) {
       if (ts!.sys.fileExists(path)) return true;
+      // Virtual component paths: `<x>.pui.tsx` / `<x>.svelte.{ts,tsx,js}`
+      // are served by getScriptSnapshot (projection) but have no real
+      // file. resolveModuleNameLiterals resolves `./X.pui` to
+      // `X.pui.tsx`; TS then validates it via fileExists — which MUST
+      // say true or the import dies TS2307 even though resolution
+      // succeeded (verified: .pui7-probe). Recognize them via the
+      // existing fromTsPath inverse.
+      if (/\.(pui|svelte)\.[jt]sx?$/.test(path) && ts!.sys.fileExists(fromTsPath(path))) {
+        return true;
+      }
       const pbMap: [string, string][] = [
         [".ts", ".pts"],
         [".tsx", ".ptsx"],
@@ -1683,6 +1759,31 @@ function initTypeScriptService() {
       };
       return moduleLiterals.map(literal => {
         const name = literal.text;
+        // `import X from './X.pui'` — a RELATIVE `.pui` is unambiguously
+        // the sibling file, never a module. It MUST resolve to the
+        // projected virtual `.pui.tsx` (served by getScriptSnapshot via
+        // svelte2tsx) so importers get the REAL $props() types. Do this
+        // BEFORE consulting standard resolution: the program carries a
+        // wildcard `declare module "*.pui"` ambient (shipped by
+        // @lyku/para-preprocess/pui), and ts.resolveModuleName resolves
+        // the relative specifier to THAT ambient — a truthy resolvedModule
+        // — so a `!res.resolvedModule` guard never fires and the loose
+        // `Component<Record<string,any>>` wins (verified: .pui7-probe).
+        // The concrete sibling file must beat the wildcard. Relative only;
+        // bare/aliased `.pui` falls through to paths/baseUrl.
+        if (name.startsWith(".") && name.endsWith(".pui")) {
+          const abs = nodePath.resolve(nodePath.dirname(fromTsPath(containingFile)), name).replace(/\\/g, "/");
+          if (ts!.sys.fileExists(abs)) {
+            return {
+              resolvedModule: {
+                resolvedFileName: toTsPath(abs),
+                extension: ts!.Extension.Tsx,
+                isExternalLibraryImport: false,
+              },
+              failedLookupLocations: [],
+            } as ReturnType<typeof ts.resolveModuleName>;
+          }
+        }
         return ts!.resolveModuleName(name, containingFile, options, parabunSys);
       });
     },
