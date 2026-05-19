@@ -2,6 +2,8 @@
 
 Persistent Worker pool — `pmap` / `preduce` for data-parallel work, `run` for one-off off-thread tasks. Pure JS, runs on browsers, Node, Bun, Deno. Falls back to sequential execution in CSP-restricted contexts where `Worker` + `new Function` aren't available.
 
+**Native-delegating normalizer.** On the ParaBun runtime, `@para/parallel` resolves to the native builtin — SAB-backed zero-copy `pmap`/`preduce`, parallel SAB-radix `psort`, atomic `Mutex`/`Semaphore`. Off-runtime (and for by-path/bundled imports, which reach native via the recursion-safe `para:parallel` alias) this package provides faithful in-process fallbacks at the same API. `psort` off-runtime is a correct **sequential** sort (not Worker-parallel); `Mutex`/`Semaphore` are correct in-process (cross-thread SAB semantics need the runtime). `__paraParallelShim` is exported as `true` **only** when the sequential fallback is active — pin on `!mod.__paraParallelShim` if you must require a real parallel path.
+
 ```js
 import { pmap, preduce, run, createPool } from "@para/parallel";
 
@@ -34,6 +36,13 @@ const sum = await preduce((acc, x) => acc + x, scores, 0);
 - **`pool.pmap` / `pool.preduce` / `pool.run`** — same shapes as the functional surface.
 - **`pool.stats()`** → `{ workers, busy, idle, queued, waiting, completed, sequential }`.
 - **`pool.dispose()`** — terminate all workers; reject any queued or in-flight tasks.
+
+### Sort + concurrency primitives
+
+- **`psort(array, comparator?, options?)`** → `Promise`. TypedArray → value sort by the native parallel SAB-radix (no `comparator` accepted — wrap in a plain Array for comparator sort). Array → stable sort by `comparator`. `options`: `{ serial?, concurrency? }`. Off-runtime: a correct sequential sort.
+- **`new Mutex(sab?)`** — `lock()` / `tryLock()` / `unlock()` / `with(fn)`, `.sab`. Native = SAB + Atomics (shareable across workers); shim = in-process.
+- **`new Semaphore(initialPermits, sab?)`** — `tryAcquire()` / `acquire()` / `release()` / `with(fn)`, `.sab`.
+- **`pool({ size?, module })`** — native module-worker pool; the shim honors `size` (worker count) and builds workers from `fn.toString()` (`module` is N/A off-runtime).
 
 ## Per-call options
 

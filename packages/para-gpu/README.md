@@ -22,7 +22,7 @@ The surface is async on **every** backend so callers write one code path. WebGPU
 
 - **No WebGL.** WebGPU coverage is broad enough in 2026; a WebGL2 GPGPU path is high-complexity / low-precision for these kernels and is deliberately not a backend.
 - **`simdMap` is GPU-accelerated only on the native tier.** WebGPU has no `simdMap` kernel, so under the `webgpu` tier it runs on CPU.
-- **Native is not yet non-blocking.** `parabun:gpu` synchronizes on the JS thread; this package only Promise-wraps it. The async *contract* is honest (you must `await`); making native release the event loop during the GPU sync is a tracked native-side follow-up.
+- **Native is non-blocking.** On `parabun:gpu`, `matmul`/`matVec`/`dot` dispatch through `matmulAsync`/`matVecAsync`/`dotAsync`: a private CUDA stream polled with `cuStreamQuery` (not `cuCtxSynchronize`), plus pooled pinned host staging + async H2D/D2H, so the whole transfer→compute→readback chain yields the JS event loop — not just the kernel. Honest residue: `dot` with ≤~4 MB of transfer yields ~0 (too little PCIe to span an event-loop tick — scales with size); concurrent async GPU calls are *serialized* through a gate (pooled-buffer safety, not multi-stream overlap); the WebGPU/CPU tiers are unaffected by this (WebGPU is inherently async, CPU is sync-wrapped).
 
 ## Status
 
