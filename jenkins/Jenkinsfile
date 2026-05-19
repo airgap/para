@@ -291,36 +291,6 @@ pipeline {
 					mkdir -p ../../../artifacts
 					npx --yes @vscode/vsce@^3 package --out ../../../artifacts/parabun.vsix
 				'''
-				// Publish the .vsix as a release asset on the LATEST
-				// airgap/parabun release — it's the editor half of that
-				// binary release (the LSP runs via `parabun run`), so they
-				// pair on one tag. airgap/parabun owns the GH release; this
-				// only uploads an asset (--clobber = idempotent re-runs).
-				// Same `github-pat` credential the parity stages use.
-				// Degrade-don't-block: if no parabun release exists yet
-				// (binary release lagging), warn and rely on the Jenkins
-				// archiveArtifacts below — para must not fail because
-				// parabun's release cadence is behind. Matches the
-				// "degrade, don't hard-block publishing" posture above.
-				withCredentials([usernamePassword(
-					credentialsId: 'github-pat',
-					usernameVariable: 'GH_USER',
-					passwordVariable: 'GH_TOKEN',
-				)]) {
-					sh '''
-						set -eu
-						export HOME="${WORKSPACE}"
-						LATEST=$(gh release list --repo airgap/parabun \
-							--limit 1 --json tagName --jq '.[0].tagName')
-						if [ -z "$LATEST" ]; then
-							echo "::warning:: no airgap/parabun release found — .vsix archived to Jenkins only, not attached to a GH release"
-						else
-							echo "attaching parabun.vsix to airgap/parabun release $LATEST"
-							gh release upload "$LATEST" artifacts/parabun.vsix \
-								--repo airgap/parabun --clobber
-						fi
-					'''
-				}
 			}
 			post {
 				success {
@@ -334,6 +304,61 @@ pipeline {
 						git checkout package.json || true
 						rm -f "$HOME/.npmrc" || true
 					'''
+				}
+			}
+		}
+
+		// Para owns the VS Code extension as part of ITS offering — parabun
+		// is a separate product (it natively understands the Para language;
+		// the extension is Para-language editor support: LSP + syntax +
+		// reactive-dependents hover). So the .vsix is published as a release
+		// asset on a rolling airgap/para release, NOT on parabun's binary
+		// release. Its OWN stage, NOT gated by PUBLISH_NPM: every main build
+		// (re)builds + (re)publishes it. `vsix-latest` is a stable rolling
+		// prerelease (idempotent create + --clobber upload) so there's a
+		// constant download URL and no per-commit tag spam. set -eu → a
+		// publish failure fails this stage loudly (consistent with the npm
+		// publish posture); post.always still archives the Jenkins artifact.
+		stage('Package + publish .vsix') {
+			agent {
+				dockerfile {
+					filename 'jenkins/Dockerfile.ci-linux'
+					label 'linux'
+					additionalBuildArgs '--pull'
+					customWorkspace '/raid/jenkins-workspaces/para-vsix'
+				}
+			}
+			steps {
+				checkout scm
+				withCredentials([usernamePassword(
+					credentialsId: 'github-pat',
+					usernameVariable: 'GH_USER',
+					passwordVariable: 'GH_TOKEN',
+				)]) {
+					sh '''
+						set -eu
+						export HOME="${WORKSPACE}"
+						export PARABUN_VSIX_SKIP_BINARY_CHECK=1
+						bun install
+						bunx nx build parabun-vscode --skip-nx-cache
+						cd editors/vscode/parabun
+						mkdir -p ../../../artifacts
+						npx --yes @vscode/vsce@^3 package --out ../../../artifacts/parabun.vsix
+						cd "$WORKSPACE"
+						TAG=vsix-latest
+						if ! gh release view "$TAG" --repo airgap/para >/dev/null 2>&1; then
+							gh release create "$TAG" --repo airgap/para --prerelease \
+								--title "Parabun VS Code extension (rolling latest)" \
+								--notes "Latest airgap/para CI build of the Parabun VS Code extension (Para-language editor support: LSP + syntax + reactive-dependents hover). Asset is overwritten on every airgap/para main build."
+						fi
+						gh release upload "$TAG" artifacts/parabun.vsix --repo airgap/para --clobber
+						echo "published parabun.vsix -> airgap/para release $TAG"
+					'''
+				}
+			}
+			post {
+				always {
+					archiveArtifacts artifacts: 'artifacts/parabun.vsix', allowEmptyArchive: true
 				}
 			}
 		}
