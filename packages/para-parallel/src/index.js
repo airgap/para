@@ -751,5 +751,192 @@ function _resetHeuristic() {
   disposeWorkers();
 }
 
-export { Pool, createPool, pmap, preduce, run, disposeWorkers, _heuristicState, _resetHeuristic };
-export default { Pool, createPool, pmap, preduce, run, disposeWorkers, _heuristicState, _resetHeuristic };
+// ── Native delegation ───────────────────────────────────────────────────
+//
+// On the ParaBun runtime the native `@para/parallel` builtin shadows this
+// npm package by specifier, so this file usually isn't even loaded there.
+// But when it IS (imported by path, bundled, or under a test harness),
+// prefer the real native module: SAB-backed pmap/preduce, parallel radix
+// `psort`, atomic Mutex/Semaphore. We resolve through the native-only
+// `para:parallel` alias (LYK-805) which maps to the builtin and never to
+// this package — so there's no self-recursion. Off-runtime the require
+// throws and we use the shim implementations below. Same posture as
+// @lyku/para-gpu → parabun:gpu.
+let _native;
+function nativeMod() {
+  if (_native !== undefined) return _native;
+  _native = null;
+  try {
+    const req = typeof require === "function" ? require : null;
+    if (req) {
+      const m = req("para" + ":parallel"); // split: dodge bundler static resolution
+      const mod = (m && m.default) || m;
+      if (mod && typeof mod.psort === "function") _native = mod;
+    }
+  } catch {
+    /* off-runtime: no native builtin — fall back to the shim */
+  }
+  return _native;
+}
+
+// ── Shim fallbacks for the surface the shim was missing ─────────────────
+// Faithful in-process equivalents of the native API (same shapes/errors).
+// Single-threaded but correct; cross-thread SAB semantics aren't available
+// off the ParaBun runtime, and in-process mutual exclusion is the honest
+// fallback there.
+
+async function psort(array, comparator, options) {
+  if (ArrayBuffer.isView(array)) {
+    if (comparator) {
+      throw new TypeError(
+        "psort: TypedArray inputs use the radix path which doesn't accept a comparator (sort by value only). " +
+          "Wrap your typed array in a plain Array for comparator-driven sort.",
+      );
+    }
+    const c = array.slice();
+    c.sort(); // numeric for TypedArrays — matches the native radix ordering (NaN last)
+    return c;
+  }
+  if (Array.isArray(array)) {
+    const c = array.slice();
+    c.sort(comparator); // ECMAScript sort is stable, like the native merge path
+    return c;
+  }
+  throw new TypeError("psort: first argument must be an Array or TypedArray");
+}
+
+function _freshSab(bytes) {
+  return typeof SharedArrayBuffer !== "undefined" ? new SharedArrayBuffer(bytes) : new ArrayBuffer(bytes);
+}
+
+class Mutex {
+  constructor(sab) {
+    this.sab = sab ?? _freshSab(4);
+    this._locked = false;
+    this._waiters = [];
+  }
+  async lock() {
+    if (!this._locked) {
+      this._locked = true;
+      return;
+    }
+    await new Promise(res => this._waiters.push(res)); // resumed already holding the lock
+  }
+  tryLock() {
+    if (this._locked) return false;
+    this._locked = true;
+    return true;
+  }
+  unlock() {
+    const next = this._waiters.shift();
+    if (next)
+      next(); // hand the lock straight to the next waiter (stays locked)
+    else this._locked = false;
+  }
+  async with(fn) {
+    await this.lock();
+    try {
+      return await fn();
+    } finally {
+      this.unlock();
+    }
+  }
+}
+
+class Semaphore {
+  constructor(initialPermits, sab) {
+    if (!Number.isInteger(initialPermits) || initialPermits < 0) {
+      throw new RangeError("@para/parallel: Semaphore initialPermits must be a non-negative integer");
+    }
+    this.sab = sab ?? _freshSab(4);
+    this._permits = initialPermits;
+    this._waiters = [];
+  }
+  tryAcquire() {
+    if (this._permits > 0) {
+      this._permits--;
+      return true;
+    }
+    return false;
+  }
+  async acquire() {
+    if (this._permits > 0) {
+      this._permits--;
+      return;
+    }
+    await new Promise(res => this._waiters.push(res));
+  }
+  release() {
+    const w = this._waiters.shift();
+    if (w)
+      w(); // wake one waiter; the permit passes straight to it
+    else this._permits++;
+  }
+  async with(fn) {
+    await this.acquire();
+    try {
+      return await fn();
+    } finally {
+      this.release();
+    }
+  }
+}
+
+// Native pool({size, module}) spins module-file workers; the shim builds
+// workers from fn.toString(), so `module` is not applicable off-runtime.
+// We honor `size` as the worker count.
+function pool(opts) {
+  return createPool(opts && opts.size ? { concurrency: opts.size } : {});
+}
+
+// ── Resolved surface: native when reachable, shim otherwise ─────────────
+const _N = nativeMod();
+const _pmap = _N ? _N.pmap : pmap;
+const _preduce = _N ? _N.preduce : preduce;
+const _psort = _N ? _N.psort : psort;
+const _disposeWorkers = _N ? _N.disposeWorkers : disposeWorkers;
+const _Mutex = _N ? _N.Mutex : Mutex;
+const _Semaphore = _N ? _N.Semaphore : Semaphore;
+const _pool = _N ? _N.pool : pool;
+const _hState = _N && _N._heuristicState ? _N._heuristicState : _heuristicState;
+const _hReset = _N && _N._resetHeuristic ? _N._resetHeuristic : _resetHeuristic;
+
+// Honest capability marker. `true` only when this is the sequential shim
+// fallback (no native builtin reachable, so `psort` is a correct-but-
+// serial sort, the SAB primitives are in-process, pmap/preduce are
+// copy-then-transfer). The native builtin does NOT define this key, and
+// when this file delegates to native (_N truthy) we report false. Lets
+// consumers that must pin a real parallel path (e.g. @lyku/para-sort's
+// `backend:"parallel"`) tell the engine from the fallback.
+const _shimFallback = !_N;
+
+export {
+  Pool,
+  createPool,
+  run,
+  _pmap as pmap,
+  _preduce as preduce,
+  _psort as psort,
+  _disposeWorkers as disposeWorkers,
+  _Mutex as Mutex,
+  _Semaphore as Semaphore,
+  _pool as pool,
+  _hState as _heuristicState,
+  _hReset as _resetHeuristic,
+  _shimFallback as __paraParallelShim,
+};
+export default {
+  Pool,
+  createPool,
+  run,
+  pmap: _pmap,
+  preduce: _preduce,
+  psort: _psort,
+  disposeWorkers: _disposeWorkers,
+  Mutex: _Mutex,
+  Semaphore: _Semaphore,
+  pool: _pool,
+  _heuristicState: _hState,
+  _resetHeuristic: _hReset,
+  __paraParallelShim: _shimFallback,
+};

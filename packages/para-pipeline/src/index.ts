@@ -656,6 +656,137 @@ function max<T>(keyFn?: (x: T) => number) {
   };
 }
 
+// ── Bounded top-K (streaming selection) ───────────────────────────────────
+//
+// `source |> sort() |> take(k)` is NOT a sort — it's selection. topK keeps a
+// size-k binary heap and makes a single streaming pass: O(n log k) time,
+// O(k) memory, never materializing or sorting the dataset. Ties break on
+// arrival order (stable — equal keys keep the earliest k seen).
+// `by:"max"` (default) keeps the k largest; "min" the k smallest. Result is
+// ordered best→worst.
+//
+// topK is a monoid: mergeTopK([topK(A), topK(B)], k) === topK(A ∪ B). That's
+// what makes the multi-file / multi-shard case trivial — local top-k per
+// file, then merge — O(shards·k) memory regardless of total rows.
+
+type _TKEntry = { key: number; idx: number; val: any };
+
+class _BoundedHeap {
+  k: number;
+  by: "max" | "min";
+  h: _TKEntry[] = [];
+  constructor(k: number, by: "max" | "min") {
+    this.k = Number.isInteger(k) && k > 0 ? k : 0;
+    this.by = by;
+  }
+  // Is `a` more eligible for eviction than `b`? The heap root is the
+  // most-removable entry. idx is unique so this order is total.
+  #moreRemovable(a: _TKEntry, b: _TKEntry): boolean {
+    if (a.key !== b.key) return this.by === "max" ? a.key < b.key : a.key > b.key;
+    return a.idx > b.idx; // later arrival evicted first → earliest k kept (stable)
+  }
+  offer(key: number, idx: number, val: any): void {
+    if (this.k === 0) return;
+    const h = this.h;
+    if (h.length < this.k) {
+      h.push({ key, idx, val });
+      let i = h.length - 1;
+      while (i > 0) {
+        const p = (i - 1) >> 1;
+        if (!this.#moreRemovable(h[i], h[p])) break;
+        [h[p], h[i]] = [h[i], h[p]];
+        i = p;
+      }
+      return;
+    }
+    const cand: _TKEntry = { key, idx, val };
+    // Keep cand only if the current most-removable (root) is strictly more
+    // removable than cand; otherwise cand is no better than what we'd drop.
+    if (!this.#moreRemovable(h[0], cand)) return;
+    h[0] = cand;
+    let i = 0;
+    const n = h.length;
+    for (;;) {
+      const l = 2 * i + 1;
+      const r = l + 1;
+      let m = i;
+      if (l < n && this.#moreRemovable(h[l], h[m])) m = l;
+      if (r < n && this.#moreRemovable(h[r], h[m])) m = r;
+      if (m === i) break;
+      [h[m], h[i]] = [h[i], h[m]];
+      i = m;
+    }
+  }
+  drain(): _TKEntry[] {
+    // best (least removable) → worst.
+    return this.h.slice().sort((a, b) => (this.#moreRemovable(a, b) ? 1 : -1));
+  }
+}
+
+function _by(opts?: { by?: "max" | "min" }): "max" | "min" {
+  return opts?.by === "min" ? "min" : "max";
+}
+
+/**
+ * Terminal: the k best elements, ordered best→worst. Single streaming pass,
+ * O(k) memory. `keyFn` maps an element to its numeric ranking key (default:
+ * the element itself). Replaces `… |> sort() |> take(k)` without sorting or
+ * buffering the dataset.
+ */
+function topK<T>(k: number, keyFn?: (x: T, i: number) => number, opts?: { by?: "max" | "min" }) {
+  const by = _by(opts);
+  return async function (source: Source<T>): Promise<T[]> {
+    const heap = new _BoundedHeap(k, by);
+    let i = 0;
+    for await (const x of source) {
+      heap.offer(+(keyFn ? keyFn(x, i) : (x as unknown as number)), i, x);
+      i++;
+    }
+    return heap.drain().map(e => e.val as T);
+  };
+}
+
+/**
+ * Terminal: indices (into the source's iteration order) of the k best
+ * elements, ordered best→worst. The "give me the top rows" form — keep keys
+ * here, gather the rows/columns yourself (pairs with @para/arrow columns).
+ */
+function argTopK<T>(k: number, keyFn?: (x: T, i: number) => number, opts?: { by?: "max" | "min" }) {
+  const by = _by(opts);
+  return async function (source: Source<T>): Promise<Uint32Array> {
+    const heap = new _BoundedHeap(k, by);
+    let i = 0;
+    for await (const x of source) {
+      heap.offer(+(keyFn ? keyFn(x, i) : (x as unknown as number)), i, i);
+      i++;
+    }
+    return Uint32Array.from(heap.drain().map(e => e.val as number));
+  };
+}
+
+/**
+ * Monoid combine: fold several already-local top-k results into the global
+ * top-k. `lists` need not be sorted. O(Σ|lists|·log k) / O(k) memory — the
+ * merge step for multi-file / multi-shard top-k. Synchronous (inputs are in
+ * memory by construction).
+ */
+function mergeTopK<T>(
+  lists: Iterable<Iterable<T>>,
+  k: number,
+  keyFn?: (x: T, i: number) => number,
+  opts?: { by?: "max" | "min" },
+): T[] {
+  const heap = new _BoundedHeap(k, _by(opts));
+  let i = 0;
+  for (const list of lists) {
+    for (const x of list) {
+      heap.offer(+(keyFn ? keyFn(x, i) : (x as unknown as number)), i, x);
+      i++;
+    }
+  }
+  return heap.drain().map(e => e.val as T);
+}
+
 function every<T>(pred: (x: T) => boolean | Promise<boolean>) {
   return async function (source: Source<T>): Promise<boolean> {
     for await (const x of source) {
@@ -723,6 +854,72 @@ function of<T>(...values: T[]): Iterable<T> {
 
 function from<T>(source: Source<T>): Source<T> {
   return source;
+}
+
+// ── Columnar projection sources ───────────────────────────────────────────
+//
+// Stream a column-batch source as per-row value(s) WITHOUT materializing
+// whole rows — pull only the field(s) you need. Paired with topK/argTopK
+// this is the "top rows by score over an arbitrarily large CSV" path at
+// O(batchSize + k) memory: the parser only ever holds one batch, the heap
+// only k. Batch shape is duck-typed, so this works with both:
+//   • @para/csv parseBatches  → plain columnar object { name: ArrayLike }
+//     (row count = any column's .length; final batch is tight-fit)
+//   • @para/arrow RecordBatch → has .column(name).get(i) + .numRows
+// Structural by design — para-pipeline takes no dep on csv/arrow.
+
+function _isArrowBatch(b: any): boolean {
+  return b != null && typeof b.column === "function" && typeof b.numRows === "number";
+}
+
+/** Project a single column → a per-row scalar stream (no row objects). */
+async function* fromColumn<T = unknown>(batches: Source<any>, name: string): AsyncGenerator<T, void, unknown> {
+  for await (const b of batches as AsyncIterable<any>) {
+    if (_isArrowBatch(b)) {
+      const col = b.column(name);
+      const n = b.numRows;
+      for (let i = 0; i < n; i++) yield col.get(i) as T;
+    } else {
+      const arr = b == null ? undefined : b[name];
+      if (arr == null) throw new Error(`fromColumn: batch has no column ${JSON.stringify(name)}`);
+      const n = arr.length;
+      for (let i = 0; i < n; i++) yield arr[i] as T;
+    }
+  }
+}
+
+/**
+ * Project several columns → a per-row object with only those fields. The
+ * sole per-row allocation is this small projected object (not the full
+ * row); fed to topK only k survive.
+ */
+async function* fromColumns<T = Record<string, unknown>>(
+  batches: Source<any>,
+  names: readonly string[],
+): AsyncGenerator<T, void, unknown> {
+  for await (const b of batches as AsyncIterable<any>) {
+    if (_isArrowBatch(b)) {
+      const cols = names.map(nm => b.column(nm));
+      const n = b.numRows;
+      for (let i = 0; i < n; i++) {
+        const row: any = {};
+        for (let c = 0; c < names.length; c++) row[names[c]] = cols[c].get(i);
+        yield row as T;
+      }
+    } else {
+      const arrs = names.map(nm => {
+        const a = b == null ? undefined : b[nm];
+        if (a == null) throw new Error(`fromColumns: batch has no column ${JSON.stringify(nm)}`);
+        return a;
+      });
+      const n = arrs.length === 0 ? 0 : arrs[0].length;
+      for (let i = 0; i < n; i++) {
+        const row: any = {};
+        for (let c = 0; c < names.length; c++) row[names[c]] = arrs[c][i];
+        yield row as T;
+      }
+    }
+  }
 }
 
 function empty<T>(): Iterable<T> {
@@ -1001,6 +1198,9 @@ export default {
   find,
   min,
   max,
+  topK,
+  argTopK,
+  mergeTopK,
   every,
   some,
   toMap,
@@ -1010,6 +1210,8 @@ export default {
   toFloat32Array,
   toFloat64Array,
   // Sources / multi-source combinators
+  fromColumn,
+  fromColumns,
   range,
   of,
   from,

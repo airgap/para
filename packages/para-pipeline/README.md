@@ -55,6 +55,8 @@ const out = await p.collect(p.take(10)(p.filter(even)(p.map(double)(source))));
 | `forEach(fn)` | Side effect per item; resolves when source completes. |
 | `first(pred?)` / `last(pred?)` / `find(pred)` | Selector terminals. |
 | `min(keyFn?)` / `max(keyFn?)` | Extreme by numeric key. |
+| `topK(k, keyFn?, {by})` | The `k` best, ordered best→worst. Streaming bounded heap: O(n log k) time, **O(k) memory** — never sorts or buffers the dataset. `by:"max"` (default) / `"min"`. Stable on ties (earliest k). |
+| `argTopK(k, keyFn?, {by})` | Same, returns a `Uint32Array` of source indices — the "top *rows*" form (keep keys, gather columns yourself). |
 | `every(pred)` / `some(pred)` | Universal / existential. |
 | `toMap(keyFn, valueFn?)` / `toSet` | Collect into `Map` / `Set`. |
 | `groupBy(keyFn)` | `Map<K, T[]>`. |
@@ -68,6 +70,8 @@ const out = await p.collect(p.take(10)(p.filter(even)(p.map(double)(source))));
 | `range(stop)` / `range(start, stop, step?)` | Lazy integer source. |
 | `of(...values)` | Wrap args as iterable. |
 | `from(source)` | Identity wrapper for any source. |
+| `fromColumn(batches, name)` | Project one column of a batch stream → per-row scalars, no row objects. |
+| `fromColumns(batches, names)` | Project several columns → a per-row object of just those fields. |
 | `empty()` | Yields nothing. |
 | `concat(...sources)` | Sequence sources end-to-end. |
 | `merge(...sources)` | Race-style interleave (async sources). |
@@ -93,6 +97,28 @@ await (arr |> p.map(x => x * 2) |> p.map(x => x + 1) |> p.sum); // single SIMD p
 ## On the ParaBun runtime
 
 Single-affine chains (`x*K + C` collapsed) on Float32Array sources opportunistically promote to `parabun:gpu` when it's available and `gpu.winsForSize(...)` says yes. The lookup is dynamic and silently falls back to `@para/simd` when `parabun:gpu` isn't resolvable (Node, browsers, anywhere outside ParaBun) — same code path either way.
+
+## Top-K over large / sharded data
+
+`source |> sort() |> take(k)` is **not** a sort — it's selection. `topK` does it in one streaming pass with an O(k) heap; the dataset is never sorted or materialized. Paired with the columnar projection sources, you get "top rows by score over an arbitrarily large CSV" at **O(batchSize + k) memory** — the parser holds one batch, the heap holds k:
+
+```js
+import csv from "@para/csv";
+import p from "@para/pipeline";
+
+const top5 = await p.topK(5, r => r.score)(
+  p.fromColumns(csv.parseBatches(file, { schema: { id: "string", score: "f32" }, batchSize: 8192 }), ["id", "score"]),
+);
+```
+
+`fromColumn` / `fromColumns` are structural — they accept both the `@para/csv` `parseBatches` shape (`{ name: ArrayLike }`) and `@para/arrow` `RecordBatch` (`.column(name).get(i)` + `.numRows`); this package takes no dependency on either.
+
+`topK` is a **monoid**: `mergeTopK([topK(A), topK(B)], k) ≡ topK(A ∪ B)`. So multi-file / multi-shard top-k is local-top-k-per-shard then merge, at O(shards·k) memory regardless of total rows:
+
+```js
+const locals = await Promise.all(files.map(f => p.topK(5, keyFn)(streamOf(f))));
+const global = p.mergeTopK(locals, 5, keyFn); // synchronous combine
+```
 
 ## Status
 
