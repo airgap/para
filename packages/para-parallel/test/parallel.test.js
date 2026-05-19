@@ -307,3 +307,82 @@ describe("pool lifecycle (alive + use)", () => {
     expect(runs).toBe(before);
   });
 });
+
+// Normalizer surface added so the npm package is a faithful fallback for
+// the native @para/parallel builtin. Under system bun there is no native
+// builtin, so these exercise the shim fallbacks + the honest marker.
+describe("normalizer fallback surface (off-runtime)", () => {
+  test("marks itself as the shim fallback", async () => {
+    const mod = await import("../src/index.js");
+    expect(mod.__paraParallelShim).toBe(true);
+    expect(mod.default.__paraParallelShim).toBe(true);
+  });
+
+  test("psort: TypedArray numeric, no comparator allowed", async () => {
+    const { psort } = await import("../src/index.js");
+    const a = new Float32Array([3, -1, NaN, 0, 2, -5]);
+    const out = await psort(a);
+    expect(Array.from(out.subarray(0, 5))).toEqual([-5, -1, 0, 2, 3]);
+    expect(Number.isNaN(out[5])).toBe(true);
+    expect(Array.from(a)).toEqual([3, -1, NaN, 0, 2, -5].map(x => x)); // input untouched
+    await expect(psort(new Int32Array([1]), (x, y) => x - y)).rejects.toThrow(/doesn't accept a comparator/);
+  });
+
+  test("psort: Array with comparator (stable)", async () => {
+    const { psort } = await import("../src/index.js");
+    const items = [
+      { k: 2, i: 0 },
+      { k: 1, i: 1 },
+      { k: 2, i: 2 },
+      { k: 1, i: 3 },
+    ];
+    const out = await psort(items, (a, b) => a.k - b.k);
+    expect(out.map(o => o.i)).toEqual([1, 3, 0, 2]); // stable on equal keys
+  });
+
+  test("Mutex serializes a critical section", async () => {
+    const { Mutex } = await import("../src/index.js");
+    const m = new Mutex();
+    let inside = 0;
+    let maxConcurrent = 0;
+    await Promise.all(
+      Array.from({ length: 8 }, () =>
+        m.with(async () => {
+          inside++;
+          maxConcurrent = Math.max(maxConcurrent, inside);
+          await new Promise(r => setTimeout(r, 5));
+          inside--;
+        }),
+      ),
+    );
+    expect(maxConcurrent).toBe(1);
+    expect(m.tryLock()).toBe(true);
+  });
+
+  test("Semaphore caps concurrency at its permit count", async () => {
+    const { Semaphore } = await import("../src/index.js");
+    const s = new Semaphore(3);
+    let inside = 0;
+    let peak = 0;
+    await Promise.all(
+      Array.from({ length: 12 }, () =>
+        s.with(async () => {
+          inside++;
+          peak = Math.max(peak, inside);
+          await new Promise(r => setTimeout(r, 5));
+          inside--;
+        }),
+      ),
+    );
+    expect(peak).toBe(3);
+    expect(() => new Semaphore(-1)).toThrow(/non-negative integer/);
+  });
+
+  test("pool() returns a usable Pool honoring size", async () => {
+    const { pool } = await import("../src/index.js");
+    const p = pool({ size: 2, module: "ignored-off-runtime" });
+    const out = await p.pmap(x => x * 2, [1, 2, 3]);
+    expect(Array.from(out)).toEqual([2, 4, 6]);
+    p.dispose();
+  });
+});

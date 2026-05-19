@@ -32,6 +32,13 @@
       "name": "@para/decimal",
       "version": "0.0.0-dev",
     },
+    "packages/para-gpu": {
+      "name": "@lyku/para-gpu",
+      "version": "0.0.0-dev",
+      "dependencies": {
+        "@para/simd": "workspace:*",
+      },
+    },
     "packages/para-mcp": {
       "name": "@para/mcp",
       "version": "0.0.0-dev",
@@ -56,7 +63,7 @@
     },
     "packages/para-preprocess": {
       "name": "@lyku/para-preprocess",
-      "version": "0.0.1-pre.11",
+      "version": "0.0.1-pre.14",
       "devDependencies": {
         "bun-types": "latest",
         "svelte": "^5.20.4",
@@ -84,6 +91,13 @@
     "packages/para-simd": {
       "name": "@para/simd",
       "version": "0.0.0-dev",
+    },
+    "packages/para-sort": {
+      "name": "@lyku/para-sort",
+      "version": "0.0.0-dev",
+      "dependencies": {
+        "@para/parallel": "workspace:*",
+      },
     },
     "packages/para-transpile": {
       "name": "@lyku/para-transpile",
@@ -367,11 +381,15 @@
 
     "@lyku/para-arena": ["@lyku/para-arena@workspace:packages/para-arena"],
 
+    "@lyku/para-gpu": ["@lyku/para-gpu@workspace:packages/para-gpu"],
+
     "@lyku/para-parity": ["@lyku/para-parity@workspace:packages/parity"],
 
     "@lyku/para-preprocess": ["@lyku/para-preprocess@workspace:packages/para-preprocess"],
 
     "@lyku/para-signals": ["@lyku/para-signals@workspace:packages/para-signals"],
+
+    "@lyku/para-sort": ["@lyku/para-sort@workspace:packages/para-sort"],
 
     "@lyku/para-transpile": ["@lyku/para-transpile@workspace:packages/para-transpile"],
 
