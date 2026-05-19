@@ -1642,22 +1642,22 @@ function initTypeScriptService() {
     },
     getScriptSnapshot(fileName) {
       if (/Table\.pui|__probe-consumer/.test(fileName))
-      // Neutralize the `@lyku/para-preprocess/pui` wildcard ambient
-      // (`declare module "*.pui"`) INSIDE the LSP's own program. That
-      // shim exists for non-LSP consumers (plain tsc / svelte-check),
-      // but a wildcard ambient shadows host-resolved per-file modules in
-      // the checker — so with it loaded, `import X from './X.pui'`
-      // resolves to the loose `Component<Record<string,any>>` instead of
-      // the real svelte2tsx-projected $props() (verified: .pui7-probe).
-      // The LSP owns real per-file `.pui` types via
-      // resolveModuleNameLiterals → projected `.pui.tsx`; it must ignore
-      // the wildcard, exactly as svelte-language-server does NOT load a
-      // `*.svelte` wildcard in its own program. Serve an empty module so
-      // the `/// <reference types="@lyku/para-preprocess/pui" />` still
-      // resolves but contributes no `declare module "*.pui"`.
-      if (/[\\/]@lyku[\\/]para-preprocess[\\/]pui\.d\.ts$/.test(fileName)) {
-        return ts!.ScriptSnapshot.fromString("export {};\n");
-      }
+        if (/[\\/]@lyku[\\/]para-preprocess[\\/]pui\.d\.ts$/.test(fileName)) {
+          // Neutralize the `@lyku/para-preprocess/pui` wildcard ambient
+          // (`declare module "*.pui"`) INSIDE the LSP's own program. That
+          // shim exists for non-LSP consumers (plain tsc / svelte-check),
+          // but a wildcard ambient shadows host-resolved per-file modules in
+          // the checker — so with it loaded, `import X from './X.pui'`
+          // resolves to the loose `Component<Record<string,any>>` instead of
+          // the real svelte2tsx-projected $props() (verified: .pui7-probe).
+          // The LSP owns real per-file `.pui` types via
+          // resolveModuleNameLiterals → projected `.pui.tsx`; it must ignore
+          // the wildcard, exactly as svelte-language-server does NOT load a
+          // `*.svelte` wildcard in its own program. Serve an empty module so
+          // the `/// <reference types="@lyku/para-preprocess/pui" />` still
+          // resolves but contributes no `declare module "*.pui"`.
+          return ts!.ScriptSnapshot.fromString("export {};\n");
+        }
       // Check if this is a virtual .ts path for an open .pts document
       const realPath = fromTsPath(fileName);
       const uri = pathToUri(realPath);
@@ -2996,7 +2996,78 @@ function getHoverResult(
   return null;
 }
 
-function getParabunHover(content: string, line: number, character: number): string | null {
+// Slice 0 of the reactive-graph hover: a static, single-file, *syntactic*
+// scan of which reactive constructs read a given signal/derived. Honest
+// limits — source-level, so it misses dynamic / conditional / cross-file
+// dependencies and can include shadowed names; the true reactive graph is
+// a runtime property. Surfaced as plain text in the signal hover; visuals
+// (SVG-in-hover / webview) are deliberately a later slice.
+function stripLineCommentForScan(s: string): string {
+  const i = s.indexOf("//");
+  if (i < 0) return s;
+  if (i > 0 && s[i - 1] === ":") return s; // crude `://` URL guard
+  return s.slice(0, i);
+}
+
+type ReactiveDependent = { kind: "derived" | "effect" | "when" | "binding"; label: string; line: number };
+
+export function staticReactiveDependents(content: string, name: string): ReactiveDependent[] {
+  const lines = content.split("\n");
+  // `$` is not a \w char; this boundary keeps `foo` from matching `foo$bar`.
+  const ref = new RegExp(`(?<![\\w$])${name}(?![\\w$])`);
+  const derivedDecl = /\b(?:export\s+)?derived\s+([A-Za-z_$][\w$]*)\s*[:=]/;
+  const whenRe = /\bwhen\b(\s+not\b)?\s*([^\n{]*?)\s*\{/;
+  const out: ReactiveDependent[] = [];
+  const seen = new Set<string>();
+  const add = (kind: ReactiveDependent["kind"], label: string, line: number) => {
+    const k = kind + ":" + line;
+    if (!seen.has(k)) {
+      seen.add(k);
+      out.push({ kind, label, line });
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const t = stripLineCommentForScan(lines[i]);
+    const dm = derivedDecl.exec(t);
+    if (dm && dm[1] !== name && ref.test(t.slice(dm.index + dm[0].length))) {
+      add("derived", `derived ${dm[1]}`, i); // single-line RHS only (approx)
+    }
+    const wm = whenRe.exec(t);
+    if (wm && ref.test(wm[2] ?? "")) {
+      add("when", `when${wm[1] ? " not" : ""} ${(wm[2] || "").trim()}`.trim(), i);
+    }
+    if ((/~>/.test(t) || /(?<![-=<])->/.test(t)) && ref.test(t)) {
+      add("binding", "reactive binding (~> / ->)", i);
+    }
+  }
+
+  // effect { … } — brace-matched so a multi-line body counts.
+  const effRe = /\beffect\s*\{/g;
+  let em: RegExpExecArray | null;
+  while ((em = effRe.exec(content)) !== null) {
+    const open = content.indexOf("{", em.index);
+    if (open < 0) break;
+    let depth = 0;
+    let end = content.length;
+    for (let p = open; p < content.length; p++) {
+      const c = content[p];
+      if (c === "{") depth++;
+      else if (c === "}" && --depth === 0) {
+        end = p;
+        break;
+      }
+    }
+    if (ref.test(content.slice(open + 1, end))) {
+      add("effect", "effect { … }", content.slice(0, em.index).split("\n").length - 1);
+    }
+  }
+
+  out.sort((a, b) => a.line - b.line);
+  return out;
+}
+
+export function getParabunHover(content: string, line: number, character: number): string | null {
   const lines = content.split("\n");
   if (line >= lines.length) return null;
   const lineText = lines[line];
@@ -3139,6 +3210,28 @@ function getParabunHover(content: string, line: number, character: number): stri
       "Allow-list: `.get`, `.set`, `.peek`, `.subscribe`, `.update` stay as",
       "real `Signal` methods. Every other `NAME.foo` rewrites as `NAME.get().foo`.",
     ].join("\n");
+  }
+
+  // Hover on a signal / derived NAME → list its static reactive dependents.
+  // (The `signal` keyword itself is handled by the block above.)
+  if (wordAt && /^[A-Za-z_$][\w$]*$/.test(wordAt)) {
+    const declM = new RegExp(`\\b(signal|derived)\\s+${wordAt}(?![\\w$])`).exec(content);
+    if (declM) {
+      const deps = staticReactiveDependents(content, wordAt);
+      const head = declM[1] === "derived" ? "derived (read-only)" : "signal";
+      const md: string[] = [`### \`${wordAt}\` — reactive ${head}`, ""];
+      if (deps.length === 0) {
+        md.push("_No static single-file dependents found._");
+      } else {
+        md.push("**Reactive dependents** _(static, single-file approximation):_", "");
+        for (const d of deps) md.push(`- ${d.label} — line ${d.line + 1}`);
+        md.push(
+          "",
+          "_Syntactic, single-file: misses dynamic / conditional / cross-file deps; may include shadowed names. The true graph is a runtime property._",
+        );
+      }
+      return md.join("\n");
+    }
   }
 
   if (wordAt === "schema") {
@@ -5467,7 +5560,9 @@ function handleMessage(msg: any) {
 // stdin reader — Content-Length framed messages (main LSP only)
 // ---------------------------------------------------------------------------
 
-if (!HELPER_MODE) {
+// PARABUN_LSP_NO_LISTEN lets the module be imported (unit tests) without
+// taking over stdin / pinning the event loop. Production never sets it.
+if (!HELPER_MODE && !process.env.PARABUN_LSP_NO_LISTEN) {
   process.stdin.setEncoding("utf8");
   process.stdin.on("data", (chunk: string) => {
     inputBuffer += chunk;
@@ -5502,9 +5597,10 @@ if (!HELPER_MODE) {
   });
 
   process.stdin.resume();
-} else {
+} else if (HELPER_MODE) {
   runTscHelperMode();
 }
+// else: PARABUN_LSP_NO_LISTEN with !HELPER_MODE → import for tests; bootstrap nothing.
 
 // ---------------------------------------------------------------------------
 // tsc helper subprocess mode. Reads newline-delimited JSON messages from

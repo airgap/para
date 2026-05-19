@@ -291,6 +291,36 @@ pipeline {
 					mkdir -p ../../../artifacts
 					npx --yes @vscode/vsce@^3 package --out ../../../artifacts/parabun.vsix
 				'''
+				// Publish the .vsix as a release asset on the LATEST
+				// airgap/parabun release — it's the editor half of that
+				// binary release (the LSP runs via `parabun run`), so they
+				// pair on one tag. airgap/parabun owns the GH release; this
+				// only uploads an asset (--clobber = idempotent re-runs).
+				// Same `github-pat` credential the parity stages use.
+				// Degrade-don't-block: if no parabun release exists yet
+				// (binary release lagging), warn and rely on the Jenkins
+				// archiveArtifacts below — para must not fail because
+				// parabun's release cadence is behind. Matches the
+				// "degrade, don't hard-block publishing" posture above.
+				withCredentials([usernamePassword(
+					credentialsId: 'github-pat',
+					usernameVariable: 'GH_USER',
+					passwordVariable: 'GH_TOKEN',
+				)]) {
+					sh '''
+						set -eu
+						export HOME="${WORKSPACE}"
+						LATEST=$(gh release list --repo airgap/parabun \
+							--limit 1 --json tagName --jq '.[0].tagName')
+						if [ -z "$LATEST" ]; then
+							echo "::warning:: no airgap/parabun release found — .vsix archived to Jenkins only, not attached to a GH release"
+						else
+							echo "attaching parabun.vsix to airgap/parabun release $LATEST"
+							gh release upload "$LATEST" artifacts/parabun.vsix \
+								--repo airgap/parabun --clobber
+						fi
+					'''
+				}
 			}
 			post {
 				success {
