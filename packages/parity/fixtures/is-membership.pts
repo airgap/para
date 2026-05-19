@@ -1,0 +1,9 @@
+const a = s is 'open' | 'pending' | 'closed';
+const b = s is not 'open' | 'closed';
+const c = code is 200 | 404 | 500;
+const d = obj.kind is 'x' | 'y';
+const e = s is 'only';
+const f = a && s is 'p' | 'q';
+const g = s is 'a|b' | 'c';
+if (status is 'on' | 'off') { toggle(); }
+const h = input is User;
