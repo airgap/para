@@ -5,6 +5,15 @@
   "injectionSelector": "L:source.pts -string -comment, L:source.ptsx -string -comment, L:source.pjs -string -comment, L:source.pjsx -string -comment, L:source.pui source.ts -string -comment, L:source.pui source.js -string -comment",
   "patterns": [
     {
+      "comment": "async { … } — Para async block expression (async immediately before a brace)",
+      "match": "\\b(async)\\b(?=\\s*\\{)",
+      "captures": {
+        "1": {
+          "name": "storage.modifier.async"
+        }
+      }
+    },
+    {
       "comment": "fun NAME(...) — shorthand alias for function declarations / expressions",
       "match": "\\b(fun)\\b(?=\\s*[a-zA-Z_$*(<])",
       "captures": {
