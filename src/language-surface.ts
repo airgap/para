@@ -86,6 +86,18 @@ export interface LanguageEntry {
  *  patterns (e.g. `pure async fun`) must precede less-specific ones
  *  (`pure` alone). Within each section, ordering is by specificity. */
 export const LANGUAGE_SURFACE: LanguageEntry[] = [
+  // ─── `async { … }` block expression ────────────────────────────────
+  // Bare `async` immediately before a brace — the Para async-block form.
+  // Must precede `fun`/`pure …` forms; its `{` lookahead keeps it from
+  // matching `async fun`/`async function`/`pure async …` (handled below).
+  {
+    id: "async-block",
+    doc: "async { … } — Para async block expression (async immediately before a brace)",
+    kind: "keyword",
+    pattern: String.raw`\b(async)\b(?=\s*\{)`,
+    scopes: { "1": "storage.modifier.async" },
+  },
+
   // ─── `fun` shorthand for `function` ────────────────────────────────
   {
     id: "fun-decl",
