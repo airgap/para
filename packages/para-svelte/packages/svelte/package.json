@@ -165,7 +165,7 @@
     "vitest": "^2.1.9"
   },
   "dependencies": {
-    "@lyku/para-signals": "file:../../../para-signals",
+    "@lyku/para-signals": "^0.0.1-pre.0",
     "@jridgewell/remapping": "^2.3.4",
     "@jridgewell/sourcemap-codec": "^1.5.0",
     "@sveltejs/acorn-typescript": "^1.0.5",
