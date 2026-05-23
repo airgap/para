@@ -1,6 +1,6 @@
 /// <reference types="esrap" />
 
-declare module '@lyku/para-ui' {
+declare module 'svelte' {
 	/**
 	 * @deprecated In Svelte 4, components are classes. In Svelte 5, they are functions.
 	 * Use `mount` instead to instantiate components.
@@ -609,7 +609,7 @@ declare module '@lyku/para-ui' {
 	export {};
 }
 
-declare module '@lyku/para-ui/action' {
+declare module 'svelte/action' {
 	/**
 	 * Actions can return an object containing the two properties defined in this interface. Both are optional.
 	 * - update: An action can have a parameter. This method will be called whenever that parameter changes,
@@ -683,7 +683,7 @@ declare module '@lyku/para-ui/action' {
 	export {};
 }
 
-declare module '@lyku/para-ui/animate' {
+declare module 'svelte/animate' {
 	// todo: same as Transition, should it be shared?
 	export interface AnimationConfig {
 		delay?: number;
@@ -711,7 +711,7 @@ declare module '@lyku/para-ui/animate' {
 	export {};
 }
 
-declare module '@lyku/para-ui/attachments' {
+declare module 'svelte/attachments' {
 	/**
 	 * An [attachment](https://svelte.dev/docs/svelte/@attach) is a function that runs when an element is mounted
 	 * to the DOM, and optionally returns a function that is called when the element is later removed.
@@ -850,7 +850,7 @@ declare module '@lyku/para-ui/attachments' {
 	export {};
 }
 
-declare module '@lyku/para-ui/compiler' {
+declare module 'svelte/compiler' {
 	import type { SourceMap } from 'magic-string';
 	import type { ArrayExpression, ArrowFunctionExpression, VariableDeclaration, VariableDeclarator, Expression, Identifier, MemberExpression, Node, ObjectExpression, Pattern, Program, ChainExpression, SimpleCallExpression, SequenceExpression, SourceLocation } from 'estree';
 	import type { Location } from 'locate-character';
@@ -1655,7 +1655,10 @@ declare module '@lyku/para-ui/compiler' {
 		map: any;
 	};
 	/**
-	 * The current version of @lyku/para-ui, as set in package.json.
+	 * The upstream Svelte API version @lyku/para-ui tracks. This is a toolchain
+	 * ABI — @sveltejs/kit, vite-plugin-svelte and svelte-check parse it as a
+	 * Svelte semver — so it is the upstream version, NOT @lyku/para-ui's own
+	 * 0.0.1-pre.N release (that lives in package.json / the npm dist-tag).
 	 * */
 	export const VERSION: string;
 	/**
@@ -1852,7 +1855,7 @@ declare module '@lyku/para-ui/compiler' {
 	export {};
 }
 
-declare module '@lyku/para-ui/easing' {
+declare module 'svelte/easing' {
 	export function linear(t: number): number;
 
 	export function backInOut(t: number): number;
@@ -1918,7 +1921,8 @@ declare module '@lyku/para-ui/easing' {
 	export {};
 }
 
-declare module '@lyku/para-ui/legacy' {
+declare module 'svelte/legacy' {
+	import type { ComponentConstructorOptions, SvelteComponent, ComponentType, Component } from 'svelte';
 	/**
 	 * Takes the same options as a Svelte 4 component and the component function and returns a Svelte 4 compatible component.
 	 *
@@ -1957,206 +1961,6 @@ declare module '@lyku/para-ui/legacy' {
 	export type LegacyComponentType = {
 		new (o: ComponentConstructorOptions): SvelteComponent;
 		(...args: Parameters<Component<Record<string, any>>>): ReturnType<Component<Record<string, any>, Record<string, any>>>;
-	};
-	/**
-	 * @deprecated In Svelte 4, components are classes. In Svelte 5, they are functions.
-	 * Use `mount` instead to instantiate components.
-	 * See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-	 * for more info.
-	 */
-	interface ComponentConstructorOptions<
-		Props extends Record<string, any> = Record<string, any>
-	> {
-		target: Element | Document | ShadowRoot;
-		anchor?: Element;
-		props?: Props;
-		context?: Map<any, any>;
-		hydrate?: boolean;
-		intro?: boolean;
-		recover?: boolean;
-		sync?: boolean;
-		idPrefix?: string;
-		$$inline?: boolean;
-		transformError?: (error: unknown) => unknown;
-	}
-
-	/**
-	 * Utility type for ensuring backwards compatibility on a type level that if there's a default slot, add 'children' to the props
-	 */
-	type Properties<Props, Slots> = Props &
-		(Slots extends { default: any }
-			? // This is unfortunate because it means "accepts no props" turns into "accepts any prop"
-				// but the alternative is non-fixable type errors because of the way TypeScript index
-				// signatures work (they will always take precedence and make an impossible-to-satisfy children type).
-				Props extends Record<string, never>
-				? any
-				: { children?: any }
-			: {});
-
-	/**
-	 * This was the base class for Svelte components in Svelte 4. Svelte 5+ components
-	 * are completely different under the hood. For typing, use `Component` instead.
-	 * To instantiate components, use `mount` instead.
-	 * See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes) for more info.
-	 */
-	class SvelteComponent<
-		Props extends Record<string, any> = Record<string, any>,
-		Events extends Record<string, any> = any,
-		Slots extends Record<string, any> = any
-	> {
-		/** The custom element version of the component. Only present if compiled with the `customElement` compiler option */
-		static element?: typeof HTMLElement;
-
-		[prop: string]: any;
-		/**
-		 * @deprecated This constructor only exists when using the `asClassComponent` compatibility helper, which
-		 * is a stop-gap solution. Migrate towards using `mount` instead. See
-		 * [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes) for more info.
-		 */
-		constructor(options: ComponentConstructorOptions<Properties<Props, Slots>>);
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$prop_def: Props; // Without Properties: unnecessary, causes type bugs
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$events_def: Events;
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$slot_def: Slots;
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$bindings?: string;
-
-		/**
-		 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-		 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-		 * for more info.
-		 */
-		$destroy(): void;
-
-		/**
-		 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-		 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-		 * for more info.
-		 */
-		$on<K extends Extract<keyof Events, string>>(
-			type: K,
-			callback: (e: Events[K]) => void
-		): () => void;
-
-		/**
-		 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-		 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-		 * for more info.
-		 */
-		$set(props: Partial<Props>): void;
-	}
-
-	const brand: unique symbol;
-	type Brand<B> = { [brand]: B };
-	type Branded<T, B> = T & Brand<B>;
-
-	/**
-	 * Internal implementation details that vary between environments
-	 */
-	type ComponentInternals = Branded<{}, 'ComponentInternals'>;
-
-	/**
-	 * Can be used to create strongly typed Svelte components.
-	 *
-	 * #### Example:
-	 *
-	 * You have component library on npm called `component-library`, from which
-	 * you export a component called `MyComponent`. For Svelte+TypeScript users,
-	 * you want to provide typings. Therefore you create a `index.d.ts`:
-	 * ```ts
-	 * import type { Component } from 'svelte';
-	 * export declare const MyComponent: Component<{ foo: string }> {}
-	 * ```
-	 * Typing this makes it possible for IDEs like VS Code with the Svelte extension
-	 * to provide intellisense and to use the component like this in a Svelte file
-	 * with TypeScript:
-	 * ```svelte
-	 * <script lang="ts">
-	 * 	import { MyComponent } from "component-library";
-	 * </script>
-	 * <MyComponent foo={'bar'} />
-	 * ```
-	 */
-	interface Component<
-		Props extends Record<string, any> = {},
-		Exports extends Record<string, any> = {},
-		Bindings extends keyof Props | '' = string
-	> {
-		/**
-		 * @param internal An internal object used by Svelte. Do not use or modify.
-		 * @param props The props passed to the component.
-		 */
-		(
-			this: void,
-			internals: ComponentInternals,
-			props: Props
-		): {
-			/**
-			 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-			 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-			 * for more info.
-			 */
-			$on?(type: string, callback: (e: any) => void): () => void;
-			/**
-			 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-			 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-			 * for more info.
-			 */
-			$set?(props: Partial<Props>): void;
-		} & Exports;
-		/** The custom element version of the component. Only present if compiled with the `customElement` compiler option */
-		element?: typeof HTMLElement;
-		/** Does not exist at runtime, for typing capabilities only. DO NOT USE */
-		z_$$bindings?: Bindings;
-	}
-
-	/**
-	 * @deprecated This type is obsolete when working with the new `Component` type.
-	 *
-	 * @description
-	 * Convenience type to get the type of a Svelte component. Useful for example in combination with
-	 * dynamic components using `<svelte:component>`.
-	 *
-	 * Example:
-	 * ```html
-	 * <script lang="ts">
-	 * 	import type { ComponentType, SvelteComponent } from 'svelte';
-	 * 	import Component1 from './Component1.svelte';
-	 * 	import Component2 from './Component2.svelte';
-	 *
-	 * 	const component: ComponentType = someLogic() ? Component1 : Component2;
-	 * 	const componentOfCertainSubType: ComponentType<SvelteComponent<{ needsThisProp: string }>> = someLogic() ? Component1 : Component2;
-	 * </script>
-	 *
-	 * <svelte:component this={component} />
-	 * <svelte:component this={componentOfCertainSubType} needsThisProp="hello" />
-	 * ```
-	 */
-	type ComponentType<Comp extends SvelteComponent = SvelteComponent> = (new (
-		options: ComponentConstructorOptions<
-			Comp extends SvelteComponent<infer Props> ? Props : Record<string, any>
-		>
-	) => Comp) & {
-		/** The custom element version of the component. Only present if compiled with the `customElement` compiler option */
-		element?: typeof HTMLElement;
 	};
 	/**
 	 * Substitute for the `trusted` event modifier
@@ -2202,7 +2006,8 @@ declare module '@lyku/para-ui/legacy' {
 	export {};
 }
 
-declare module '@lyku/para-ui/motion' {
+declare module 'svelte/motion' {
+	import type { MediaQuery } from 'svelte/reactivity';
 	export interface SpringOptions {
 		stiffness?: number;
 		damping?: number;
@@ -2417,42 +2222,11 @@ declare module '@lyku/para-ui/motion' {
 		get target(): T;
 		#private;
 	}
-	/**
-	 * Creates a media query and provides a `current` property that reflects whether or not it matches.
-	 *
-	 * Use it carefully — during server-side rendering, there is no way to know what the correct value should be, potentially causing content to change upon hydration.
-	 * If you can use the media query in CSS to achieve the same effect, do that.
-	 *
-	 * ```svelte
-	 * <script>
-	 * 	import { MediaQuery } from 'svelte/reactivity';
-	 *
-	 * 	const large = new MediaQuery('min-width: 800px');
-	 * </script>
-	 *
-	 * <h1>{large.current ? 'large screen' : 'small screen'}</h1>
-	 * ```
-	 * @extends {ReactiveValue<boolean>}
-	 * @since 5.7.0
-	 */
-	class MediaQuery extends ReactiveValue<boolean> {
-		/**
-		 * @param query A media query string
-		 * @param fallback Fallback value for the server
-		 */
-		constructor(query: string, fallback?: boolean | undefined);
-	}
-	class ReactiveValue<T> {
-		
-		constructor(fn: () => T, onsubscribe: (update: () => void) => void);
-		get current(): T;
-		#private;
-	}
 
 	export {};
 }
 
-declare module '@lyku/para-ui/reactivity' {
+declare module 'svelte/reactivity' {
 	/**
 	 * A reactive version of the built-in [`Date`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date) object.
 	 * Reading the date (whether with methods like `date.getTime()` or `date.toString()`, or via things like [`Intl.DateTimeFormat`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat))
@@ -2726,7 +2500,7 @@ declare module '@lyku/para-ui/reactivity' {
 	export {};
 }
 
-declare module '@lyku/para-ui/reactivity/window' {
+declare module 'svelte/reactivity/window' {
 	/**
 	 * `scrollX.current` is a reactive view of `window.scrollX`. On the server it is `undefined`.
 	 * @since 5.11.0
@@ -2791,7 +2565,8 @@ declare module '@lyku/para-ui/reactivity/window' {
 	export {};
 }
 
-declare module '@lyku/para-ui/server' {
+declare module 'svelte/server' {
+	import type { ComponentProps, Component, SvelteComponent, ComponentType } from 'svelte';
 	/**
 	 * Only available on the server and when compiling with the `server` option.
 	 * Takes a component and returns an object with `body` and `head` properties on it, which you can use to populate the HTML when server-rendering your app.
@@ -2839,248 +2614,11 @@ declare module '@lyku/para-ui/server' {
 	}
 
 	type RenderOutput = SyncRenderOutput & PromiseLike<SyncRenderOutput>;
-	/**
-	 * @deprecated In Svelte 4, components are classes. In Svelte 5, they are functions.
-	 * Use `mount` instead to instantiate components.
-	 * See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-	 * for more info.
-	 */
-	interface ComponentConstructorOptions<
-		Props extends Record<string, any> = Record<string, any>
-	> {
-		target: Element | Document | ShadowRoot;
-		anchor?: Element;
-		props?: Props;
-		context?: Map<any, any>;
-		hydrate?: boolean;
-		intro?: boolean;
-		recover?: boolean;
-		sync?: boolean;
-		idPrefix?: string;
-		$$inline?: boolean;
-		transformError?: (error: unknown) => unknown;
-	}
-
-	/**
-	 * Utility type for ensuring backwards compatibility on a type level that if there's a default slot, add 'children' to the props
-	 */
-	type Properties<Props, Slots> = Props &
-		(Slots extends { default: any }
-			? // This is unfortunate because it means "accepts no props" turns into "accepts any prop"
-				// but the alternative is non-fixable type errors because of the way TypeScript index
-				// signatures work (they will always take precedence and make an impossible-to-satisfy children type).
-				Props extends Record<string, never>
-				? any
-				: { children?: any }
-			: {});
-
-	/**
-	 * This was the base class for Svelte components in Svelte 4. Svelte 5+ components
-	 * are completely different under the hood. For typing, use `Component` instead.
-	 * To instantiate components, use `mount` instead.
-	 * See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes) for more info.
-	 */
-	class SvelteComponent<
-		Props extends Record<string, any> = Record<string, any>,
-		Events extends Record<string, any> = any,
-		Slots extends Record<string, any> = any
-	> {
-		/** The custom element version of the component. Only present if compiled with the `customElement` compiler option */
-		static element?: typeof HTMLElement;
-
-		[prop: string]: any;
-		/**
-		 * @deprecated This constructor only exists when using the `asClassComponent` compatibility helper, which
-		 * is a stop-gap solution. Migrate towards using `mount` instead. See
-		 * [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes) for more info.
-		 */
-		constructor(options: ComponentConstructorOptions<Properties<Props, Slots>>);
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$prop_def: Props; // Without Properties: unnecessary, causes type bugs
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$events_def: Events;
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$slot_def: Slots;
-		/**
-		 * For type checking capabilities only.
-		 * Does not exist at runtime.
-		 * ### DO NOT USE!
-		 */
-		$$bindings?: string;
-
-		/**
-		 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-		 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-		 * for more info.
-		 */
-		$destroy(): void;
-
-		/**
-		 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-		 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-		 * for more info.
-		 */
-		$on<K extends Extract<keyof Events, string>>(
-			type: K,
-			callback: (e: Events[K]) => void
-		): () => void;
-
-		/**
-		 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-		 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-		 * for more info.
-		 */
-		$set(props: Partial<Props>): void;
-	}
-
-	const brand: unique symbol;
-	type Brand<B> = { [brand]: B };
-	type Branded<T, B> = T & Brand<B>;
-
-	/**
-	 * Internal implementation details that vary between environments
-	 */
-	type ComponentInternals = Branded<{}, 'ComponentInternals'>;
-
-	/**
-	 * Can be used to create strongly typed Svelte components.
-	 *
-	 * #### Example:
-	 *
-	 * You have component library on npm called `component-library`, from which
-	 * you export a component called `MyComponent`. For Svelte+TypeScript users,
-	 * you want to provide typings. Therefore you create a `index.d.ts`:
-	 * ```ts
-	 * import type { Component } from 'svelte';
-	 * export declare const MyComponent: Component<{ foo: string }> {}
-	 * ```
-	 * Typing this makes it possible for IDEs like VS Code with the Svelte extension
-	 * to provide intellisense and to use the component like this in a Svelte file
-	 * with TypeScript:
-	 * ```svelte
-	 * <script lang="ts">
-	 * 	import { MyComponent } from "component-library";
-	 * </script>
-	 * <MyComponent foo={'bar'} />
-	 * ```
-	 */
-	interface Component<
-		Props extends Record<string, any> = {},
-		Exports extends Record<string, any> = {},
-		Bindings extends keyof Props | '' = string
-	> {
-		/**
-		 * @param internal An internal object used by Svelte. Do not use or modify.
-		 * @param props The props passed to the component.
-		 */
-		(
-			this: void,
-			internals: ComponentInternals,
-			props: Props
-		): {
-			/**
-			 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-			 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-			 * for more info.
-			 */
-			$on?(type: string, callback: (e: any) => void): () => void;
-			/**
-			 * @deprecated This method only exists when using one of the legacy compatibility helpers, which
-			 * is a stop-gap solution. See [migration guide](https://svelte.dev/docs/svelte/v5-migration-guide#Components-are-no-longer-classes)
-			 * for more info.
-			 */
-			$set?(props: Partial<Props>): void;
-		} & Exports;
-		/** The custom element version of the component. Only present if compiled with the `customElement` compiler option */
-		element?: typeof HTMLElement;
-		/** Does not exist at runtime, for typing capabilities only. DO NOT USE */
-		z_$$bindings?: Bindings;
-	}
-
-	/**
-	 * Convenience type to get the props the given component expects.
-	 *
-	 * Example: Ensure a variable contains the props expected by `MyComponent`:
-	 *
-	 * ```ts
-	 * import type { ComponentProps } from 'svelte';
-	 * import MyComponent from './MyComponent.svelte';
-	 *
-	 * // Errors if these aren't the correct props expected by MyComponent.
-	 * const props: ComponentProps<typeof MyComponent> = { foo: 'bar' };
-	 * ```
-	 *
-	 * > [!NOTE] In Svelte 4, you would do `ComponentProps<MyComponent>` because `MyComponent` was a class.
-	 *
-	 * Example: A generic function that accepts some component and infers the type of its props:
-	 *
-	 * ```ts
-	 * import type { Component, ComponentProps } from 'svelte';
-	 * import MyComponent from './MyComponent.svelte';
-	 *
-	 * function withProps<TComponent extends Component<any>>(
-	 * 	component: TComponent,
-	 * 	props: ComponentProps<TComponent>
-	 * ) {};
-	 *
-	 * // Errors if the second argument is not the correct props expected by the component in the first argument.
-	 * withProps(MyComponent, { foo: 'bar' });
-	 * ```
-	 */
-	type ComponentProps<Comp extends SvelteComponent | Component<any, any>> =
-		Comp extends SvelteComponent<infer Props>
-			? Props
-			: Comp extends Component<infer Props, any>
-				? Props
-				: never;
-
-	/**
-	 * @deprecated This type is obsolete when working with the new `Component` type.
-	 *
-	 * @description
-	 * Convenience type to get the type of a Svelte component. Useful for example in combination with
-	 * dynamic components using `<svelte:component>`.
-	 *
-	 * Example:
-	 * ```html
-	 * <script lang="ts">
-	 * 	import type { ComponentType, SvelteComponent } from 'svelte';
-	 * 	import Component1 from './Component1.svelte';
-	 * 	import Component2 from './Component2.svelte';
-	 *
-	 * 	const component: ComponentType = someLogic() ? Component1 : Component2;
-	 * 	const componentOfCertainSubType: ComponentType<SvelteComponent<{ needsThisProp: string }>> = someLogic() ? Component1 : Component2;
-	 * </script>
-	 *
-	 * <svelte:component this={component} />
-	 * <svelte:component this={componentOfCertainSubType} needsThisProp="hello" />
-	 * ```
-	 */
-	type ComponentType<Comp extends SvelteComponent = SvelteComponent> = (new (
-		options: ComponentConstructorOptions<
-			Comp extends SvelteComponent<infer Props> ? Props : Record<string, any>
-		>
-	) => Comp) & {
-		/** The custom element version of the component. Only present if compiled with the `customElement` compiler option */
-		element?: typeof HTMLElement;
-	};
 
 	export {};
 }
 
-declare module '@lyku/para-ui/store' {
+declare module 'svelte/store' {
 	/** Callback to inform of a value updates. */
 	export type Subscriber<T> = (value: T) => void;
 
@@ -3184,7 +2722,7 @@ declare module '@lyku/para-ui/store' {
 	export {};
 }
 
-declare module '@lyku/para-ui/transition' {
+declare module 'svelte/transition' {
 	export type EasingFunction = (t: number) => number;
 
 	export interface TransitionConfig {
@@ -3292,7 +2830,7 @@ declare module '@lyku/para-ui/transition' {
 	export {};
 }
 
-declare module '@lyku/para-ui/events' {
+declare module 'svelte/events' {
 	// Once https://github.com/microsoft/TypeScript/issues/59980 is fixed we can put these overloads into the JSDoc comments of the `on` function
 
 	/**
@@ -3354,7 +2892,7 @@ declare module '@lyku/para-ui/events' {
 	export {};
 }
 
-declare module '@lyku/para-ui/types/compiler/preprocess' {
+declare module 'svelte/types/compiler/preprocess' {
 	/** @deprecated import this from 'svelte/preprocess' instead */
 	export type MarkupPreprocessor = MarkupPreprocessor_1;
 	/** @deprecated import this from 'svelte/preprocess' instead */
@@ -3452,7 +2990,7 @@ declare module '@lyku/para-ui/types/compiler/preprocess' {
 	export {};
 }
 
-declare module '@lyku/para-ui/types/compiler/interfaces' {
+declare module 'svelte/types/compiler/interfaces' {
 	import type { Location } from 'locate-character';
 	/** @deprecated import this from 'svelte' instead */
 	export type CompileOptions = CompileOptions_1;
