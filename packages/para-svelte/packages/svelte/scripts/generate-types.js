@@ -33,24 +33,30 @@ await createBundle({
 			)
 		)
 	},
+	// para-ui is consumed as a drop-in `svelte` via an npm alias
+	// (`"svelte": "npm:@lyku/para-ui"`), so the generated ambient module
+	// declarations MUST use the `svelte` specifier — not the package's own
+	// name. Declaring `@lyku/para-ui` here meant consumers importing `svelte`
+	// (every Svelte/SvelteKit app) got no types under moduleResolution:node,
+	// breaking type-checking. Mirror upstream Svelte's module names.
 	modules: {
-		[pkg.name]: `${dir}/src/index.d.ts`,
-		[`${pkg.name}/action`]: `${dir}/src/action/public.d.ts`,
-		[`${pkg.name}/animate`]: `${dir}/src/animate/public.d.ts`,
-		[`${pkg.name}/attachments`]: `${dir}/src/attachments/public.d.ts`,
-		[`${pkg.name}/compiler`]: `${dir}/src/compiler/public.d.ts`,
-		[`${pkg.name}/easing`]: `${dir}/src/easing/index.js`,
-		[`${pkg.name}/legacy`]: `${dir}/src/legacy/legacy-client.js`,
-		[`${pkg.name}/motion`]: `${dir}/src/motion/public.d.ts`,
-		[`${pkg.name}/reactivity`]: `${dir}/src/reactivity/index-client.js`,
-		[`${pkg.name}/reactivity/window`]: `${dir}/src/reactivity/window/index.js`,
-		[`${pkg.name}/server`]: `${dir}/src/server/index.d.ts`,
-		[`${pkg.name}/store`]: `${dir}/src/store/public.d.ts`,
-		[`${pkg.name}/transition`]: `${dir}/src/transition/public.d.ts`,
-		[`${pkg.name}/events`]: `${dir}/src/events/public.d.ts`,
+		['svelte']: `${dir}/src/index.d.ts`,
+		[`svelte/action`]: `${dir}/src/action/public.d.ts`,
+		[`svelte/animate`]: `${dir}/src/animate/public.d.ts`,
+		[`svelte/attachments`]: `${dir}/src/attachments/public.d.ts`,
+		[`svelte/compiler`]: `${dir}/src/compiler/public.d.ts`,
+		[`svelte/easing`]: `${dir}/src/easing/index.js`,
+		[`svelte/legacy`]: `${dir}/src/legacy/legacy-client.js`,
+		[`svelte/motion`]: `${dir}/src/motion/public.d.ts`,
+		[`svelte/reactivity`]: `${dir}/src/reactivity/index-client.js`,
+		[`svelte/reactivity/window`]: `${dir}/src/reactivity/window/index.js`,
+		[`svelte/server`]: `${dir}/src/server/index.d.ts`,
+		[`svelte/store`]: `${dir}/src/store/public.d.ts`,
+		[`svelte/transition`]: `${dir}/src/transition/public.d.ts`,
+		[`svelte/events`]: `${dir}/src/events/public.d.ts`,
 		// TODO remove in Svelte 6
-		[`${pkg.name}/types/compiler/preprocess`]: `${dir}/src/compiler/preprocess/legacy-public.d.ts`,
-		[`${pkg.name}/types/compiler/interfaces`]: `${dir}/src/compiler/types/legacy-interfaces.d.ts`
+		[`svelte/types/compiler/preprocess`]: `${dir}/src/compiler/preprocess/legacy-public.d.ts`,
+		[`svelte/types/compiler/interfaces`]: `${dir}/src/compiler/types/legacy-interfaces.d.ts`
 	}
 });
 
