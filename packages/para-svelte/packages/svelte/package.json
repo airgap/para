@@ -2,7 +2,7 @@
   "name": "@lyku/para-ui",
   "description": "Para's UI runtime — Svelte forked with @lyku/para-signals at the reactive core. Powers .pui component files. Pre-release: API parity with upstream Svelte verified (7301 tests pass) but devtools/HMR (F2) still pending — see PARA-FORK.md.",
   "license": "MIT",
-  "version": "0.0.1-pre.6",
+  "version": "0.0.1-pre.7",
   "publishConfig": {
     "access": "public"
   },
