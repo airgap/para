@@ -1,4 +1,9 @@
 import type { PreprocessorGroup, Processed } from "svelte/compiler";
+import { lowerParaScript, lowerParaMarkup } from "./browser-lower/index.js";
+
+// Canonical Para browser-lowering, exported so other tools (in-browser compilers,
+// playgrounds) can reuse the exact same passes parabunPreprocess runs.
+export { lowerParaScript, lowerParaMarkup } from "./browser-lower/index.js";
 
 export type ParabunPreprocessOptions = {
   /**
@@ -1081,6 +1086,12 @@ export function parabunPreprocess(opts: ParabunPreprocessOptions = {}): Preproce
 
   return {
     name: "parabun",
+    // `.pui` markup may use inline `attr={<Tag/>}` sugar → lift to {#snippet}.
+    markup({ content, filename }): Processed | undefined {
+      if (!(filename?.endsWith(".pui") ?? false)) return;
+      const code = lowerParaMarkup(content);
+      return code === content ? undefined : { code };
+    },
     script({ content, attributes, filename }): Processed | undefined {
       const lang = typeof attributes.lang === "string" ? attributes.lang : undefined;
       // `.pui` files are parabun-flavored by extension: every script
@@ -1095,12 +1106,13 @@ export function parabunPreprocess(opts: ParabunPreprocessOptions = {}): Preproce
           : lang !== undefined && langs.has(lang);
       if (!shouldRun) return;
 
-      // For `.pui` files, run the para-reactivity lowering first to bridge
-      // `signal`/`derived`/`effect` into Svelte runes ($state, $effect).
-      // After this pass the content is standard TS, so parabun's own
-      // transpile (when running under Bun) sees nothing parabun-specific
-      // to transform — it's effectively a passthrough for the bridge form.
-      const preprocessed = isPui ? lowerPuiReactivity(content, runtime, false, hmr) : content;
+      // For `.pui` files: first lower Para script syntax (match, |>, leading-dot,
+      // async {}) to standard JS — the JS fallback for what the parabun runtime
+      // does natively, so this works under node/browser/standard-bun too — then
+      // bridge reactivity (`signal`/`derived`/`effect` → $state/$effect). After
+      // both passes the content is standard TS, so parabun's own transpile (when
+      // running under Bun) sees nothing parabun-specific left to transform.
+      const preprocessed = isPui ? lowerPuiReactivity(lowerParaScript(content), runtime, false, hmr) : content;
       // Svelte's preprocess loop short-circuits with no_change() when
       // `processed.code === content && !processed.map` (see
       // svelte/compiler/preprocess/index.js process_single_tag) — which
