@@ -1,8 +1,7 @@
 {
   "name": "@lyku/para-transpile",
-  "version": "0.0.0-dev",
-  "private": true,
-  "description": "Standalone transpiler for Para (.pts) — turns Para source into standard JavaScript. The JS-side mirror of the canonical ParaBun parser; parity-gated against a pinned parabun release (see /raid/para-design/para-parabun-boundary.md). NOT YET RELEASED — private:true / 0.0.0-dev until every desugaring lands and parity is green.",
+  "version": "0.0.1-pre.1",
+  "description": "Standalone transpiler for Para (.pts) — turns Para source into standard JavaScript. The JS-side mirror of the canonical ParaBun parser; parity-gated against a pinned parabun release (see /raid/para-design/para-parabun-boundary.md). Pre-release (0.0.x-pre): API may change before 0.1.0.",
   "repository": {
     "type": "git",
     "url": "https://github.com/airgap/para.git",
@@ -39,11 +38,11 @@
     "@babel/generator": "^7.29.1",
     "@babel/parser": "^7.29.3",
     "@babel/traverse": "^7.29.0",
-    "@babel/types": "^7.29.0",
-    "@types/babel__generator": "^7.27.0",
-    "@types/babel__traverse": "^7.28.0"
+    "@babel/types": "^7.29.0"
   },
   "devDependencies": {
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
     "@types/bun": "*",
     "typescript": "^5.0.0"
   }
