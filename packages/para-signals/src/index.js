@@ -17,12 +17,18 @@ let batchDepth = 0;
 let flushing = false;
 const queue = new Set();
 
+// Test-only instrumentation. Counts drain() invocations so the empty-subs
+// guard (below) can be asserted deterministically rather than on wall-clock
+// time (which is flaky under load). Exposed via the `__test` export.
+let drainCount = 0;
+
 function enqueue(e) {
   queue.add(e);
   if (batchDepth === 0 && !flushing) drain();
 }
 
 function drain() {
+  drainCount++;
   flushing = true;
   try {
     while (queue.size) {
@@ -59,6 +65,16 @@ class WritableSignal {
   set(v) {
     if (Object.is(v, this._value)) return;
     this._value = v;
+    // Empty-subs guard: with no subscribers there is nothing to invalidate
+    // and no reason to enter the batch/drain machinery. This elides the
+    // Array.from(this._subs) snapshot + the batchDepth dance + drain() on the
+    // hot unobserved-write path — which the /fyp bench measured as the bulk of
+    // the fork-mirror update tax (~5.3% update; ~168 ns/mirror in situ, most of
+    // it this allocation + drain). Semantically transparent: the new value is
+    // already stored above, so later get()/peek() observe it; and whenever
+    // batchDepth === 0 the queue is already empty (enqueue drains eagerly), so
+    // the skipped drain() was always a no-op here. See PLAN synced<T> Prereq A.
+    if (this._subs.size === 0) return;
     // Batch the invalidation cascade so effects that transitively
     // depend on this signal (directly AND via a derived) don't run
     // before the derived has been marked dirty.
@@ -269,6 +285,16 @@ export function untrack(fn) {
 }
 
 export const Signal = WritableSignal;
+
+// Test-only hook for the empty-subs guard regression assertion. Not part of
+// the public reactive surface; `__`-prefixed to signal "internal". Lets a test
+// observe that a subscriber-less set() performs zero drains.
+export const __test = {
+  drainCount: () => drainCount,
+  resetDrainCount: () => {
+    drainCount = 0;
+  }
+};
 
 // ─── Resource-tied signals (the differentiator) ─────────────────────────
 //

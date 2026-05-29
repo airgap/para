@@ -11,6 +11,7 @@ import {
   fromEventTarget,
   throttled,
   debounced,
+  __test,
 } from "../src/index.js";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -451,5 +452,66 @@ describe("proxySignal: deep-reactive object/array state", () => {
     expect(d.get()).toBe(15);
     state.b = 7;
     expect(d.get()).toBe(35);
+  });
+});
+
+describe("empty-subs guard (PLAN synced<T> Prereq A)", () => {
+  // The guard is a performance optimization that is SEMANTICALLY TRANSPARENT,
+  // so behavior-only assertions can't distinguish it from the old code (both
+  // produce identical effect-firing). We assert it deterministically via the
+  // drain counter: a subscriber-less write must perform ZERO drains.
+
+  test("subscriber-less set() performs zero drains (and value still observable)", () => {
+    __test.resetDrainCount();
+    const s = signal(0);
+    s.set(1);
+    s.set(2);
+    s.set(3);
+    expect(__test.drainCount()).toBe(0); // pre-guard this was 3
+    expect(s.get()).toBe(3);
+    expect(s.peek()).toBe(3);
+  });
+
+  test("subscribed set() still drains once per write and fires effects", () => {
+    const s = signal(0);
+    const seen = [];
+    const stop = effect(() => seen.push(s.get()));
+    __test.resetDrainCount();
+    s.set(1);
+    s.set(2);
+    expect(seen).toEqual([0, 1, 2]);
+    expect(__test.drainCount()).toBe(2);
+    stop();
+  });
+
+  test("removing the last subscriber returns set() to the zero-drain path", () => {
+    const s = signal(0);
+    const stop = effect(() => s.get());
+    stop(); // disposes the effect → unsubscribes from s
+    __test.resetDrainCount();
+    s.set(1);
+    expect(__test.drainCount()).toBe(0);
+    expect(s.get()).toBe(1);
+  });
+
+  test("equality short-circuit unaffected (no drain on same-value write)", () => {
+    __test.resetDrainCount();
+    const s = signal(7);
+    s.set(7); // Object.is-equal → returns before the guard
+    expect(__test.drainCount()).toBe(0);
+  });
+
+  test("guard does not break batched coalescing (one drain at batch exit)", () => {
+    const a = signal(1);
+    const b = signal(2);
+    const seen = [];
+    effect(() => seen.push(a.get() + b.get()));
+    __test.resetDrainCount();
+    batch(() => {
+      a.set(10);
+      b.set(20);
+    });
+    expect(seen).toEqual([3, 30]);
+    expect(__test.drainCount()).toBe(1);
   });
 });
