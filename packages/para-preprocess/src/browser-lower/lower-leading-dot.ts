@@ -38,6 +38,42 @@ function skipString(src, at, quote) {
   return i + 1;
 }
 
+// A `/` begins a regex literal (not a divide) when the previous significant
+// char is an expression-opener / operator — never after an identifier, `)`,
+// `]`, or digit. Mirrors the single-char heuristic used elsewhere in this file.
+function isRegexCtx(prev) {
+  if (!prev) return true;
+  return "([{,;:=!&|?+-*/%^~<>".includes(prev);
+}
+
+// Skip a regex literal starting at `at` (the opening `/`), honouring `\`
+// escapes and `[...]` character classes (a `/` inside a class is literal), then
+// any trailing flags. Returns the index just AFTER the literal. Without this,
+// an escaped slash before the closing delimiter (`\//`, as in `/…\*\//g`) reads
+// as a `//` line comment and swallows the rest of the line.
+function skipRegex(src, at) {
+  let i = at + 1;
+  const len = src.length;
+  let inClass = false;
+  while (i < len) {
+    const c = src[i];
+    if (c === "\\") {
+      i += 2;
+      continue;
+    }
+    if (c === "\n") break; // unterminated — bail rather than run away
+    if (c === "[") inClass = true;
+    else if (c === "]") inClass = false;
+    else if (c === "/" && !inClass) {
+      i++;
+      break;
+    }
+    i++;
+  }
+  while (i < len && /[a-z]/i.test(src[i])) i++; // flags
+  return i;
+}
+
 function skipTemplate(src, at) {
   let i = at + 1;
   const len = src.length;
@@ -63,15 +99,25 @@ function skipBalanced(src, at, closeChar) {
   const closes = ")}]";
   let i = at;
   let depth = 1;
+  let prev = "";
   const len = src.length;
   while (i < len && depth > 0) {
     const c = src[i];
     if (c === "'" || c === '"') {
       i = skipString(src, i, c);
+      prev = c;
       continue;
     }
     if (c === "`") {
       i = skipTemplate(src, i);
+      prev = "`";
+      continue;
+    }
+    // Regex literal (in expression position) before the comment checks, so an
+    // escaped slash near the close (`\//`) isn't mistaken for a `//` comment.
+    if (c === "/" && src[i + 1] !== "/" && src[i + 1] !== "*" && isRegexCtx(prev)) {
+      i = skipRegex(src, i);
+      prev = "/";
       continue;
     }
     if (c === "/" && src[i + 1] === "/") {
@@ -84,11 +130,13 @@ function skipBalanced(src, at, closeChar) {
       i += 2;
       continue;
     }
+    if (!/\s/.test(c)) prev = c;
     if (opens.includes(c)) {
       if (c === closeChar.replace(")", "(").replace("}", "{").replace("]", "[")) depth++;
       else {
         const matchClose = closes[opens.indexOf(c)];
         i = skipBalanced(src, i + 1, matchClose);
+        prev = matchClose; // a closed group is a value → next `/` is divide
         continue;
       }
     } else if (c === closeChar) {
@@ -143,6 +191,7 @@ function isPlaceholderDotAt(arg, dotIdx) {
 function bindPlaceholders(arg, name = "__x") {
   const out = [];
   let i = 0;
+  let prev = "";
   const len = arg.length;
   while (i < len) {
     const c = arg[i];
@@ -150,12 +199,21 @@ function bindPlaceholders(arg, name = "__x") {
       const end = skipString(arg, i, c);
       out.push(arg.slice(i, end));
       i = end;
+      prev = c;
       continue;
     }
     if (c === "`") {
       const end = skipTemplate(arg, i);
       out.push(arg.slice(i, end));
       i = end;
+      prev = "`";
+      continue;
+    }
+    if (c === "/" && arg[i + 1] !== "/" && arg[i + 1] !== "*" && isRegexCtx(prev)) {
+      const end = skipRegex(arg, i);
+      out.push(arg.slice(i, end));
+      i = end;
+      prev = "/";
       continue;
     }
     if (c === "/" && arg[i + 1] === "/") {
@@ -180,6 +238,7 @@ function bindPlaceholders(arg, name = "__x") {
       const end = skipBalanced(arg, i + 1, closeChar);
       out.push(arg.slice(i, end));
       i = end;
+      prev = closeChar;
       continue;
     }
     // Placeholder dot detection. Must be followed by an identifier
@@ -187,9 +246,11 @@ function bindPlaceholders(arg, name = "__x") {
     if (c === "." && /[A-Za-z_$]/.test(_nullishCoalesce(arg[i + 1], () => "")) && isPlaceholderDotAt(arg, i)) {
       out.push(name + ".");
       i++;
+      prev = ".";
       continue;
     }
     out.push(c);
+    if (!/\s/.test(c)) prev = c;
     i++;
   }
   return out.join("");
@@ -226,6 +287,15 @@ export function lowerLeadingDot(src, opts) {
       out.push(src.slice(i, end));
       i = end;
       lastSig = "`";
+      continue;
+    }
+    // Regex literal in expression position — emit verbatim. Must precede the
+    // comment checks so `\//` (escaped slash + close) isn't read as `//`.
+    if (c === "/" && src[i + 1] !== "/" && src[i + 1] !== "*" && isRegexCtx(lastSig)) {
+      const end = skipRegex(src, i);
+      out.push(src.slice(i, end));
+      i = end;
+      lastSig = "/";
       continue;
     }
     if (c === "/" && src[i + 1] === "/") {
