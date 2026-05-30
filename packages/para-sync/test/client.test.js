@@ -177,3 +177,59 @@ describe("createClientReplica — Tier 1 reconciler", () => {
     expect(r.stats.applied).toBe(1);
   });
 });
+
+describe("schema-version skew gate", () => {
+  const mk = (schemaVersion, refetch) =>
+    (() => {
+      const t = new InProcessTransport();
+      const r = createClientReplica({
+        key: "user:1",
+        schema: userSchema,
+        transport: t,
+        schemaVersion,
+        refetch,
+        seed: env(1, { name: "ada" }, schemaVersion),
+      });
+      return { t, r };
+    })();
+
+  test("minor difference (same major) is compatible → applies", () => {
+    const { t, r } = mk("3.1");
+    t.publish("user:1", env(2, { name: "ada-2" }, "3.4")); // minor diff
+    expect(r.peek()).toEqual({ name: "ada-2" });
+    expect(r.stats.applied).toBe(2);
+    expect(r.stats.schemaSkews).toBe(0);
+  });
+
+  test("major difference is a breaking skew → not applied, refetch fired", async () => {
+    const { t, r } = mk("3.9", () =>
+      Promise.resolve(env(10, { name: "recovered" }, "3.9")),
+    );
+    t.publish("user:1", env(2, { name: "v4-shape" }, "4.0")); // major diff
+    expect(r.peek()).toEqual({ name: "ada" }); // not applied
+    expect(r.stats.schemaSkews).toBe(1);
+    expect(r.stats.refetches).toBe(1);
+    await r.whenIdle();
+    expect(r.peek()).toEqual({ name: "recovered" }); // recovered via refetch
+  });
+
+  test("no schemaVersion set → version gate inert (applies regardless)", () => {
+    const t = new InProcessTransport();
+    const r = createClientReplica({
+      key: "user:1",
+      schema: userSchema,
+      transport: t,
+      seed: env(1, { name: "ada" }),
+    });
+    t.publish("user:1", env(2, { name: "ada-2" }, "9.9")); // wild version, no gate
+    expect(r.peek()).toEqual({ name: "ada-2" });
+    expect(r.stats.schemaSkews).toBe(0);
+  });
+
+  test("malformed/missing version is lenient (parse gate is the backstop)", () => {
+    const { t, r } = mk("3.1");
+    t.publish("user:1", env(2, { name: "ada-2" }, "garbage")); // unparseable version
+    expect(r.peek()).toEqual({ name: "ada-2" }); // not blocked by version gate
+    expect(r.stats.schemaSkews).toBe(0);
+  });
+});

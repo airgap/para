@@ -51,6 +51,21 @@ import { signal } from "@lyku/para-signals";
  */
 
 /**
+ * Compare two "major.minor" version strings by MAJOR only. Returns true iff both
+ * are well-formed and their majors differ (a breaking change). Missing/malformed
+ * versions return false — let the parse gate be the backstop rather than block on
+ * a version-format quirk.
+ * @param {string | undefined} a
+ * @param {string | undefined} b
+ */
+function majorMismatch(a, b) {
+  const ma = /^(\d+)\./.exec(a == null ? "" : String(a));
+  const mb = /^(\d+)\./.exec(b == null ? "" : String(b));
+  if (ma === null || mb === null) return false;
+  return ma[1] !== mb[1];
+}
+
+/**
  * Create a client replica for one synced key.
  *
  * @param {object} opts
@@ -61,8 +76,20 @@ import { signal } from "@lyku/para-signals";
  * @param {() => Promise<SyncEnvelope>} [opts.refetch]   Err/skew/gap fallback: fetch the
  *        current authoritative snapshot. Omit → no recovery (status goes 'stale').
  * @param {Cell} [opts.cell]                             reactive cell (default: a para signal)
+ * @param {string} [opts.schemaVersion]                  the client's expected schema
+ *        version ("major.minor"). When set, an inbound envelope whose MAJOR
+ *        differs is treated as a breaking skew: not applied, recovery refetched.
+ *        A minor difference is compatible and falls through to the parse gate.
  */
-export function createClientReplica({ key, schema, transport, seed, refetch, cell }) {
+export function createClientReplica({
+  key,
+  schema,
+  transport,
+  seed,
+  refetch,
+  cell,
+  schemaVersion,
+}) {
   const value = cell ?? signal(undefined);
   /** @type {Cell} */
   const meta = signal(
@@ -73,7 +100,14 @@ export function createClientReplica({ key, schema, transport, seed, refetch, cel
   let disposed = false;
   let pending = Promise.resolve();
 
-  const stats = { applied: 0, ignoredStale: 0, gaps: 0, parseErrors: 0, refetches: 0 };
+  const stats = {
+    applied: 0,
+    ignoredStale: 0,
+    gaps: 0,
+    parseErrors: 0,
+    refetches: 0,
+    schemaSkews: 0,
+  };
 
   /** @param {Partial<ReplicaMeta>} patch */
   const setMeta = (patch) => meta.set({ ...meta.peek(), ...patch });
@@ -109,6 +143,22 @@ export function createClientReplica({ key, schema, transport, seed, refetch, cel
    */
   function ingest(envelope, source) {
     if (disposed) return;
+
+    // ── schema-version gate ──
+    // A breaking (major) schema-version difference means the value was produced
+    // against an incompatible shape. Don't apply it — the parse gate would
+    // likely reject it too, but the version is the explicit, earlier signal and
+    // tells us this is "different shape" (refetch), not "behind but compatible".
+    // A minor difference (same major) is compatible and falls through to parse.
+    if (
+      schemaVersion !== undefined &&
+      majorMismatch(schemaVersion, envelope.schema_version)
+    ) {
+      stats.schemaSkews++;
+      setMeta({ status: "skew" });
+      if (source !== "refetch") startRefetch();
+      return;
+    }
 
     // ── parse gate (every inbound value crosses a trust boundary) ──
     const res = schema.parse(envelope.value);
