@@ -275,11 +275,36 @@ describe("synced — stream bridge + reactive handle", () => {
       expect(() => synced(undefined, { schema: userSchema })).toThrow(/non-empty string/);
     });
 
-    test("throws when schema has no parse", () => {
+    test("throws when a PRESENT schema is malformed (no parse)", () => {
       // @ts-expect-error — exercising the runtime guard
-      expect(() => synced("k", {})).toThrow(/schema/);
-      // @ts-expect-error — exercising the runtime guard
-      expect(() => synced("k", { schema: {} })).toThrow(/schema/);
+      expect(() => synced("k", { schema: {} })).toThrow(/parse/);
+    });
+  });
+
+  describe("no schema → passthrough (the type-only `sync x: T` mode)", () => {
+    test("synced(key) accepts every value verbatim (no validation)", () => {
+      const stream = fakeStream();
+      configureSynced({ resolveStream: () => stream.factory() });
+      try {
+        const s = synced("anything"); // no schema at all
+        stream.emit(env(1, { literally: "anything", n: 1 }));
+        expect(s.peek()).toEqual({ literally: "anything", n: 1 });
+        // a shape the userSchema would have rejected still applies
+        stream.emit(env(2, 12345));
+        expect(s.peek()).toBe(12345);
+        expect(s.stats.parseErrors).toBe(0);
+        s.dispose();
+      } finally {
+        configureSynced({ resolveStream: undefined });
+      }
+    });
+
+    test("synced(key, {}) (opts without a schema) is also passthrough", () => {
+      const stream = fakeStream();
+      const s = synced("k", { stream: stream.factory });
+      stream.emit(env(1, { whatever: true }));
+      expect(s.peek()).toEqual({ whatever: true });
+      s.dispose();
     });
   });
 });
