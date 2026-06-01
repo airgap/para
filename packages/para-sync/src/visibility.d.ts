@@ -14,6 +14,60 @@ export function defineVisibility(map: Record<string, VisibilityResolver>): void;
 /** Is a tag registered? (test/introspection) */
 export function hasVisibilityResolver(tag: string): boolean;
 
+/**
+ * The viewer's visibility CLASS for an object — the canonical set of tags they
+ * satisfy ('self' for the owner). The cache-sharding key: viewers in the same
+ * class share a projection. Bounded by realized tag combinations, not viewers.
+ */
+export function classKeyOf(viewer: bigint | undefined, owner: bigint): Promise<string>;
+
+/**
+ * Pure per-class projection: keep a gated field iff its tag is in the class.
+ * No resolver calls. 'self' returns the value untouched.
+ */
+export function projectByClass<T = any>(
+    value: T,
+    fields: Record<string, string>,
+    classKey: string,
+): T;
+
+export type VisibilityCacheBackend = {
+    get(key: string): Promise<unknown>;
+    set(key: string, value: unknown, ttlSeconds?: number): Promise<unknown>;
+};
+
+export type VisibilityCacheOptions = {
+    backend: VisibilityCacheBackend;
+    ttlSeconds?: number;
+    codec?: { encode(v: unknown): unknown; decode(v: unknown): unknown };
+    keyPrefix?: string;
+};
+
+export type VisibilityCacheRequest<T = any> = {
+    /** object key, e.g. "user:123" */
+    key: string;
+    /** the object's version — the synced sequence (version-stamps the cache key) */
+    version: string | number;
+    /** the full authoritative record */
+    value: T;
+    viewer: bigint | undefined;
+    owner: bigint;
+    /** gatedField → its visibility-tag key */
+    fields: Record<string, string>;
+};
+
+/**
+ * Per-class, version-stamped projection cache (the scalable serve path). Cache
+ * key = `${keyPrefix}${key}:${classKey}:${version}` — class-keyed not
+ * viewer-keyed (cardinality = objects × classes), version-stamped (data changes
+ * mint new keys, no invalidation), so relationship churn never invalidates a
+ * projection. Backend is injected (Valkey in prod, a Map in tests).
+ */
+export function createVisibilityCache(opts: VisibilityCacheOptions): {
+    classKeyOf: typeof classKeyOf;
+    project<T = any>(req: VisibilityCacheRequest<T>): Promise<T>;
+};
+
 export type VisibilityGateSpec<T = any> = {
     /** gatedField → the record key holding that field's visibility tag */
     fields: Record<string, string>;
