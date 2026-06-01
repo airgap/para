@@ -37,6 +37,33 @@ import { createClientReplica } from "./client.js";
 /** @typedef {import('./client.js').ReplicaMeta} ReplicaMeta */
 
 /**
+ * App-wide defaults so call sites can shrink to `synced(key, schema)` — the
+ * delivery for a key is inferred from here instead of repeated at every call.
+ * Set ONCE near app init. Two deployment shapes (use whichever fits; not both):
+ *
+ *   - transport — a shared keyed transport (the "single objectfeed WS" model):
+ *     its subscribe(key) IS the per-key stream, so no per-call stream is needed.
+ *     This is the intended end-state.
+ *   - resolveStream — for today's per-object endpoints: a (key) => SyncStream
+ *     map (e.g. key === 'currentUser' ? api.streamCurrentUser() : …). Each
+ *     replica then gets a private InProcessTransport fed by the resolved stream.
+ *
+ * @type {{ transport?: SyncTransport, resolveStream?: (key: string) => SyncStream }}
+ */
+let syncDefaults = {};
+
+/**
+ * Configure app-wide `synced` defaults (merged into prior config). Call once at
+ * client init so components can write `synced(key, schema)` with delivery
+ * inferred. Passing `{}` is a no-op; pass explicit `undefined` fields to clear.
+ *
+ * @param {{ transport?: SyncTransport, resolveStream?: (key: string) => SyncStream }} config
+ */
+export function configureSynced(config) {
+  syncDefaults = { ...syncDefaults, ...config };
+}
+
+/**
  * A change-envelope stream: the client's receipt source for one key (in Lyku, an
  * `api.stream*()` socket). `listen` registers a per-envelope callback; `close`
  * (if present) stops delivery. Envelopes are assumed already wire-decoded
@@ -51,23 +78,30 @@ import { createClientReplica } from "./client.js";
 /**
  * Live-replicate one server-authoritative object into a reactive cell.
  *
+ * Two call forms:
+ *   - `synced(key, schema, opts?)` — schema positional (the ergonomic form);
+ *     with delivery configured via {@link configureSynced}, `synced(key, schema)`
+ *     is all you write.
+ *   - `synced(key, opts)` — schema inside `opts` (the explicit form).
+ *
  * @template [T=any]
  * @param {string} key                          synced key, e.g. "user:123"
- * @param {object} opts
- * @param {SyncSchema} opts.schema              the `parse` gate (every inbound
- *        value crosses a trust boundary). Required.
- * @param {() => SyncStream} [opts.stream]      factory for the receipt stream.
- *        Called once; its envelopes are published on `key`. Omit when an
- *        injected transport delivers receipts on its own.
- * @param {SyncTransport} [opts.transport]      transport override. Default: a
- *        private InProcessTransport fed by `stream` (the client model).
- * @param {SyncEnvelope} [opts.seed]            SSR-embedded initial envelope.
- * @param {() => Promise<SyncEnvelope>} [opts.refetch]  Err/skew/gap recovery.
- * @param {string} [opts.schemaVersion]         expected schema version
- *        ("major.minor"); a MAJOR-mismatched envelope is treated as breaking skew.
- * @param {Cell} [opts.cell]                    reactive cell override. Default: a
- *        para signal (the reconciler's own default) — tracked reads work in any
- *        para reactive context.
+ * @param {SyncSchema | SyncedOptions} schemaOrOpts  the `parse` gate (positional)
+ *        OR the full options object (when it has no `parse`).
+ * @param {SyncedOptions} [maybeOpts]           extra options when schema is
+ *        passed positionally.
+ *
+ * @typedef {object} SyncedOptions
+ * @property {SyncSchema} [schema]              the parse gate (if not positional)
+ * @property {() => SyncStream} [stream]        receipt-stream factory; overrides
+ *        the configured `resolveStream`.
+ * @property {SyncTransport} [transport]        transport override; else the
+ *        configured default transport, else a private InProcessTransport.
+ * @property {SyncEnvelope} [seed]              SSR-embedded initial envelope.
+ * @property {() => Promise<SyncEnvelope>} [refetch]  Err/skew/gap recovery.
+ * @property {string} [schemaVersion]          expected schema version.
+ * @property {Cell} [cell]                      reactive cell override.
+ *
  * @returns {{
  *   readonly value: T,
  *   readonly status: ReplicaStatus,
@@ -80,17 +114,26 @@ import { createClientReplica } from "./client.js";
  *   dispose(): void,
  * }}
  */
-export function synced(key, opts) {
+export function synced(key, schemaOrOpts, maybeOpts) {
   if (typeof key !== "string" || key.length === 0) {
-    throw new Error("synced(key, opts): `key` must be a non-empty string");
+    throw new Error("synced(key, …): `key` must be a non-empty string");
   }
-  if (opts == null || typeof opts.schema?.parse !== "function") {
+
+  // Disambiguate the two forms: a positional schema is anything with a
+  // `parse` method; otherwise the 2nd arg is the options object.
+  const positionalSchema =
+    schemaOrOpts != null && typeof schemaOrOpts.parse === "function"
+      ? schemaOrOpts
+      : undefined;
+  const opts = (positionalSchema ? maybeOpts : schemaOrOpts) ?? {};
+  const schema = positionalSchema ?? opts.schema;
+  if (typeof schema?.parse !== "function") {
     throw new Error(
-      "synced(key, opts): `opts.schema` with a parse(value) method is required"
+      "synced(key, schema | opts): a `parse(value)`-bearing schema is required (positionally or as opts.schema)"
     );
   }
 
-  const { schema, stream, transport, seed, refetch, schemaVersion, cell } = opts;
+  const { stream, transport, seed, refetch, schemaVersion, cell } = opts;
 
   // Own the value cell so the handle can expose `.subscribe` (the .pui `source`/
   // `synced` binding convention). Default: a para signal — the reconciler's own
@@ -99,10 +142,21 @@ export function synced(key, opts) {
   // is a no-op and the host store drives reactivity instead.
   const valueCell = cell ?? signal(undefined);
 
-  // Client model: a private InProcessTransport fed by the WS stream. An injected
-  // transport (tests, or a shared bus) takes over delivery; the caller then
-  // typically omits `stream`.
-  const tx = transport ?? new InProcessTransport();
+  // Resolve the transport: explicit override → configured shared transport (the
+  // objectfeed) → a private InProcessTransport (the per-object/per-call model).
+  const sharedTransport = transport ?? syncDefaults.transport;
+  const tx = sharedTransport ?? new InProcessTransport();
+  const ownsTransport = sharedTransport === undefined;
+
+  // Resolve the receipt stream: an explicit `stream` always wins; otherwise,
+  // when we own a private transport, fall back to the configured `resolveStream`
+  // so `synced(key, schema)` infers its delivery. A shared transport delivers by
+  // key on its own, so no stream bridge is wired for it.
+  const streamFactory =
+    stream ??
+    (ownsTransport && syncDefaults.resolveStream
+      ? () => syncDefaults.resolveStream(key)
+      : undefined);
 
   const replica = createClientReplica({
     key,
@@ -120,8 +174,8 @@ export function synced(key, opts) {
   // initial state is the seed's job.
   /** @type {SyncStream | undefined} */
   let sock;
-  if (stream) {
-    sock = stream();
+  if (streamFactory) {
+    sock = streamFactory();
     sock.listen((envelope) => tx.publish(key, envelope));
   }
 
