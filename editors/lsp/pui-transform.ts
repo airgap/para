@@ -324,28 +324,31 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         continue;
       }
 
-      // sync NAME :: SCHEMA from KEY → `synced(KEY, SCHEMA)` bound into a
-      // reactive view + auto-dispose (the readable form). KEY's extent comes
-      // from derivedInitEnd; SCHEMA is the `::` ascription. Byte-identical to the
-      // build path's lowerSyncFromDecls. Needs onDestroy + the synced import.
+      // sync NAME :: SCHEMA from KEY → `synced(KEY, SCHEMA)` (validated), or
+      // sync NAME :  TYPE   from KEY → `synced(KEY)` + `: TYPE` (type-only).
+      // KEY's extent comes from derivedInitEnd; the annotation is the `:`/`::`
+      // ascription. Byte-identical to the build path's lowerSyncFromDecls.
       let sf = lineText.match(
-        /^(\s*)sync\s+(\w+)\s*::\s*([^\n;]+?)\s+from\s+(.+?)\s*;?\s*$/,
+        /^(\s*)sync\s+(\w+)\s*(::?)\s*([^\n;]+?)\s+from\s+(.+?)\s*;?\s*$/,
       );
       if (sf) {
         svelteImports.add("onDestroy");
         needsSyncedImport = true;
         const indent = sf[1]!;
         const name = sf[2]!;
-        const schema = sf[3]!.trim();
-        const keyRel = lineText.lastIndexOf(sf[4]!);
+        const validate = sf[3] === "::";
+        const annotation = sf[4]!.trim();
+        const keyRel = lineText.lastIndexOf(sf[5]!);
         const keyAbs = ls + keyRel;
         const end = Math.min(derivedInitEnd(raw, keyAbs), bodyEnd);
         const term = raw[end] === ";" ? end + 1 : end;
         repl(ls, keyAbs, `${indent}const __syn_${name} = synced(`);
+        // `::` → schema as 2nd arg, inferred type; `:` → no schema, typed cell.
+        const head = validate ? `, ${annotation}); let ${name}` : `); let ${name}: ${annotation}`;
         repl(
           end,
           term,
-          `, ${schema}); let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
+          `${head} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
             `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
             `onDestroy(() => __syn_${name}.dispose?.());`,
         );

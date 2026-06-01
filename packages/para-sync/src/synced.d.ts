@@ -102,3 +102,8 @@ export function synced<T = any>(
  * Options-object form: `synced(key, { schema, … })`.
  */
 export function synced<T = any>(key: string, opts: SyncedOptions<T>): SyncedHandle<T>;
+/**
+ * No-schema form: `synced(key)` — no runtime validation (passthrough gate), the
+ * type-only `sync x: T from key` mode. Delivery comes from {@link configureSynced}.
+ */
+export function synced<T = any>(key: string): SyncedHandle<T>;

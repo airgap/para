@@ -90,6 +90,32 @@ sync me :: User from "currentUser";
   expect(out).toContain(`const __syn_me = synced("currentUser", User);`);
 });
 
+test("sync NAME : TYPE from KEY (single colon) → type-only, no schema arg", () => {
+  const out = lower(`<script lang="ts">
+sync user : User from \`user:\${id}\`;
+</script>
+<div>{user?.name}</div>`);
+  // single colon: synced(KEY) with NO schema, and a TS type annotation on $state
+  expect(out).toContain("const __syn_user = synced(`user:${id}`);");
+  expect(out).toContain(`let user: User = $state(__syn_user.peek?.() ?? __syn_user);`);
+  expect(out).not.toContain(", User)"); // schema is NOT passed (type-only)
+  expect(out).toContain(`onDestroy(() => __syn_user.dispose?.());`);
+});
+
+test("`::` (validate) and `:` (type-only) are distinguished", () => {
+  const validated = lower(`<script lang="ts">
+sync a :: User from "k";
+</script>`);
+  expect(validated).toContain(`const __syn_a = synced("k", User);`); // schema passed
+  expect(validated).not.toContain(`let a: User`); // type inferred, not annotated
+
+  const typed = lower(`<script lang="ts">
+sync b : User from "k";
+</script>`);
+  expect(typed).toContain(`const __syn_b = synced("k");`); // no schema
+  expect(typed).toContain(`let b: User = $state`); // annotated
+});
+
 test("sync...from is read-only: assignments are NOT rewritten", () => {
   const out = lower(`<script lang="ts">
 sync s :: S from "k";

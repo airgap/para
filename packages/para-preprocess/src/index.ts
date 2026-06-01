@@ -754,13 +754,21 @@ function lowerSourceDecls(source: string): { code: string; needsOnDestroy: boole
   return { code, needsOnDestroy: needs };
 }
 
-// Shared emission for both synced keyword forms: bind a `synced(...)` replica
+// Shared emission for the synced keyword forms: bind a `synced(...)` replica
 // (`call`) into a read-only, component-reactive cell that auto-disposes on
 // unmount — the peek/subscribe/dispose convention (same shape as `source`).
-function syncedBinding(indent: string, name: string, call: string): string {
+// `type`, when given, annotates the $state cell (the type-only `:` form, where
+// no schema means the type can't be inferred from synced<T>).
+function syncedBinding(
+  indent: string,
+  name: string,
+  call: string,
+  type?: string,
+): string {
+  const ann = type ? `: ${type}` : "";
   return (
     `${indent}const __syn_${name} = ${call}; ` +
-    `let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
+    `let ${name}${ann} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
     `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
     `onDestroy(() => __syn_${name}.dispose?.());`
   );
@@ -771,16 +779,19 @@ function lowerSyncFromDecls(source: string): {
   needsOnDestroy: boolean;
   needsSynced: boolean;
 } {
-  // `sync NAME :: SCHEMA from KEY` → `synced(KEY, SCHEMA)` bound into a reactive
-  // view + auto-dispose. The readable declarative form: the schema is a `::`
-  // ascription (rhyming with Para's `value :: Schema` parse operator) and the
-  // key is the `from` source — so a component reads
-  // `sync user :: User from \`user:${id}\`` and delivery is inferred from the
-  // configured default (configureSynced). KEY may span lines (extent via
-  // derivedInitEnd); SCHEMA is a single-line value reference up to ` from `.
-  // For full control (opts/stream/cell) use the `synced NAME = ARGS` form.
+  // `sync NAME :: SCHEMA from KEY`  → `synced(KEY, SCHEMA)`  — VALIDATED (default)
+  // `sync NAME :  TYPE   from KEY`  → `synced(KEY)`          — type-only, no gate
+  //
+  // The readable declarative form: the annotation is `::` (a runtime parse gate,
+  // rhyming with Para's `value :: Schema` operator) or `:` (a TS type only — the
+  // trusted/opt-out mode, since synced replicates over an untrusted wire). The
+  // key is the `from` source; delivery is inferred from configureSynced. KEY may
+  // span lines (extent via derivedInitEnd); the annotation is single-line up to
+  // ` from `. For full control (opts/stream/cell) use `synced NAME = ARGS`.
+  //
+  // One regex captures the colon count; `(::?)` is greedy so `::` wins over `:`.
   const re =
-    /(^|[;\n{}])(\s*)sync\s+([A-Za-z_$][\w$]*)\s*::\s*([^\n;]+?)\s+from\s+/g;
+    /(^|[;\n{}])(\s*)sync\s+([A-Za-z_$][\w$]*)\s*(::?)\s*([^\n;]+?)\s+from\s+/g;
   let out = "";
   let last = 0;
   let needs = false;
@@ -789,12 +800,17 @@ function lowerSyncFromDecls(source: string): {
     const kwStart = m.index + m[1]!.length;
     const matchEnd = re.lastIndex;
     const name = m[3]!;
-    const schema = m[4]!.trim();
+    const validate = m[4] === "::";
+    const annotation = m[5]!.trim();
     const end = derivedInitEnd(source, matchEnd);
     const key = source.slice(matchEnd, end).trim();
     const consumeEnd = source[end] === ";" ? end + 1 : end;
     out += source.slice(last, kwStart);
-    out += syncedBinding(m[2]!, name, `synced(${key}, ${schema})`);
+    out += validate
+      ? // `::` — annotation is the runtime schema (2nd arg); type is inferred.
+        syncedBinding(m[2]!, name, `synced(${key}, ${annotation})`)
+      : // `:` — annotation is a TS type only; no schema ⇒ passthrough gate.
+        syncedBinding(m[2]!, name, `synced(${key})`, annotation);
     needs = true;
     last = consumeEnd;
     re.lastIndex = consumeEnd;

@@ -53,6 +53,14 @@ import { createClientReplica } from "./client.js";
 let syncDefaults = {};
 
 /**
+ * No-validation gate for the type-only `sync x: T from key` form: accept every
+ * inbound value verbatim. Used when no schema is supplied — see the schema note
+ * in {@link synced}.
+ * @type {import('./client.js').SyncSchema}
+ */
+const PASSTHROUGH_SCHEMA = { parse: (value) => ({ tag: "Ok", value }) };
+
+/**
  * Configure app-wide `synced` defaults (merged into prior config). Call once at
  * client init so components can write `synced(key, schema)` with delivery
  * inferred. Passing `{}` is a no-op; pass explicit `undefined` fields to clear.
@@ -126,11 +134,15 @@ export function synced(key, schemaOrOpts, maybeOpts) {
       ? schemaOrOpts
       : undefined;
   const opts = (positionalSchema ? maybeOpts : schemaOrOpts) ?? {};
-  const schema = positionalSchema ?? opts.schema;
-  if (typeof schema?.parse !== "function") {
-    throw new Error(
-      "synced(key, schema | opts): a `parse(value)`-bearing schema is required (positionally or as opts.schema)"
-    );
+  // Schema is OPTIONAL: absent ⇒ PASSTHROUGH (no runtime validation) — the
+  // `sync x: T from key` type-only / trusted mode. synced replicates server-
+  // authoritative data over an untrusted wire, so a real gate is the default
+  // (the `sync x :: Schema from key` form); skipping it is the deliberate
+  // opt-out. A schema that is PRESENT but malformed (no `parse`) is still a hard
+  // error — that's a mistake, not an opt-out.
+  const schema = positionalSchema ?? opts.schema ?? PASSTHROUGH_SCHEMA;
+  if (typeof schema.parse !== "function") {
+    throw new Error("synced: the provided `schema` has no parse(value) method");
   }
 
   const { stream, transport, seed, refetch, schemaVersion, cell } = opts;
