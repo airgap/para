@@ -102,6 +102,36 @@ Reconcile rules (Tier 1):
 `parseErrors`, `refetches`); `replica.whenIdle()` resolves when no recovery
 refetch is in flight (a test/await aid).
 
+## `synced` — the reactive primitive
+
+`createClientReplica` is the engine; `synced` is the ergonomic front. It composes
+the reconciler with a **default in-process transport**, a **change-stream
+bridge**, and **one bundled teardown**, so an adopter writes a single call
+instead of standing up a transport, pumping the stream into it, and threading two
+disposers.
+
+```js
+import { synced } from "@lyku/para-sync";
+
+const user = synced("user:123", {
+  schema: User,                       // parse(v) => {tag:'Ok',value} | {tag:'Err',error}
+  schemaVersion: "1.0",               // optional: MAJOR mismatch ⇒ breaking skew
+  stream: () => api.streamCurrentUser(), // { listen(cb), close?() } — the receipt source
+  seed: ssrEnvelope,                  // optional SSR baseline
+  refetch: () => fetchSnapshot("user:123") // optional Err/skew/gap recovery
+});
+
+user.value;   // current value, TRACKED — read it in a .pui template / derived / effect and it reacts
+user.status;  // 'ok' | 'stale' | 'skew' | 'refetching', tracked
+user.dispose(); // closes the stream + disposes the replica (idempotent)
+```
+
+The default cell is a para signal, so `user.value` is a tracked read in any para
+reactive context (no manual effect). Inject `cell` to back the value with a
+different reactive store (e.g. a Svelte-fork cell, or a host `SvelteMap`); inject
+`transport` (and omit `stream`) when delivery is owned elsewhere. `synced` is
+read-only — Tier 1 replication; writes are the server-write gate's job.
+
 ## Test
 
 ```
