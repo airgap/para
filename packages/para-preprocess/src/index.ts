@@ -754,6 +754,55 @@ function lowerSourceDecls(source: string): { code: string; needsOnDestroy: boole
   return { code, needsOnDestroy: needs };
 }
 
+// Shared emission for both synced keyword forms: bind a `synced(...)` replica
+// (`call`) into a read-only, component-reactive cell that auto-disposes on
+// unmount — the peek/subscribe/dispose convention (same shape as `source`).
+function syncedBinding(indent: string, name: string, call: string): string {
+  return (
+    `${indent}const __syn_${name} = ${call}; ` +
+    `let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
+    `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
+    `onDestroy(() => __syn_${name}.dispose?.());`
+  );
+}
+
+function lowerSyncFromDecls(source: string): {
+  code: string;
+  needsOnDestroy: boolean;
+  needsSynced: boolean;
+} {
+  // `sync NAME :: SCHEMA from KEY` → `synced(KEY, SCHEMA)` bound into a reactive
+  // view + auto-dispose. The readable declarative form: the schema is a `::`
+  // ascription (rhyming with Para's `value :: Schema` parse operator) and the
+  // key is the `from` source — so a component reads
+  // `sync user :: User from \`user:${id}\`` and delivery is inferred from the
+  // configured default (configureSynced). KEY may span lines (extent via
+  // derivedInitEnd); SCHEMA is a single-line value reference up to ` from `.
+  // For full control (opts/stream/cell) use the `synced NAME = ARGS` form.
+  const re =
+    /(^|[;\n{}])(\s*)sync\s+([A-Za-z_$][\w$]*)\s*::\s*([^\n;]+?)\s+from\s+/g;
+  let out = "";
+  let last = 0;
+  let needs = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const kwStart = m.index + m[1]!.length;
+    const matchEnd = re.lastIndex;
+    const name = m[3]!;
+    const schema = m[4]!.trim();
+    const end = derivedInitEnd(source, matchEnd);
+    const key = source.slice(matchEnd, end).trim();
+    const consumeEnd = source[end] === ";" ? end + 1 : end;
+    out += source.slice(last, kwStart);
+    out += syncedBinding(m[2]!, name, `synced(${key}, ${schema})`);
+    needs = true;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+  return { code: out, needsOnDestroy: needs, needsSynced: needs };
+}
+
 function lowerSyncedDecls(source: string): {
   code: string;
   needsOnDestroy: boolean;
@@ -767,13 +816,12 @@ function lowerSyncedDecls(source: string): {
   // `async signal x = E` wraps `promiseSignal(() => (E))`. ARGS MAY span multiple
   // lines (the opts object); its extent is found by derivedInitEnd (a top-level
   // comma between key and opts is a continuation, not a terminator), not a
-  // per-line regex.
+  // per-line regex. This is the full-control form; `sync NAME :: SCHEMA from KEY`
+  // is the readable common-case sugar.
   //
   // The emitted binding is the peek/subscribe/dispose convention (same as
-  // `source`); `synced` is a distinct keyword so its intent — "construct + bind
-  // a server-synced replica" — is explicit, and `synced` is auto-imported from
-  // @lyku/para-sync (needsSynced). To bind a PRE-BUILT handle instead, use
-  // `source x = handle`.
+  // `source`); `synced` is auto-imported from @lyku/para-sync (needsSynced). To
+  // bind a PRE-BUILT handle instead, use `source x = handle`.
   //
   // The prefix regex requires `synced <identifier> =`, so the emitted
   // `synced(...)` CALL is never re-matched as the keyword.
@@ -790,11 +838,7 @@ function lowerSyncedDecls(source: string): {
     const args = source.slice(matchEnd, end).trim();
     const consumeEnd = source[end] === ";" ? end + 1 : end;
     out += source.slice(last, kwStart);
-    out +=
-      `${m[2]}const __syn_${name} = synced(${args}); ` +
-      `let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
-      `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
-      `onDestroy(() => __syn_${name}.dispose?.());`;
+    out += syncedBinding(m[2]!, name, `synced(${args})`);
     needs = true;
     last = consumeEnd;
     re.lastIndex = consumeEnd;
@@ -898,8 +942,8 @@ export function buildEscapeChecker(source: string): (name: string) => boolean {
 
 /**
  * Lower a `.pui` `<script>` body's Para reactive keywords (signal / derived /
- * effect / prop / provide / inject / using / source / async signal / synced) to
- * standard Svelte 5 runes.
+ * effect / prop / provide / inject / using / source / async signal / sync /
+ * synced) to standard Svelte 5 runes.
  * Synchronous and side-effect-free — safe to call from a TS language-service
  * plugin or any tooling that needs the type-relevant transform without the
  * full async PreprocessorGroup. The operator desugars (`..!`, `|>`, `pure`)
@@ -939,17 +983,26 @@ export function lowerPuiReactivity(
   const asyncSignalResult = lowerAsyncSignalDecls(source);
   source = asyncSignalResult.code;
 
+  // `sync NAME :: SCHEMA from KEY` (readable form) before `synced NAME = ARGS`
+  // (full-control form) — distinct keywords (`sync` vs `synced`), but order keeps
+  // the readable form's emitted `synced(...)` out of the other's scan path.
+  const syncFromResult = lowerSyncFromDecls(source);
+  source = syncFromResult.code;
+
   const syncedResult = lowerSyncedDecls(source);
   source = syncedResult.code;
 
+  const needsSynced = syncFromResult.needsSynced || syncedResult.needsSynced;
+
   // Aggregate Svelte imports needed by the lowerings above. provide/inject
-  // contributes setContext/getContext; using + source + async signal + synced
+  // contributes setContext/getContext; using + source + async signal + sync(ed)
   // contribute onDestroy.
   const svelteImports = new Set<string>(provideInject.imports);
   if (
     usingResult.needsOnDestroy ||
     sourceResult.needsOnDestroy ||
     asyncSignalResult.needsOnDestroy ||
+    syncFromResult.needsOnDestroy ||
     syncedResult.needsOnDestroy
   )
     svelteImports.add("onDestroy");
@@ -1091,7 +1144,7 @@ export function lowerPuiReactivity(
   // `synced` keyword auto-imports the synced() constructor from @lyku/para-sync
   // (dedup against a hand-authored import), the way signal/derived auto-import
   // from para-signals — so the call site never needs the import line.
-  if (syncedResult.needsSynced && !/from\s+['"]@lyku\/para-sync['"]/.test(result)) {
+  if (needsSynced && !/from\s+['"]@lyku\/para-sync['"]/.test(result)) {
     result = `import { synced } from "@lyku/para-sync";${importSep}` + result;
   }
 

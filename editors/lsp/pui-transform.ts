@@ -324,6 +324,35 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         continue;
       }
 
+      // sync NAME :: SCHEMA from KEY → `synced(KEY, SCHEMA)` bound into a
+      // reactive view + auto-dispose (the readable form). KEY's extent comes
+      // from derivedInitEnd; SCHEMA is the `::` ascription. Byte-identical to the
+      // build path's lowerSyncFromDecls. Needs onDestroy + the synced import.
+      let sf = lineText.match(
+        /^(\s*)sync\s+(\w+)\s*::\s*([^\n;]+?)\s+from\s+(.+?)\s*;?\s*$/,
+      );
+      if (sf) {
+        svelteImports.add("onDestroy");
+        needsSyncedImport = true;
+        const indent = sf[1]!;
+        const name = sf[2]!;
+        const schema = sf[3]!.trim();
+        const keyRel = lineText.lastIndexOf(sf[4]!);
+        const keyAbs = ls + keyRel;
+        const end = Math.min(derivedInitEnd(raw, keyAbs), bodyEnd);
+        const term = raw[end] === ";" ? end + 1 : end;
+        repl(ls, keyAbs, `${indent}const __syn_${name} = synced(`);
+        repl(
+          end,
+          term,
+          `, ${schema}); let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
+            `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
+            `onDestroy(() => __syn_${name}.dispose?.());`,
+        );
+        consumedUntil = term;
+        continue;
+      }
+
       // synced NAME = ARGS → construct `synced(ARGS)` (a para-sync replica) and
       // bind it into a read-only reactive view + auto-dispose. ARGS (the
       // `key, opts` list) MAY span newlines (the opts object), so its extent

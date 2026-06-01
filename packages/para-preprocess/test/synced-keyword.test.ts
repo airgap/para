@@ -71,6 +71,34 @@ using r = makeResource();
   expect(out).toContain(`const __syn_user = synced("user:1", { schema: User });`);
 });
 
+test("sync NAME :: SCHEMA from KEY → synced(KEY, SCHEMA) + reactive view", () => {
+  const out = lower(`<script lang="ts">
+sync user :: User from \`user:\${id}\`;
+</script>
+<div>{user?.name}</div>`);
+  expect(out).toContain("const __syn_user = synced(`user:${id}`, User);");
+  expect(out).toContain(`let user = $state(__syn_user.peek?.() ?? __syn_user);`);
+  expect(out).toContain(`onDestroy(() => __syn_user.dispose?.());`);
+  expect(out).toContain(`import { synced } from "@lyku/para-sync";`);
+  expect(out).not.toMatch(/(^|\n)\s*sync user ::/);
+});
+
+test("sync...from with a plain string key", () => {
+  const out = lower(`<script lang="ts">
+sync me :: User from "currentUser";
+</script>`);
+  expect(out).toContain(`const __syn_me = synced("currentUser", User);`);
+});
+
+test("sync...from is read-only: assignments are NOT rewritten", () => {
+  const out = lower(`<script lang="ts">
+sync s :: S from "k";
+s = other;
+</script>`);
+  expect(out).toContain(`s = other;`);
+  expect(out).not.toContain(`__syn_s.set(`);
+});
+
 test("no synced decl → no __syn_ / synced import injected by this path", () => {
   const out = lower(`<script lang="ts">
 signal x = 1;
