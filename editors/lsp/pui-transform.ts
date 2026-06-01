@@ -323,6 +323,33 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         continue;
       }
 
+      // synced NAME = EXPR → para-sync replica handle bound into a read-only
+      // reactive view + auto-dispose. EXPR (a `synced(key, opts)` call) MAY span
+      // newlines (the opts object), so its extent comes from the shared
+      // derivedInitEnd scanner — same as `derived` — not this line's end. Two
+      // repls leave EXPR in place (positions preserved → diagnostics map);
+      // byte-identical to the build path's lowerSyncedDecls. Needs onDestroy.
+      let sy = lineText.match(/^(\s*)synced\s+(\w+)(?:\s*:\s*[^=]+)?\s*=\s*(.+?)\s*;?\s*$/);
+      if (sy) {
+        svelteImports.add("onDestroy");
+        const indent = sy[1]!;
+        const name = sy[2]!;
+        const exprRel = lineText.lastIndexOf(sy[3]!);
+        const exprAbs = ls + exprRel;
+        const end = Math.min(derivedInitEnd(raw, exprAbs), bodyEnd);
+        const term = raw[end] === ";" ? end + 1 : end;
+        repl(ls, exprAbs, `${indent}const __syn_${name} = `);
+        repl(
+          end,
+          term,
+          `; let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
+            `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
+            `onDestroy(() => __syn_${name}.dispose?.());`,
+        );
+        consumedUntil = term;
+        continue;
+      }
+
       // signal a = 1, b = 2 → per-declarator bridge, fragments re-joined
       // on the one line (source↔output reordered → whole-line).
       let sg = lineText.match(/^(\s*)signal\s+(.+?)\s*;?\s*$/);

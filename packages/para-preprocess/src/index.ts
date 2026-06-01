@@ -754,6 +754,51 @@ function lowerSourceDecls(source: string): { code: string; needsOnDestroy: boole
   return { code, needsOnDestroy: needs };
 }
 
+function lowerSyncedDecls(source: string): { code: string; needsOnDestroy: boolean } {
+  // `synced NAME = EXPR` → bind a para-sync `synced(...)` handle into a
+  // read-only, component-reactive cell that auto-disposes on unmount. EXPR is
+  // the handle expression (typically a `synced(key, opts)` call) and MAY span
+  // multiple lines (the opts object), so its extent is found by derivedInitEnd,
+  // not a per-line regex (which would truncate at the first newline — the same
+  // bug lowerDerivedDecls fixed for `derived`).
+  //
+  // Structurally identical to `source` (the peek/subscribe/dispose convention),
+  // but a DISTINCT keyword so the intent — "this binds a server-synced replica"
+  // — is explicit at the call site, and so the two can diverge later without
+  // disturbing `source`. The synced handle (@lyku/para-sync) satisfies the
+  // convention: `.peek()` seeds, `.subscribe(cb)` drives updates (returns the
+  // $effect.pre teardown), `.dispose()` is the unmount cleanup.
+  //
+  // The prefix regex mirrors lowerDerivedDecls; `synced(` (the call itself) is
+  // never matched as the keyword because the keyword form requires
+  // `synced <identifier> =` — so the inner `synced(...)` on the RHS is consumed
+  // as part of EXPR, not re-lowered.
+  const re = /(^|[;\n{}])(\s*)synced\s+([A-Za-z_$][\w$]*)\s*(?::\s*[^=;]+?)?\s*=\s*/g;
+  let out = "";
+  let last = 0;
+  let needs = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const kwStart = m.index + m[1]!.length;
+    const matchEnd = re.lastIndex;
+    const name = m[3]!;
+    const end = derivedInitEnd(source, matchEnd);
+    const expr = source.slice(matchEnd, end).trim();
+    const consumeEnd = source[end] === ";" ? end + 1 : end;
+    out += source.slice(last, kwStart);
+    out +=
+      `${m[2]}const __syn_${name} = ${expr}; ` +
+      `let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
+      `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
+      `onDestroy(() => __syn_${name}.dispose?.());`;
+    needs = true;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+  return { code: out, needsOnDestroy: needs };
+}
+
 function lowerAsyncSignalDecls(source: string): {
   code: string;
   needsOnDestroy: boolean;
@@ -849,7 +894,8 @@ export function buildEscapeChecker(source: string): (name: string) => boolean {
 
 /**
  * Lower a `.pui` `<script>` body's Para reactive keywords (signal / derived /
- * effect / prop / provide / inject / using) to standard Svelte 5 runes.
+ * effect / prop / provide / inject / using / source / async signal / synced) to
+ * standard Svelte 5 runes.
  * Synchronous and side-effect-free — safe to call from a TS language-service
  * plugin or any tooling that needs the type-relevant transform without the
  * full async PreprocessorGroup. The operator desugars (`..!`, `|>`, `pure`)
@@ -889,11 +935,19 @@ export function lowerPuiReactivity(
   const asyncSignalResult = lowerAsyncSignalDecls(source);
   source = asyncSignalResult.code;
 
+  const syncedResult = lowerSyncedDecls(source);
+  source = syncedResult.code;
+
   // Aggregate Svelte imports needed by the lowerings above. provide/inject
-  // contributes setContext/getContext; using + source + async signal
+  // contributes setContext/getContext; using + source + async signal + synced
   // contribute onDestroy.
   const svelteImports = new Set<string>(provideInject.imports);
-  if (usingResult.needsOnDestroy || sourceResult.needsOnDestroy || asyncSignalResult.needsOnDestroy)
+  if (
+    usingResult.needsOnDestroy ||
+    sourceResult.needsOnDestroy ||
+    asyncSignalResult.needsOnDestroy ||
+    syncedResult.needsOnDestroy
+  )
     svelteImports.add("onDestroy");
   // Auto-import the closed lifecycle/nav set when used as a plain call
   // (mount-keyword retired — these are framework functions, not Para

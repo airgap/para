@@ -51,6 +51,12 @@ export type SyncedHandle<T = any> = {
     get(): T;
     /** current value (untracked) */
     peek(): T;
+    /**
+     * Subscribe to value changes (current value now, then on every apply);
+     * returns an unsubscribe. Satisfies the `.pui` `source`/`synced` binding
+     * convention. No-op when an injected cell has no `subscribe`.
+     */
+    subscribe(onChange: (value: T) => void): () => void;
     /** full reconcile meta (tracked) */
     meta(): ReplicaMeta;
     /** full reconcile meta (untracked) */

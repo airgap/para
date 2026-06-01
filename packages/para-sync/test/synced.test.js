@@ -151,6 +151,37 @@ describe("synced — stream bridge + reactive handle", () => {
     s.dispose();
   });
 
+  test("subscribe fires current value now + on each apply (source convention)", () => {
+    const stream = fakeStream();
+    const s = synced("user:1", { schema: userSchema, stream: stream.factory });
+
+    const got = [];
+    const unsub = s.subscribe((v) => got.push(v?.name ?? null));
+    expect(got).toEqual([null]); // fires synchronously with the current (seed-less) value
+
+    stream.emit(env(1, { name: "ada" }));
+    stream.emit(env(2, { name: "grace" }));
+    expect(got).toEqual([null, "ada", "grace"]);
+
+    unsub();
+    stream.emit(env(3, { name: "linus" }));
+    expect(got).toEqual([null, "ada", "grace"]); // unsubscribed — no more
+
+    s.dispose();
+  });
+
+  test("subscribe is a no-op when an injected cell has none (host-driven)", () => {
+    let held;
+    const cell = { get: () => held, peek: () => held, set: (v) => (held = v) };
+    const s = synced("user:1", { schema: userSchema, cell });
+    const unsub = s.subscribe(() => {
+      throw new Error("should not fire");
+    });
+    expect(typeof unsub).toBe("function");
+    unsub();
+    s.dispose();
+  });
+
   test("stats are observable through the handle", () => {
     const stream = fakeStream();
     const s = synced("user:1", { schema: userSchema, stream: stream.factory });

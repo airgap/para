@@ -25,6 +25,7 @@
 // It does NOT write (Tier 1 is read-only replication) and does NOT own the
 // schema or the schema version — those are the caller's, passed straight through.
 
+import { signal } from "@lyku/para-signals";
 import { InProcessTransport } from "./transport.js";
 import { createClientReplica } from "./client.js";
 
@@ -91,6 +92,13 @@ export function synced(key, opts) {
 
   const { schema, stream, transport, seed, refetch, schemaVersion, cell } = opts;
 
+  // Own the value cell so the handle can expose `.subscribe` (the .pui `source`/
+  // `synced` binding convention). Default: a para signal — the reconciler's own
+  // default, hoisted here so we keep a reference. An injected cell (e.g. a host
+  // SvelteMap-backed one) is used as-is; if it has no `.subscribe`, the handle's
+  // is a no-op and the host store drives reactivity instead.
+  const valueCell = cell ?? signal(undefined);
+
   // Client model: a private InProcessTransport fed by the WS stream. An injected
   // transport (tests, or a shared bus) takes over delivery; the caller then
   // typically omits `stream`.
@@ -103,7 +111,7 @@ export function synced(key, opts) {
     seed,
     refetch,
     schemaVersion,
-    cell,
+    cell: valueCell,
   });
 
   // Bridge the receipt stream → transport. Open AFTER the replica subscribes so
@@ -135,6 +143,20 @@ export function synced(key, opts) {
     /** current value (untracked) */
     peek() {
       return replica.peek();
+    },
+    /**
+     * Subscribe to value changes: `onChange` fires with the current value now
+     * and on every apply; returns an unsubscribe. Lets the handle satisfy the
+     * `.pui` `source`/`synced` binding convention (a `.pui` `synced x = …`
+     * lowers to a $state mirror driven by this). No-op when the injected cell
+     * has no `.subscribe` (a host store drives reactivity in that case).
+     * @param {(value: any) => void} onChange
+     * @returns {() => void}
+     */
+    subscribe(onChange) {
+      return typeof valueCell.subscribe === "function"
+        ? valueCell.subscribe(onChange)
+        : () => {};
     },
     /** full reconcile meta (tracked): { schemaVersion, sequence, status } */
     meta() {
