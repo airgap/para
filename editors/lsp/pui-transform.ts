@@ -127,6 +127,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
   const kitNavImports = new Set<string>();
   let needsSignalImport = false;
   let needsPromiseSignal = false;
+  let needsSyncedImport = false;
   let firstBodyStart = -1;
   const bodyRanges: Array<[number, number]> = [];
 
@@ -323,26 +324,28 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         continue;
       }
 
-      // synced NAME = EXPR → para-sync replica handle bound into a read-only
-      // reactive view + auto-dispose. EXPR (a `synced(key, opts)` call) MAY span
-      // newlines (the opts object), so its extent comes from the shared
-      // derivedInitEnd scanner — same as `derived` — not this line's end. Two
-      // repls leave EXPR in place (positions preserved → diagnostics map);
-      // byte-identical to the build path's lowerSyncedDecls. Needs onDestroy.
+      // synced NAME = ARGS → construct `synced(ARGS)` (a para-sync replica) and
+      // bind it into a read-only reactive view + auto-dispose. ARGS (the
+      // `key, opts` list) MAY span newlines (the opts object), so its extent
+      // comes from the shared derivedInitEnd scanner — same as `derived` — not
+      // this line's end. Two repls wrap ARGS in `synced(…)`, leaving it in place
+      // (positions preserved → diagnostics map); byte-identical to the build
+      // path's lowerSyncedDecls. Needs onDestroy + the synced import.
       let sy = lineText.match(/^(\s*)synced\s+(\w+)(?:\s*:\s*[^=]+)?\s*=\s*(.+?)\s*;?\s*$/);
       if (sy) {
         svelteImports.add("onDestroy");
+        needsSyncedImport = true;
         const indent = sy[1]!;
         const name = sy[2]!;
         const exprRel = lineText.lastIndexOf(sy[3]!);
         const exprAbs = ls + exprRel;
         const end = Math.min(derivedInitEnd(raw, exprAbs), bodyEnd);
         const term = raw[end] === ";" ? end + 1 : end;
-        repl(ls, exprAbs, `${indent}const __syn_${name} = `);
+        repl(ls, exprAbs, `${indent}const __syn_${name} = synced(`);
         repl(
           end,
           term,
-          `; let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
+          `); let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
             `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
             `onDestroy(() => __syn_${name}.dispose?.());`,
         );
@@ -553,6 +556,11 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
   if (needsPromiseSignal) paraImports.push("promiseSignal");
   if (paraImports.length && !/from\s+['"]@para\/signals['"]/.test(raw)) {
     prefix += `import { ${paraImports.join(", ")} } from "@lyku/para-signals"; `;
+  }
+  // `synced` keyword auto-imports synced() from @lyku/para-sync (dedup against a
+  // hand-authored import), mirroring the build path's lowerPuiReactivity.
+  if (needsSyncedImport && !/from\s+['"]@lyku\/para-sync['"]/.test(raw)) {
+    prefix += `import { synced } from "@lyku/para-sync"; `;
   }
   // Insert imports at the start of the first <script> body (inside the
   // tag), inline — matches lowerPuiReactivity, keeps line count == raw.

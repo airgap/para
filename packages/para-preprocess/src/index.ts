@@ -754,25 +754,29 @@ function lowerSourceDecls(source: string): { code: string; needsOnDestroy: boole
   return { code, needsOnDestroy: needs };
 }
 
-function lowerSyncedDecls(source: string): { code: string; needsOnDestroy: boolean } {
-  // `synced NAME = EXPR` → bind a para-sync `synced(...)` handle into a
-  // read-only, component-reactive cell that auto-disposes on unmount. EXPR is
-  // the handle expression (typically a `synced(key, opts)` call) and MAY span
-  // multiple lines (the opts object), so its extent is found by derivedInitEnd,
-  // not a per-line regex (which would truncate at the first newline — the same
-  // bug lowerDerivedDecls fixed for `derived`).
+function lowerSyncedDecls(source: string): {
+  code: string;
+  needsOnDestroy: boolean;
+  needsSynced: boolean;
+} {
+  // `synced NAME = ARGS` → construct a para-sync replica `synced(ARGS)` and bind
+  // it into a read-only, component-reactive cell that auto-disposes on unmount.
+  // ARGS is the argument list to `synced()` — `key, opts` — so the call site
+  // reads `synced user = \`user:${id}\`, { schema, stream }` with NO redundant
+  // inner `synced(`, mirroring how `signal x = V` wraps `signal(V)` and
+  // `async signal x = E` wraps `promiseSignal(() => (E))`. ARGS MAY span multiple
+  // lines (the opts object); its extent is found by derivedInitEnd (a top-level
+  // comma between key and opts is a continuation, not a terminator), not a
+  // per-line regex.
   //
-  // Structurally identical to `source` (the peek/subscribe/dispose convention),
-  // but a DISTINCT keyword so the intent — "this binds a server-synced replica"
-  // — is explicit at the call site, and so the two can diverge later without
-  // disturbing `source`. The synced handle (@lyku/para-sync) satisfies the
-  // convention: `.peek()` seeds, `.subscribe(cb)` drives updates (returns the
-  // $effect.pre teardown), `.dispose()` is the unmount cleanup.
+  // The emitted binding is the peek/subscribe/dispose convention (same as
+  // `source`); `synced` is a distinct keyword so its intent — "construct + bind
+  // a server-synced replica" — is explicit, and `synced` is auto-imported from
+  // @lyku/para-sync (needsSynced). To bind a PRE-BUILT handle instead, use
+  // `source x = handle`.
   //
-  // The prefix regex mirrors lowerDerivedDecls; `synced(` (the call itself) is
-  // never matched as the keyword because the keyword form requires
-  // `synced <identifier> =` — so the inner `synced(...)` on the RHS is consumed
-  // as part of EXPR, not re-lowered.
+  // The prefix regex requires `synced <identifier> =`, so the emitted
+  // `synced(...)` CALL is never re-matched as the keyword.
   const re = /(^|[;\n{}])(\s*)synced\s+([A-Za-z_$][\w$]*)\s*(?::\s*[^=;]+?)?\s*=\s*/g;
   let out = "";
   let last = 0;
@@ -783,11 +787,11 @@ function lowerSyncedDecls(source: string): { code: string; needsOnDestroy: boole
     const matchEnd = re.lastIndex;
     const name = m[3]!;
     const end = derivedInitEnd(source, matchEnd);
-    const expr = source.slice(matchEnd, end).trim();
+    const args = source.slice(matchEnd, end).trim();
     const consumeEnd = source[end] === ";" ? end + 1 : end;
     out += source.slice(last, kwStart);
     out +=
-      `${m[2]}const __syn_${name} = ${expr}; ` +
+      `${m[2]}const __syn_${name} = synced(${args}); ` +
       `let ${name} = $state(__syn_${name}.peek?.() ?? __syn_${name}); ` +
       `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
       `onDestroy(() => __syn_${name}.dispose?.());`;
@@ -796,7 +800,7 @@ function lowerSyncedDecls(source: string): { code: string; needsOnDestroy: boole
     re.lastIndex = consumeEnd;
   }
   out += source.slice(last);
-  return { code: out, needsOnDestroy: needs };
+  return { code: out, needsOnDestroy: needs, needsSynced: needs };
 }
 
 function lowerAsyncSignalDecls(source: string): {
@@ -1082,6 +1086,13 @@ export function lowerPuiReactivity(
   if (asyncSignalResult.needsPromiseSignal) paraImports.push("promiseSignal");
   if (paraImports.length > 0 && !/from\s+['"]@para\/signals['"]/.test(result)) {
     result = `import { ${paraImports.join(", ")} } from "@lyku/para-signals";${importSep}` + result;
+  }
+
+  // `synced` keyword auto-imports the synced() constructor from @lyku/para-sync
+  // (dedup against a hand-authored import), the way signal/derived auto-import
+  // from para-signals — so the call site never needs the import line.
+  if (syncedResult.needsSynced && !/from\s+['"]@lyku\/para-sync['"]/.test(result)) {
+    result = `import { synced } from "@lyku/para-sync";${importSep}` + result;
   }
 
   // Inject extra runtime imports (setContext/getContext from provide/inject,
