@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { effect } from "@lyku/para-signals";
-import { InProcessTransport, synced } from "../src/index.js";
+import { InProcessTransport, synced, configureSynced } from "../src/index.js";
 
 // Same hand-rolled gate as client.test.js: a valid User has a string `name`.
 const userSchema = {
@@ -194,6 +194,78 @@ describe("synced — stream bridge + reactive handle", () => {
     expect(s.stats.ignoredStale).toBe(1);
     expect(s.stats.parseErrors).toBe(1);
     s.dispose();
+  });
+
+  describe("positional schema + configured defaults", () => {
+    test("synced(key, schema) takes the schema positionally", () => {
+      const stream = fakeStream();
+      const s = synced("user:1", userSchema, { stream: stream.factory });
+      stream.emit(env(1, { name: "ada" }));
+      expect(s.peek()).toEqual({ name: "ada" });
+      s.dispose();
+    });
+
+    test("configureSynced({ resolveStream }) infers delivery from the key", () => {
+      // Per-object endpoints: the key maps to a stream. After configuring it,
+      // `synced(key, schema)` needs no per-call stream.
+      const streams = {};
+      const mk = (key) => {
+        let cb = null;
+        const rec = {
+          listen: (f) => {
+            cb = f;
+          },
+          close: () => {
+            rec.closed = true;
+          },
+          emit: (e) => cb && cb(e),
+          closed: false,
+        };
+        streams[key] = rec;
+        return rec;
+      };
+      configureSynced({ resolveStream: (key) => mk(key) });
+      try {
+        const s = synced("user:42", userSchema);
+        streams["user:42"].emit(env(1, { name: "grace" }));
+        expect(s.peek()).toEqual({ name: "grace" });
+        s.dispose();
+        expect(streams["user:42"].closed).toBe(true);
+      } finally {
+        configureSynced({ resolveStream: undefined });
+      }
+    });
+
+    test("configureSynced({ transport }) delivers by key with no stream", () => {
+      // Shared keyed transport (objectfeed): subscribe(key) IS the stream.
+      const shared = new InProcessTransport();
+      configureSynced({ transport: shared });
+      try {
+        const s = synced("user:7", userSchema);
+        shared.publish("user:7", env(1, { name: "ada" }));
+        expect(s.peek()).toEqual({ name: "ada" });
+        s.dispose();
+        expect(shared.keyCount()).toBe(0); // replica unsubscribed
+      } finally {
+        configureSynced({ transport: undefined });
+      }
+    });
+
+    test("an explicit stream overrides the configured resolveStream", () => {
+      const wrong = fakeStream();
+      const right = fakeStream();
+      configureSynced({ resolveStream: () => wrong.factory() });
+      try {
+        const s = synced("user:1", userSchema, { stream: right.factory });
+        right.emit(env(1, { name: "right" }));
+        expect(s.peek()).toEqual({ name: "right" });
+        wrong.emit(env(2, { name: "wrong" }));
+        expect(s.peek()).toEqual({ name: "right" }); // wrong stream not wired
+        s.dispose();
+      } finally {
+        configureSynced({ resolveStream: undefined });
+      }
+    });
   });
 
   describe("argument validation", () => {

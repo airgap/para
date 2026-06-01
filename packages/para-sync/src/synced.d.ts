@@ -21,11 +21,11 @@ export type SyncedStats = {
 };
 
 export type SyncedOptions<T = any> = {
-    /** the `parse` gate — every inbound value crosses a trust boundary */
-    schema: SyncSchema;
-    /** factory for the receipt stream; its envelopes are published on `key` */
+    /** the `parse` gate (when not passed positionally) */
+    schema?: SyncSchema;
+    /** factory for the receipt stream; overrides the configured resolveStream */
     stream?: () => SyncStream;
-    /** transport override; default: a private InProcessTransport fed by `stream` */
+    /** transport override; else the configured default, else InProcessTransport */
     transport?: SyncTransport;
     /** SSR-embedded initial envelope */
     seed?: SyncEnvelope;
@@ -36,6 +36,20 @@ export type SyncedOptions<T = any> = {
     /** reactive cell override; default: a para signal */
     cell?: Cell;
 };
+
+/**
+ * App-wide `synced` defaults so call sites can shrink to `synced(key, schema)` —
+ * delivery for a key is inferred from here. Set once near client init. Use a
+ * shared `transport` (the keyed objectfeed; its subscribe IS the per-key stream)
+ * OR a `resolveStream` map for per-object endpoints — not both.
+ */
+export type SyncDefaults = {
+    transport?: SyncTransport;
+    resolveStream?: (key: string) => SyncStream;
+};
+
+/** Configure app-wide `synced` defaults (merged into prior config). */
+export function configureSynced(config: SyncDefaults): void;
 
 /**
  * The reactive handle returned by {@link synced}. `value`/`get()` are tracked
@@ -71,11 +85,20 @@ export type SyncedHandle<T = any> = {
 
 /**
  * Live-replicate one server-authoritative object into a reactive cell. Composes
- * the client reconciler with a default in-process transport, a stream bridge,
- * and one bundled teardown.
+ * the client reconciler with a transport, a stream bridge, and one bundled
+ * teardown. With delivery configured via {@link configureSynced}, the call
+ * shrinks to `synced(key, schema)`.
  *
  * @param key   synced key, e.g. "user:123"
- * @param opts  schema gate (required), plus stream / transport / seed / refetch /
- *              schemaVersion / cell.
+ * @param schema  the parse gate (positional)
+ * @param opts  optional stream / transport / seed / refetch / schemaVersion / cell
+ */
+export function synced<T = any>(
+    key: string,
+    schema: SyncSchema,
+    opts?: SyncedOptions<T>,
+): SyncedHandle<T>;
+/**
+ * Options-object form: `synced(key, { schema, … })`.
  */
 export function synced<T = any>(key: string, opts: SyncedOptions<T>): SyncedHandle<T>;

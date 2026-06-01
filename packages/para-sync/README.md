@@ -132,6 +132,34 @@ different reactive store (e.g. a Svelte-fork cell, or a host `SvelteMap`); injec
 `transport` (and omit `stream`) when delivery is owned elsewhere. `synced` is
 read-only — Tier 1 replication; writes are the server-write gate's job.
 
+### Inferred delivery: `synced(key, schema)`
+
+Configure delivery **once** at client init and call sites shrink to a key + a
+schema — no per-call `stream`/`transport`:
+
+```js
+import { configureSynced, synced } from "@lyku/para-sync";
+
+// once, at app init — choose ONE:
+configureSynced({ transport: objectfeed });                 // shared keyed WS (the end-state)
+configureSynced({ resolveStream: (key) => api.streamFor(key) }); // per-object endpoints (today)
+
+// anywhere — schema is positional; delivery is inferred from the key:
+const user = synced("user:123", User);
+const user = synced("user:123", User, { cell, seed }); // + overrides
+```
+
+With a shared `transport`, its `subscribe(key)` *is* the per-key stream (the
+single-objectfeed-WS model). With `resolveStream`, each replica gets a private
+`InProcessTransport` fed by the resolved per-object stream. An explicit `stream`
+or `transport` on the call always overrides the configured default.
+
+In a `.pui`, the `synced` keyword wraps the call for you, so the minimal form is:
+
+```svelte
+synced user = `user:${userId}`, User;
+```
+
 ## Test
 
 ```
