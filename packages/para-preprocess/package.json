@@ -1,6 +1,6 @@
 {
   "name": "@lyku/para-preprocess",
-  "version": "0.0.1-pre.15",
+  "version": "0.0.1-pre.16",
   "description": "Preprocessor for `.pui` Para UI components. Currently runs as a Svelte preprocessor that lets `<script lang=\"pts|parabun|pjs\">` blocks in `.svelte` AND every script block in `.pui` files use Para syntax (pure, ..!, ..&, ..=, |>, signal, derived, effect, match). The Svelte-substrate is a near-term implementation choice; `.pui` is the durable user-facing surface. Pre-release: API may change before 0.1.0.",
   "publishConfig": {
     "access": "public"
