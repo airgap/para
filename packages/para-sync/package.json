@@ -1,6 +1,6 @@
 {
   "name": "@lyku/para-sync",
-  "version": "0.0.1-pre.5",
+  "version": "0.0.1-pre.6",
   "description": "synced<T> distributed object sync for the para:* suite — server-authoritative records with live, version-reconciled client replicas. Pre-release: API may change before 0.1.0. Provides the pluggable SyncTransport interface (InProcessTransport + NatsTransport), the client-side reconciler (createClientReplica), and the synced() reactive primitive that composes them with a change-stream bridge.",
   "publishConfig": {
     "access": "public"
