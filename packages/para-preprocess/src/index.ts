@@ -1,4 +1,5 @@
 import type { PreprocessorGroup, Processed } from "svelte/compiler";
+import { createRequire } from "node:module";
 import { lowerParaScript, lowerParaMarkup } from "./browser-lower/index.js";
 
 // Canonical Para browser-lowering, exported so other tools (in-browser compilers,
@@ -83,6 +84,59 @@ function pickLoader(lang: string | undefined): "ts" | "tsx" | "jsx" {
 // parabun-specific syntax (`..!`, `|>`, `pure`, etc.) is left to the
 // parabun LSP, which runs in parallel via its own VSCode extension.
 const HAS_BUN_TRANSPILER = typeof (globalThis as { Bun?: { Transpiler?: unknown } }).Bun?.Transpiler === "function";
+
+// Node-fallback TS stripper. The build runs the svelte preprocess under Node
+// (vite plugins load under Node; under `--bun` sass breaks), so `Bun.Transpiler`
+// is absent — and `vitePreprocess` does NOT process `.pui`, so without stripping
+// here the svelte compiler receives raw TS and fails on `$state<A | B>()` etc.
+// esbuild (present in any vite toolchain) does the TS→JS pass. This is ONLY the
+// type-strip; the Para lowering (lowerParaScript / lowerPuiReactivity) above is
+// untouched, so the LSP projection (editors/lsp pui-transform) stays byte-
+// identical — parity preserved. Gated to vite contexts (NODE_ENV set by vite) so
+// `svelte-check`/language-server still receive TS (full editor type-checking).
+let _esbuildTransform: ((src: string, loader: "ts" | "tsx" | "jsx") => string) | null | undefined;
+function nodeStripTypes(src: string, loader: "ts" | "tsx" | "jsx"): string | null {
+  if (_esbuildTransform === undefined) {
+    try {
+      const require = createRequire(import.meta.url);
+      const esbuild = require("esbuild") as {
+        transformSync: (s: string, o: Record<string, unknown>) => { code: string };
+      };
+      _esbuildTransform = (s, l) =>
+        esbuild.transformSync(s, {
+          loader: l,
+          format: "esm",
+          target: "esnext",
+          // CRITICAL: preserve value imports. Without this esbuild drops imports
+          // it thinks are unused — but Svelte uses imports in the MARKUP (`<Foo/>`)
+          // and via store auto-subscription (`$store`), which esbuild can't see in
+          // the script alone, so dropping them breaks the component (`$store is an
+          // illegal variable name`, missing components). `preserveValueImports`
+          // keeps them (mirroring Bun.Transpiler) without `verbatimModuleSyntax`'s
+          // hard error on un-annotated type imports.
+          // This exact pair is what svelte's own `vitePreprocess` passes esbuild
+          // for `.svelte` (see @sveltejs/vite-plugin-svelte preprocess.js) —
+          // neither alone is right (preserveValueImports alone errors;
+          // importsNotUsedAsValues alone collapses named imports to side-effect
+          // imports). Together they keep imports intact while stripping types.
+          tsconfigRaw: {
+            compilerOptions: {
+              importsNotUsedAsValues: "preserve",
+              preserveValueImports: true,
+            },
+          },
+        }).code;
+    } catch {
+      _esbuildTransform = null;
+    }
+  }
+  if (!_esbuildTransform) return null;
+  try {
+    return _esbuildTransform(src, loader);
+  } catch {
+    return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // `.pui`-specific lowerings for the para reactive keywords. These keywords
@@ -357,11 +411,24 @@ export function matchTypeStubSpans(source: string): Array<{ start: number; end: 
   const re = /\bmatch\s+([^{]+?)\s*\{/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(masked)) !== null) {
+    const subjStart = m.index + "match".length;
+    const subjEnd = m.index + m[0].length - 1;
+    // `match` is a variable binding/assignment, not the keyword (mirror of the
+    // guard in lower-match.ts): a real match subject never starts with `=`, and
+    // the keyword form never follows a binding keyword. Otherwise the `[^{]+?`
+    // subject runs forward to an unrelated `{` (e.g. a later `$effect(() => {`)
+    // and stubs the wrong span — corrupting `let match = $state<…>(…)`.
+    const subjMasked = masked.slice(subjStart, subjEnd).replace(/^\s+/, "");
+    if (
+      subjMasked.startsWith("=") ||
+      /\b(?:let|const|var)\s+$/.test(masked.slice(Math.max(0, m.index - 7), m.index))
+    ) {
+      re.lastIndex = subjStart;
+      continue;
+    }
     const openIdx = m.index + m[0].length - 1;
     const closeAfter = findMatchingBrace(masked, openIdx); // index past `}`
     if (closeAfter < 0) continue;
-    const subjStart = m.index + "match".length;
-    const subjEnd = m.index + m[0].length - 1;
     spans.push({ start: m.index, end: closeAfter, subject: source.slice(subjStart, subjEnd).trim() });
     re.lastIndex = closeAfter;
   }
@@ -1253,15 +1320,19 @@ export function parabunPreprocess(opts: ParabunPreprocessOptions = {}): Preproce
       // would silently drop our `lang: "ts"` rewrite. Append a trailing
       // newline in the Node-fallback path so the code differs by one
       // semantically-inert character and the attribute change is honored.
+      // Under Bun, parabun's own transpiler strips TS. Under Node (how vite runs
+      // the svelte preprocess — `vitePreprocess` does NOT process `.pui`, so it
+      // can't strip for us), fall back to esbuild. Without stripping, raw TS like
+      // `$state<A | B>()` reaches the svelte parser and breaks.
       const code = HAS_BUN_TRANSPILER
         ? getTranspiler(pickLoader(lang)).transformSync(preprocessed)
-        : preprocessed === content
-          ? preprocessed + "\n"
-          : preprocessed;
+        : (nodeStripTypes(preprocessed, pickLoader(lang)) ??
+          (preprocessed === content ? preprocessed + "\n" : preprocessed));
+      // NOTE: deliberately NOT returning `dependencies: [filename]` — declaring a
+      // file as a dependency of itself makes svelte warn ("dependency of itself").
       return {
         code,
         attributes: { ...attributes, lang: "ts" },
-        dependencies: filename ? [filename] : undefined,
       };
     },
   };
