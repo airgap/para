@@ -75,15 +75,33 @@ function lowerMatch(src) {
       i = stop;
       continue;
     }
-    // `match` keyword — must be a standalone identifier (no JS keyword
-    // immediately before / after gluing to a longer name).
-    if (src.startsWith("match", i) && !/[\w$]/.test(_nullishCoalesce(src[i - 1], () => ( ""))) && !/[\w$]/.test(_nullishCoalesce(src[i + 5], () => ( "")))) {
+    // `match` keyword — must be a standalone identifier, NOT a member
+    // access (`str.match(/re/)`) or a longer name. The keyword form is
+    // always `match SUBJECT {`, so the char before must not glue to an
+    // identifier or be a `.` (member access), and the char after must be
+    // whitespace separating `match` from its subject — which also rules
+    // out the `.match(`/`match(` method-call shape.
+    if (src.startsWith("match", i) && !/[\w$.]/.test(_nullishCoalesce(src[i - 1], () => ( ""))) && /\s/.test(_nullishCoalesce(src[i + 5], () => ( "")))) {
       // Walk the subject expression up to the `{` that opens the arms.
       // Bracket-balanced; skip over (...) and [...] so a paren-grouped
       // subject like `match (a + b) { … }` stays in one piece.
       let j = i + 5;
       while (j < len && /\s/.test(src[j])) j++;
       const subjectStart = j;
+      // `match` here is a variable binding/assignment, not the keyword: a real
+      // match subject (`match SUBJECT { … }`) never starts with `=`, and the
+      // keyword form never follows a binding keyword. Without this guard the
+      // subject walk below runs forward to an unrelated `{` (e.g. a later
+      // `$effect(() => { … })`) and swallows the span, corrupting statements like
+      // `let match = $state<T | undefined>(…)`. Mirror in editors/lsp/pui-transform.ts.
+      if (
+        src[subjectStart] === "=" ||
+        /\b(?:let|const|var)\s+$/.test(src.slice(Math.max(0, i - 7), i))
+      ) {
+        out.push(c);
+        i++;
+        continue;
+      }
       let depth = 0;
       while (j < len) {
         const k = src[j];
