@@ -5291,6 +5291,51 @@ function collectSignalNames(content: string): Set<string> {
   return names;
 }
 
+// Plain variables/params/functions/classes carry no parabun-specific marker, so
+// the regex passes (pure/signal/component) leave them un-tokenized — they render
+// white (TextMate can't classify a bare identifier reference). Source full tokens
+// from the TS service over the svelte2tsx projection (it sees every binding) and
+// map each span back to the raw .pui via the sourcemap — the same projection +
+// toOriginal() pattern computeTsDiagnostics uses. Only `.pui` (svelte2tsx-backed);
+// other parabun langs already get TS semantic highlighting from the TS server.
+function collectTsSemanticTokens(
+  uri: string,
+): Array<{ line: number; col: number; len: number; type: number; modifiers: number }> {
+  const out: Array<{ line: number; col: number; len: number; type: number; modifiers: number }> = [];
+  if (!(tsService && ts) || !isPuiUri(uri)) return out;
+  const raw = svelteRawTexts.get(uri);
+  const t = raw !== undefined ? getPuiTransform(uri, raw) : undefined;
+  if (!t) return out;
+  try {
+    const fileName = toTsPath(uriToPath(uri));
+    const cls = tsService.getEncodedSemanticClassifications(
+      fileName,
+      { start: 0, length: t.code.length },
+      ts.SemanticClassificationFormat.TwentyTwenty,
+    );
+    const spans = cls.spans; // flat triplets: [start, length, encodedClassification, ...]
+    for (let k = 0; k + 2 < spans.length; k += 3) {
+      const start = spans[k]!;
+      const length = spans[k + 1]!;
+      // TwentyTwenty encoding: tokenType = (encoded >> 8) - 1 (TS's classification
+      // enum: 0 class, 6 parameter, 7 variable, 10 function, 11 member, …).
+      const tsType = (spans[k + 2]! >> 8) - 1;
+      let type: number;
+      if (tsType === 7 || tsType === 6) type = 1; // variable / parameter → variable
+      else if (tsType === 10 || tsType === 11) type = 0; // function / member → function
+      else if (tsType === 0) type = 2; // class
+      else continue; // type/interface/namespace/etc. — leave to TextMate
+      const gs = offsetToPosition(t.code, start);
+      const os = t.toOriginal(gs.line, gs.character);
+      if (!os) continue; // projection-only scaffolding (no original mapping)
+      out.push({ line: os.line, col: os.character, len: length, type, modifiers: 0 });
+    }
+  } catch (e: any) {
+    logMessage(2, `[parabun-lsp] .pui semantic tokens error: ${e?.message ?? e}`);
+  }
+  return out;
+}
+
 function computeSemanticTokens(uri: string, content: string): number[] {
   // Collect every token as {line, col, len, type, modifiers}, then sort and
   // emit. Multiple passes (pure / signal) touch different regions but may
@@ -5344,6 +5389,10 @@ function computeSemanticTokens(uri: string, content: string): number[] {
   // Component-tag tokens for .svelte / .pui templates.
   tokens.push(...collectComponentTagTokens(uri));
 
+  // Full TS-derived tokens (plain variables/params/functions/classes) for `.pui`,
+  // so ordinary identifiers aren't left white.
+  tokens.push(...collectTsSemanticTokens(uri));
+
   tokens.sort((a, b) => a.line - b.line || a.col - b.col);
 
   // Dedup exact-overlap tokens (same line+col+len) — keep the first, OR-
@@ -5355,7 +5404,13 @@ function computeSemanticTokens(uri: string, content: string): number[] {
     const t = tokens[i];
     if (i > 0) {
       const prev = tokens[i - 1];
-      if (prev.line === t.line && prev.col === t.col && prev.len === t.len && prev.type === t.type) continue;
+      if (prev.line === t.line && prev.col === t.col && prev.len === t.len && prev.type === t.type) {
+        // Exact overlap (e.g. the signal pass and the TS pass both emit a
+        // `variable` token for a signal binding) — OR-combine modifiers onto the
+        // already-emitted token instead of dropping the signal/declaration bit.
+        if (data.length > 0) data[data.length - 1] |= t.modifiers;
+        continue;
+      }
     }
     const deltaLine = t.line - prevLine;
     const deltaChar = deltaLine === 0 ? t.col - prevChar : t.col;
