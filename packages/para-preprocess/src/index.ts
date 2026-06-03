@@ -1,5 +1,4 @@
 import type { PreprocessorGroup, Processed } from "svelte/compiler";
-import { createRequire } from "node:module";
 import { lowerParaScript, lowerParaMarkup } from "./browser-lower/index.js";
 
 // Canonical Para browser-lowering, exported so other tools (in-browser compilers,
@@ -98,7 +97,24 @@ let _esbuildTransform: ((src: string, loader: "ts" | "tsx" | "jsx") => string) |
 function nodeStripTypes(src: string, loader: "ts" | "tsx" | "jsx"): string | null {
   if (_esbuildTransform === undefined) {
     try {
-      const require = createRequire(import.meta.url);
+      // Acquire `createRequire` via `process.getBuiltinModule("module")` rather
+      // than a static `import … from "node:module"`. A static import would force
+      // node:module into ANY browser bundle that imports this module — the
+      // in-browser compiler (Parascape demos/live-compile.ts) imports
+      // `parabunPreprocess` — and Vite externalises node:module to a stub with no
+      // `createRequire` export, which fails to link the client build.
+      // `getBuiltinModule` is a plain runtime call with no static specifier, so
+      // bundlers leave it alone (Node 22+/Bun). In the browser `process` is absent
+      // (or lacks getBuiltinModule) → this throws → caught below → `_esbuildTransform`
+      // is nulled and the caller falls back to the un-stripped source. This whole
+      // path is Node/build-time only; the browser never reaches a successful run.
+      const nodeModule = (
+        globalThis as { process?: { getBuiltinModule?: (id: string) => unknown } }
+      ).process?.getBuiltinModule?.("module") as
+        | { createRequire?: (url: string) => (id: string) => unknown }
+        | undefined;
+      const require = nodeModule?.createRequire?.(import.meta.url);
+      if (!require) throw new Error("node:module is unavailable in this environment");
       const esbuild = require("esbuild") as {
         transformSync: (s: string, o: Record<string, unknown>) => { code: string };
       };
