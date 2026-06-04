@@ -63,7 +63,7 @@
     },
     "packages/para-preprocess": {
       "name": "@lyku/para-preprocess",
-      "version": "0.0.1-pre.14",
+      "version": "0.0.1-pre.15",
       "devDependencies": {
         "bun-types": "latest",
         "svelte": "^5.20.4",
@@ -99,9 +99,16 @@
         "@para/parallel": "workspace:*",
       },
     },
+    "packages/para-sync": {
+      "name": "@lyku/para-sync",
+      "version": "0.0.1-pre.2",
+      "dependencies": {
+        "@lyku/para-signals": "^0.0.1-pre.0",
+      },
+    },
     "packages/para-transpile": {
       "name": "@lyku/para-transpile",
-      "version": "0.0.0-dev",
+      "version": "0.0.1-pre.1",
       "bin": {
         "para": "./dist/cli.js",
       },
@@ -110,10 +117,10 @@
         "@babel/parser": "^7.29.3",
         "@babel/traverse": "^7.29.0",
         "@babel/types": "^7.29.0",
-        "@types/babel__generator": "^7.27.0",
-        "@types/babel__traverse": "^7.28.0",
       },
       "devDependencies": {
+        "@types/babel__generator": "^7.27.0",
+        "@types/babel__traverse": "^7.28.0",
         "@types/bun": "*",
         "typescript": "^5.0.0",
       },
@@ -390,6 +397,8 @@
     "@lyku/para-signals": ["@lyku/para-signals@workspace:packages/para-signals"],
 
     "@lyku/para-sort": ["@lyku/para-sort@workspace:packages/para-sort"],
+
+    "@lyku/para-sync": ["@lyku/para-sync@workspace:packages/para-sync"],
 
     "@lyku/para-transpile": ["@lyku/para-transpile@workspace:packages/para-transpile"],
 

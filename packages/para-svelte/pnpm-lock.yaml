@@ -54,8 +54,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       '@lyku/para-signals':
-        specifier: file:../../../para-signals
-        version: file:../para-signals
+        specifier: ^0.0.1-pre.0
+        version: 0.0.1-pre.0
       '@sveltejs/acorn-typescript':
         specifier: ^1.0.5
         version: 1.0.5(acorn@8.16.0)
@@ -497,8 +497,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lyku/para-signals@file:../para-signals':
-    resolution: {directory: ../para-signals, type: directory}
+  '@lyku/para-signals@0.0.1-pre.0':
+    resolution: {integrity: sha512-LKpd9aZmltaP+9o+WZlCPD1NiTMBybQxvuIO7ZuJOBtW0xypV3hvXMbkf4Mm0+gZK3oRj7WLPZ99+MxIUnh8CQ==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -1771,7 +1771,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@lyku/para-signals@file:../para-signals': {}
+  '@lyku/para-signals@0.0.1-pre.0': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
