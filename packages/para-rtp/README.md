@@ -1,9 +1,9 @@
-# @para/rtp
+# @lyku/para-rtp
 
 RFC 3550 RTP packet pack/parse + sequence-aware jitter buffer. Pure JS, no native deps. Lets apps build voice/video transport over any wire (UDP, WebSocket, raw TCP) without a full WebRTC stack.
 
 ```js
-import rtp from "@para/rtp";
+import rtp from "@lyku/para-rtp";
 
 // Sender — wrap an Opus packet
 const wire = rtp.pack({

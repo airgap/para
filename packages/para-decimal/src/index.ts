@@ -1,4 +1,4 @@
-// @para/decimal — self-contained exact-decimal arithmetic.
+// @lyku/para-decimal — self-contained exact-decimal arithmetic.
 //
 // Backs the Para `0.1d` numeric-literal suffix. Each `Nd` literal lowers to
 // `__paraDec("N")` (string form of the source — never the parsed JS Number,

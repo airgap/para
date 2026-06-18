@@ -1,4 +1,4 @@
-# @para/mcp
+# @lyku/para-mcp
 
 A Model Context Protocol implementation — **client and server**, both shapes of the spec. Two transports:
 
@@ -8,7 +8,7 @@ A Model Context Protocol implementation — **client and server**, both shapes o
 ## Client
 
 ```js
-import mcp from "@para/mcp";
+import mcp from "@lyku/para-mcp";
 
 await using conn = await mcp.connect("stdio", "node", {
   args: ["./my-mcp-server.js"],
@@ -39,19 +39,19 @@ off();
 
 The `tools` / `resources` / `prompts` arrays are populated by `connect()` and refreshed automatically when the server emits `notifications/{tools,resources,prompts}/list_changed`. Call `refreshTools()` / `refreshResources()` / `refreshPrompts()` to force a manual refresh.
 
-### Composing with `@para/assistant`
+### Composing with `@lyku/para-assistant`
 
-The connection is structurally compatible with `@para/assistant`'s `tools:` option — the assistant flattens every tool the connection exposes into its own catalog and routes calls back through `conn.call`.
+The connection is structurally compatible with `@lyku/para-assistant`'s `tools:` option — the assistant flattens every tool the connection exposes into its own catalog and routes calls back through `conn.call`.
 
 ```js
-import assistant from "@para/assistant";
+import assistant from "@lyku/para-assistant";
 const bot = assistant.create({ llm, tools: [conn] });
 ```
 
 ## Server
 
 ```js
-import mcp from "@para/mcp";
+import mcp from "@lyku/para-mcp";
 
 const server = mcp.serve({ name: "weather", version: "0.1.0" });
 

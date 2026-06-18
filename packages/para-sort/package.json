@@ -2,7 +2,7 @@
   "name": "@lyku/para-sort",
   "version": "0.0.0-dev",
   "private": true,
-  "description": "Typed-array sort with automatic tier dispatch. Synchronous LSD-radix core (u32/i32/f32) + stable argsort; the parallel tier delegates to native @para/parallel's tuned SAB radix (psort) on the ParaBun runtime. GPU tier is Phase 2. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "description": "Typed-array sort with automatic tier dispatch. Synchronous LSD-radix core (u32/i32/f32) + stable argsort; the parallel tier delegates to native @lyku/para-parallel's tuned SAB radix (psort) on the ParaBun runtime. GPU tier is Phase 2. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
@@ -14,7 +14,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@para/parallel": "workspace:*"
+    "@lyku/para-parallel": "workspace:*"
   },
   "license": "MIT",
   "repository": {

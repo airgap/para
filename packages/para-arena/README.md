@@ -1,9 +1,9 @@
-# @para/arena
+# @lyku/para-arena
 
 Buffer-pool helpers for typed-array hot loops + a no-op `scope()` so `.pts` code with `arena { … }` blocks compiles cleanly outside the runtime.
 
 ```js
-import { Pool, scope } from "@para/arena";
+import { Pool, scope } from "@lyku/para-arena";
 
 const buf = new Pool(Float32Array, 1024, { prewarm: 4 });
 

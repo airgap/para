@@ -11,7 +11,7 @@ in-place parser/lexer deltas (`fun`, `|>`, `..!`, `..&`, `..>`, `pure`,
 fork — it *is* the fork — kept minimal and guarded so the fork remains
 rebaseable against upstream Bun.
 
-Everything else — the `@para/*` / `@lyku/para-*` packages, the LSP /
+Everything else — the `@lyku/para-*` / `@lyku/para-*` packages, the LSP /
 `pui-transform`, the Para-UI Svelte fork, the codemod — does **not**
 need to live in the Bun fork; it merely accreted there. This repo is
 that ecosystem, with its own nx workspace, release, and (private) design
@@ -19,7 +19,7 @@ docs, so the fork stays lean and this stays clean.
 
 ## The hard boundary
 
-The JS-side mirrors (`@para/transpile`, `para-preprocess`, the LSP
+The JS-side mirrors (`@lyku/para-transpile`, `para-preprocess`, the LSP
 lowering) must stay **parity-correct with the ParaBun parser's
 desugaring**. Same-repo, that coupling was implicit. Here it is an
 explicit, versioned, tested boundary: this repo's CI runs the parity

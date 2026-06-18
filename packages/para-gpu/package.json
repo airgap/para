@@ -2,7 +2,7 @@
   "name": "@lyku/para-gpu",
   "version": "0.0.0-dev",
   "private": true,
-  "description": "Cross-runtime GPU accelerator. One async surface (matmul / matVec / dot / simdMap) routed to the best backend available: native parabun:gpu (Metal/CUDA) on the ParaBun runtime, WebGPU compute shaders in the browser, or @para/simd CPU everywhere else. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "description": "Cross-runtime GPU accelerator. One async surface (matmul / matVec / dot / simdMap) routed to the best backend available: native parabun:gpu (Metal/CUDA) on the ParaBun runtime, WebGPU compute shaders in the browser, or @lyku/para-simd CPU everywhere else. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
@@ -14,7 +14,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@para/simd": "workspace:*"
+    "@lyku/para-simd": "workspace:*"
   },
   "license": "MIT",
   "repository": {

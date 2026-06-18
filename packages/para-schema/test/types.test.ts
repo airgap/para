@@ -1,4 +1,4 @@
-// Type-level tests for @para/schema. These don't run any code — every
+// Type-level tests for @lyku/para-schema. These don't run any code — every
 // assertion is encoded in the type system. The test passes if `bun test`
 // can typecheck this file and the runtime expectations all evaluate true.
 import { describe, test, expect } from "bun:test";
@@ -20,7 +20,7 @@ import type {
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 type Expect<T extends true> = T;
 
-describe("@para/schema — extended variant", () => {
+describe("@lyku/para-schema — extended variant", () => {
   test("brands stay structurally distinct from their base type", () => {
     type _A = Expect<Equal<StringOf<{ minLength: 3 }>, StringOf<{ minLength: 3 }>>>;
     // raw string is NOT the same as a constrained brand:

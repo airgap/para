@@ -1,7 +1,7 @@
 // Browser shim for `parabun:gpu`. Two layers:
 //
 //   1. **Sync CPU path** for the upstream signatures (`matVec`,
-//      `matmul`, `dot`, `simdMap`) — scalar loops via @para/simd. Keeps
+//      `matmul`, `dot`, `simdMap`) — scalar loops via @lyku/para-simd. Keeps
 //      existing .pts code compiling to the browser without an awkward
 //      sync→async migration.
 //
@@ -24,7 +24,7 @@
 // etc.) so it runs on any WebGPU implementation — Chromium, Firefox
 // Nightly, Safari 17.4+.
 
-import simd from "@para/simd";
+import simd from "@lyku/para-simd";
 import { dequantizeQ4K, dequantizeQ6K, Q4_K_BLOCK_SIZE, Q6_K_BLOCK_SIZE, QK_K } from "./quant.js";
 
 // ── Sync CPU path — always available ────────────────────────────────────

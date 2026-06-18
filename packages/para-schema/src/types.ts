@@ -9,7 +9,7 @@
  *      generate fixtures, run schema-aware refactors, etc.
  *   2. Standard (default) — every brand collapses to its base TS primitive.
  *      Importing the same module from a vanilla TS project yields plain
- *      `string` / `number` / `{ id: bigint }` types, no `@para/schema`
+ *      `string` / `number` / `{ id: bigint }` types, no `@lyku/para-schema`
  *      dependency required.
  *
  * The library file you're reading is the EXTENDED variant. The downgrade

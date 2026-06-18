@@ -103,10 +103,10 @@ export const __parabunRangeInclusive = (s, e) => {
 };
 
 // Parabun: `Nd` decimal literals desugar to `__paraDec("N")`. Re-exported
-// from @para/decimal — the runtime shim resolves to the same Decimal
+// from @lyku/para-decimal — the runtime shim resolves to the same Decimal
 // class shipped natively, so behavior is identical between Parabun and
 // browsers/Node hosts.
-export { Decimal, __paraDec } from "@para/decimal";
+export { Decimal, __paraDec } from "@lyku/para-decimal";
 
 export default {
   __parabunMemo,

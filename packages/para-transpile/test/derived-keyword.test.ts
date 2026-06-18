@@ -127,7 +127,7 @@ describe("derived NAME = EXPR — does not interfere with `derived` identifier",
 
 // Regression — pair to test/bundler/transpiler/parabun-derived-keyword.test.js's
 // "arrow-as-RHS regression" block. The Zig parser was crashing on these
-// shapes due to a scope-loc collision; @para/transpile already lowered them
+// shapes due to a scope-loc collision; @lyku/para-transpile already lowered them
 // correctly, so these tests pin the lowering shape so we don't drift away
 // from parity once the Zig fix lands.
 describe("arrow / function expression as RHS — parity with the Zig parser", () => {
@@ -154,7 +154,7 @@ describe("arrow / function expression as RHS — parity with the Zig parser", ()
 
   test("separate single-decl statements with arrow RHS each", () => {
     // Multi-decl on a single statement (`signal a = …, b = …;`) is a
-    // Zig-parser-only feature today — @para/transpile's regex-based
+    // Zig-parser-only feature today — @lyku/para-transpile's regex-based
     // splitter doesn't recognize top-level commas as decl separators, so
     // it treats `1, b = () => 2` as one comma-expression initializer.
     // The Zig parser's `parabun-derived-keyword.test.js` covers the

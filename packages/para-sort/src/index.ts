@@ -4,7 +4,7 @@
 //   1. serial   — LSD radix (this file). Synchronous, deterministic,
 //                 beats TypedArray.prototype.sort() from a few thousand
 //                 elements up. Always available, on every runtime.
-//   2. parallel — native @para/parallel `psort`: tuned SAB-backed
+//   2. parallel — native @lyku/para-parallel `psort`: tuned SAB-backed
 //                 histogram+scatter radix across a worker pool. Only
 //                 resolvable on the ParaBun runtime (the npm shim has no
 //                 `psort`). Worker pools can't be synchronous, so the
@@ -26,9 +26,9 @@
 //         TypedArray.prototype.sort putting NaN last); -0 sorts just below
 //         +0 (IEEE totalOrder) — don't assert their relative order.
 
-// Native @para/parallel: runtime-shadowed specifier — native module on
+// Native @lyku/para-parallel: runtime-shadowed specifier — native module on
 // ParaBun, npm shim (no `psort`) elsewhere. Same access pattern as
-// @para/pipeline.
+// @lyku/para-pipeline.
 let _np: any = null;
 let _npLookedUp = false;
 function nativeParallel(): any {
@@ -36,7 +36,7 @@ function nativeParallel(): any {
   _npLookedUp = true;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const m = require("@para/parallel");
+    const m = require("@lyku/para-parallel");
     const mod = m?.default ?? m;
     // Real parallel only: the npm shim now also exports a `psort`, but it's
     // a sequential fallback and marks itself. Pin to the native engine so
@@ -247,7 +247,7 @@ async function asyncSort(src: U32Like, kind: Kind, o?: SortOptions): Promise<U32
   if (o?.backend === "parallel") {
     if (!np) {
       throw new Error(
-        "@lyku/para-sort: backend 'parallel' unavailable — native @para/parallel `psort` is not present (running off the ParaBun runtime).",
+        "@lyku/para-sort: backend 'parallel' unavailable — native @lyku/para-parallel `psort` is not present (running off the ParaBun runtime).",
       );
     }
     const Ctor = src.constructor as { new (n: number): U32Like };

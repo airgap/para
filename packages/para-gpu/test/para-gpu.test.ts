@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import gpu from "../src/index";
 
 // This runs under system bun: parabun:gpu is unresolvable and there is no
-// navigator.gpu, so the router must land on the CPU tier and the @para/simd
+// navigator.gpu, so the router must land on the CPU tier and the @lyku/para-simd
 // fallback must produce correct results through the async surface.
 
 describe("@lyku/para-gpu router", () => {

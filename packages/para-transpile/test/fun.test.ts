@@ -46,7 +46,7 @@ describe("fun keyword", () => {
   });
 
   test("keyword rewrite is independent of body contents", () => {
-    // Operator lowering inside blocks is a separate @para/transpile
+    // Operator lowering inside blocks is a separate @lyku/para-transpile
     // concern — transformFun only owns the keyword itself.
     expect(transpile("fun run() { return data; }")).toBe("function run() { return data; }");
   });

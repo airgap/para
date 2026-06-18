@@ -5,7 +5,7 @@ import mcp from "../src/index";
 
 const fixturePath = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", "echo-server.ts");
 
-describe("@para/mcp end-to-end (stdio)", () => {
+describe("@lyku/para-mcp end-to-end (stdio)", () => {
   let conn: Awaited<ReturnType<typeof mcp.connect>>;
 
   beforeAll(async () => {
@@ -105,7 +105,7 @@ describe("@para/mcp end-to-end (stdio)", () => {
   });
 });
 
-describe("@para/mcp server lifecycle (alive + use)", () => {
+describe("@lyku/para-mcp server lifecycle (alive + use)", () => {
   test("server.alive starts true; flips false on close()", async () => {
     const server = mcp.serve({ name: "alive-test", version: "0.0.0" });
     expect(server.alive.get()).toBe(true);

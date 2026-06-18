@@ -1,4 +1,4 @@
-// Hardcoded module "@para/mcp"
+// Hardcoded module "@lyku/para-mcp"
 //
 // Model Context Protocol client. Two transports for v1: stdio (subprocess
 // over newline-delimited JSON-RPC 2.0) and ws (WebSocket text frames,
@@ -100,7 +100,7 @@ type ConnectOpts = {
 };
 
 const DEFAULT_PROTOCOL_VERSION = "2025-03-26";
-const DEFAULT_CLIENT_INFO = { name: "@para/mcp", version: "0.1.0" } as const;
+const DEFAULT_CLIENT_INFO = { name: "@lyku/para-mcp", version: "0.1.0" } as const;
 
 interface Transport {
   send(msg: object): void;
@@ -115,7 +115,7 @@ class MCPError extends Error {
   code: number;
   data: unknown;
   constructor(err: { code: number; message: string; data?: unknown }) {
-    super(`@para/mcp: ${err.message}`);
+    super(`@lyku/para-mcp: ${err.message}`);
     this.name = "MCPError";
     this.code = err.code;
     this.data = err.data;
@@ -172,7 +172,7 @@ class MCPConnection {
   }
 
   async #request<T = any>(method: string, params?: unknown): Promise<T> {
-    if (this.#closed) throw new Error("@para/mcp: connection is closed");
+    if (this.#closed) throw new Error("@lyku/para-mcp: connection is closed");
     const id = this.#nextId++;
     const { promise, resolve, reject } = Promise.withResolvers<T>();
     this.#pending.set(id, { resolve, reject });
@@ -250,7 +250,7 @@ class MCPConnection {
   #onTransportClose(err?: Error): void {
     if (this.#closed) return;
     this.#closed = true;
-    const cause = err ?? new Error("@para/mcp: transport closed");
+    const cause = err ?? new Error("@lyku/para-mcp: transport closed");
     for (const p of this.#pending.values()) p.reject(cause);
     this.#pending.clear();
     this.#flipDeadAndTearDown();
@@ -317,7 +317,7 @@ class MCPConnection {
    */
   async call(name: string, args: Record<string, unknown> = {}): Promise<ToolCallResult> {
     if (typeof name !== "string" || !name) {
-      throw new TypeError("@para/mcp: tool name must be a non-empty string");
+      throw new TypeError("@lyku/para-mcp: tool name must be a non-empty string");
     }
     return this.#request<ToolCallResult>("tools/call", { name, arguments: args });
   }
@@ -336,7 +336,7 @@ class MCPConnection {
    */
   async readResource(uri: string): Promise<ReadResourceResult> {
     if (typeof uri !== "string" || !uri) {
-      throw new TypeError("@para/mcp: resource uri must be a non-empty string");
+      throw new TypeError("@lyku/para-mcp: resource uri must be a non-empty string");
     }
     return this.#request<ReadResourceResult>("resources/read", { uri });
   }
@@ -368,7 +368,7 @@ class MCPConnection {
    */
   async getPrompt(name: string, args: Record<string, string> = {}): Promise<GetPromptResult> {
     if (typeof name !== "string" || !name) {
-      throw new TypeError("@para/mcp: prompt name must be a non-empty string");
+      throw new TypeError("@lyku/para-mcp: prompt name must be a non-empty string");
     }
     return this.#request<GetPromptResult>("prompts/get", { name, arguments: args });
   }
@@ -377,7 +377,7 @@ class MCPConnection {
     if (this.#closed) return;
     this.#closed = true;
     for (const p of this.#pending.values()) {
-      p.reject(new Error("@para/mcp: connection closed"));
+      p.reject(new Error("@lyku/para-mcp: connection closed"));
     }
     this.#pending.clear();
     try {
@@ -430,7 +430,7 @@ function makeStdioTransport(command: string, opts: StdioConnectOpts): Transport 
   proc.on("exit", code => {
     if (closed) return;
     closed = true;
-    onClose?.(code === 0 ? undefined : new Error(`@para/mcp: stdio server exited with code ${code}`));
+    onClose?.(code === 0 ? undefined : new Error(`@lyku/para-mcp: stdio server exited with code ${code}`));
   });
   proc.on("error", err => {
     if (closed) return;
@@ -440,7 +440,7 @@ function makeStdioTransport(command: string, opts: StdioConnectOpts): Transport 
 
   return {
     send(msg) {
-      if (closed) throw new Error("@para/mcp: stdio transport is closed");
+      if (closed) throw new Error("@lyku/para-mcp: stdio transport is closed");
       proc.stdin!.write(JSON.stringify(msg) + "\n");
     },
     onMessage(cb) {
@@ -489,7 +489,7 @@ function makeWsTransport(url: string): Promise<Transport> {
       opened = true;
       resolve({
         send(msg) {
-          if (closed) throw new Error("@para/mcp: ws transport is closed");
+          if (closed) throw new Error("@lyku/para-mcp: ws transport is closed");
           ws.send(JSON.stringify(msg));
         },
         onMessage(cb) {
@@ -521,17 +521,17 @@ function makeWsTransport(url: string): Promise<Transport> {
 
     ws.addEventListener("error", () => {
       if (opened) return; // post-open errors surface via "close"
-      reject(new Error(`@para/mcp: WebSocket error connecting to ${url}`));
+      reject(new Error(`@lyku/para-mcp: WebSocket error connecting to ${url}`));
     });
 
     ws.addEventListener("close", e => {
       if (closed) return;
       closed = true;
       if (!opened) {
-        reject(new Error(`@para/mcp: WebSocket closed before open (code=${e.code})`));
+        reject(new Error(`@lyku/para-mcp: WebSocket closed before open (code=${e.code})`));
         return;
       }
-      onClose?.(e.code === 1000 ? undefined : new Error(`@para/mcp: WebSocket closed (code=${e.code})`));
+      onClose?.(e.code === 1000 ? undefined : new Error(`@lyku/para-mcp: WebSocket closed (code=${e.code})`));
     });
   });
 }
@@ -555,7 +555,7 @@ async function connect(
   } else if (transport === "ws") {
     t = await makeWsTransport(target);
   } else {
-    throw new Error(`@para/mcp: unknown transport "${transport}". Use "stdio" or "ws".`);
+    throw new Error(`@lyku/para-mcp: unknown transport "${transport}". Use "stdio" or "ws".`);
   }
   const conn = new MCPConnection(t);
   try {
@@ -620,7 +620,7 @@ class MCPServer {
 
   constructor(opts: ServerOpts) {
     if (!opts || typeof opts.name !== "string" || !opts.name) {
-      throw new TypeError("@para/mcp: serve() requires { name, version? }");
+      throw new TypeError("@lyku/para-mcp: serve() requires { name, version? }");
     }
     this.#opts = { name: opts.name, version: opts.version ?? "0.1.0", protocolVersion: opts.protocolVersion };
   }
@@ -645,7 +645,7 @@ class MCPServer {
    * returns a `ToolCallResult` (or a Promise of one).
    */
   tool(name: string, descriptor: Omit<ToolDescriptor, "name">, handler: ToolHandler): this {
-    if (this.#tools.has(name)) throw new Error(`@para/mcp: tool "${name}" already registered`);
+    if (this.#tools.has(name)) throw new Error(`@lyku/para-mcp: tool "${name}" already registered`);
     this.#tools.set(name, { descriptor: { name, ...descriptor }, handler });
     if (this.#initialized) this.#notifyListChanged("tools");
     return this;
@@ -657,7 +657,7 @@ class MCPServer {
    * contents in the `ReadResourceResult` shape.
    */
   resource(uri: string, descriptor: Omit<ResourceDescriptor, "uri">, handler: ResourceHandler): this {
-    if (this.#resources.has(uri)) throw new Error(`@para/mcp: resource "${uri}" already registered`);
+    if (this.#resources.has(uri)) throw new Error(`@lyku/para-mcp: resource "${uri}" already registered`);
     this.#resources.set(uri, { descriptor: { uri, ...descriptor }, handler });
     if (this.#initialized) this.#notifyListChanged("resources");
     return this;
@@ -668,7 +668,7 @@ class MCPServer {
    * and returns a `GetPromptResult`.
    */
   prompt(name: string, descriptor: Omit<PromptDescriptor, "name">, handler: PromptHandler): this {
-    if (this.#prompts.has(name)) throw new Error(`@para/mcp: prompt "${name}" already registered`);
+    if (this.#prompts.has(name)) throw new Error(`@lyku/para-mcp: prompt "${name}" already registered`);
     this.#prompts.set(name, { descriptor: { name, ...descriptor }, handler });
     if (this.#initialized) this.#notifyListChanged("prompts");
     return this;
@@ -692,7 +692,7 @@ class MCPServer {
    * Returns a Promise that resolves when the transport closes.
    */
   async listen(transportKind: "stdio" | Transport): Promise<void> {
-    if (this.#transport) throw new Error("@para/mcp: server is already listening");
+    if (this.#transport) throw new Error("@lyku/para-mcp: server is already listening");
     const t = transportKind === "stdio" ? makeStdioServerTransport() : transportKind;
     this.#transport = t;
     const { promise, resolve } = Promise.withResolvers<void>();
@@ -852,7 +852,7 @@ function makeStdioServerTransport(): Transport {
 
   return {
     send(msg) {
-      if (closed) throw new Error("@para/mcp: server stdio transport is closed");
+      if (closed) throw new Error("@lyku/para-mcp: server stdio transport is closed");
       process.stdout.write(JSON.stringify(msg) + "\n");
     },
     onMessage(cb) {

@@ -1,7 +1,7 @@
-// Browser shim for `@para/arena`.
+// Browser shim for `@lyku/para-arena`.
 //
 // `arena { body }` desugars at parse time to
-//   require("@para/arena").scope(() => { body });
+//   require("@lyku/para-arena").scope(() => { body });
 // so the only thing we need to keep the parse output valid in a browser
 // is an object with `scope(fn)` that calls `fn()` and returns whatever
 // it returned. Browsers don't expose GC control, so there's nothing

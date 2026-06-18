@@ -1,10 +1,10 @@
-// Hardcoded module "@para/arrow"
+// Hardcoded module "@lyku/para-arrow"
 //
 // Tier 2 — in-memory columnar tables and a few compute primitives. Built
-// to pair with @para/csv (CSV → typed columns → analytical work) and to
-// share buffers with @para/simd / parabun:gpu when those land.
+// to pair with @lyku/para-csv (CSV → typed columns → analytical work) and to
+// share buffers with @lyku/para-simd / parabun:gpu when those land.
 //
-//   import arrow from "@para/arrow";
+//   import arrow from "@lyku/para-arrow";
 //
 //   const batch = arrow.recordBatch({
 //     age:   new Int32Array([25, 30, 35]),
@@ -91,7 +91,7 @@ class Column {
    */
   get(i: number): ColumnGetResult {
     if (i < 0 || i >= this.length) {
-      throw new RangeError(`@para/arrow Column.get: index ${i} out of range [0, ${this.length})`);
+      throw new RangeError(`@lyku/para-arrow Column.get: index ${i} out of range [0, ${this.length})`);
     }
     if (this.validity && !((this.validity[i >> 3] >> (i & 7)) & 1)) return null;
     switch (this.type.kind) {
@@ -109,7 +109,7 @@ class Column {
         return (this.values as string[])[i];
       case "list": {
         if (!this.child) {
-          throw new Error("@para/arrow Column.get: list column has no child");
+          throw new Error("@lyku/para-arrow Column.get: list column has no child");
         }
         const offsets = this.values as Int32Array;
         const start = offsets[i];
@@ -150,7 +150,7 @@ class RecordBatch {
   column(name: string): Column {
     const idx = this.schema.fields.findIndex(f => f.name === name);
     if (idx < 0) {
-      throw new RangeError(`@para/arrow: no column named ${JSON.stringify(name)}`);
+      throw new RangeError(`@lyku/para-arrow: no column named ${JSON.stringify(name)}`);
     }
     return this.columns[idx];
   }
@@ -196,7 +196,7 @@ class Table {
    */
   column(name: string): Column {
     const idx = this.schema.fields.findIndex(f => f.name === name);
-    if (idx < 0) throw new RangeError(`@para/arrow: no column named ${JSON.stringify(name)}`);
+    if (idx < 0) throw new RangeError(`@lyku/para-arrow: no column named ${JSON.stringify(name)}`);
     const field = this.schema.fields[idx];
     return new ConcatColumn(
       field.type,
@@ -231,7 +231,7 @@ class ConcatColumn extends Column {
 
   override get(i: number): number | bigint | boolean | string | null {
     if (i < 0 || i >= this.length) {
-      throw new RangeError(`@para/arrow ConcatColumn.get: index ${i} out of range [0, ${this.length})`);
+      throw new RangeError(`@lyku/para-arrow ConcatColumn.get: index ${i} out of range [0, ${this.length})`);
     }
     // Binary search for the part. parts.length is small (~tens) in practice
     // so a linear scan is fine; binary search not necessary.
@@ -240,7 +240,7 @@ class ConcatColumn extends Column {
         return this.#parts[p].get(i - this.#cumLengths[p]);
       }
     }
-    /* unreachable */ throw new Error("@para/arrow ConcatColumn: unreachable");
+    /* unreachable */ throw new Error("@lyku/para-arrow ConcatColumn: unreachable");
   }
 }
 
@@ -360,7 +360,7 @@ function inferColumn(name: string, input: ColumnInput): { field: Field; column: 
     }
   }
   throw new TypeError(
-    `@para/arrow.recordBatch: column ${JSON.stringify(name)} has unsupported value type — pass a typed array, string[], boolean[], or number[]`,
+    `@lyku/para-arrow.recordBatch: column ${JSON.stringify(name)} has unsupported value type — pass a typed array, string[], boolean[], or number[]`,
   );
 }
 
@@ -380,7 +380,7 @@ function recordBatch(columns: Record<string, ColumnInput>): RecordBatch {
     if (length < 0) length = column.length;
     else if (column.length !== length) {
       throw new RangeError(
-        `@para/arrow.recordBatch: column lengths must match — ${JSON.stringify(name)} has ${column.length}, expected ${length}`,
+        `@lyku/para-arrow.recordBatch: column lengths must match — ${JSON.stringify(name)} has ${column.length}, expected ${length}`,
       );
     }
     fields.push(field);
@@ -396,18 +396,18 @@ function recordBatch(columns: Record<string, ColumnInput>): RecordBatch {
  */
 function table(batches: RecordBatch[]): Table {
   if (batches.length === 0) {
-    throw new RangeError("@para/arrow.table: must pass at least one RecordBatch");
+    throw new RangeError("@lyku/para-arrow.table: must pass at least one RecordBatch");
   }
   const schema = batches[0].schema;
   for (let b = 1; b < batches.length; b++) {
     const other = batches[b].schema;
     if (other.fields.length !== schema.fields.length) {
-      throw new RangeError("@para/arrow.table: schemas must match across batches");
+      throw new RangeError("@lyku/para-arrow.table: schemas must match across batches");
     }
     for (let f = 0; f < schema.fields.length; f++) {
       if (other.fields[f].name !== schema.fields[f].name || other.fields[f].type.kind !== schema.fields[f].type.kind) {
         throw new RangeError(
-          `@para/arrow.table: schemas differ at field ${f} (${schema.fields[f].name}: ${schema.fields[f].type.kind} vs ${other.fields[f].name}: ${other.fields[f].type.kind})`,
+          `@lyku/para-arrow.table: schemas differ at field ${f} (${schema.fields[f].name}: ${schema.fields[f].type.kind} vs ${other.fields[f].name}: ${other.fields[f].type.kind})`,
         );
       }
     }
@@ -419,7 +419,7 @@ function table(batches: RecordBatch[]): Table {
 //
 // JS data lives row-major (each object is one record); columnar formats live
 // column-major (each array is one column across every record). Converting
-// between the two is the seam between @para/csv (yields rows) and @para/arrow
+// between the two is the seam between @lyku/para-csv (yields rows) and @lyku/para-arrow
 // (works on columns). The seam can't live inside either module — bun:* can't
 // cross-import bun:* — so it lives at the call site, with these helpers
 // taking the boilerplate.
@@ -461,7 +461,7 @@ function inferKindFromValue(v: unknown): ArrowKind | null {
  *   const batch = arrow.fromRows(rows);
  *   arrow.sum(batch.column("age"));     // 55
  *
- * Pairs with @para/csv at the call site:
+ * Pairs with @lyku/para-csv at the call site:
  *
  *   const rows = [];
  *   for await (const row of csv.parseCsv(file, { header: true, infer: true })) rows.push(row);
@@ -469,7 +469,7 @@ function inferKindFromValue(v: unknown): ArrowKind | null {
  */
 function fromRows<T extends Record<string, any>>(rows: T[], opts: FromRowsOptions = {}): RecordBatch {
   if (!Array.isArray(rows)) {
-    throw new TypeError("@para/arrow.fromRows: rows must be an array");
+    throw new TypeError("@lyku/para-arrow.fromRows: rows must be an array");
   }
   // Collect every column name across rows (rows can have ragged keysets).
   const colNames: string[] = [];
@@ -652,7 +652,7 @@ function isNumeric(t: DataType): boolean {
 
 function requireNumeric(col: Column, op: string): void {
   if (!isNumeric(col.type)) {
-    throw new TypeError(`@para/arrow.${op}: column type ${col.type.kind} is not numeric`);
+    throw new TypeError(`@lyku/para-arrow.${op}: column type ${col.type.kind} is not numeric`);
   }
 }
 
@@ -799,7 +799,7 @@ function argMin(col: Column): number {
     }
   }
   if (bestIdx < 0) {
-    throw new RangeError("@para/arrow.argMin: column is empty or all-null");
+    throw new RangeError("@lyku/para-arrow.argMin: column is empty or all-null");
   }
   return bestIdx;
 }
@@ -834,7 +834,7 @@ function argMax(col: Column): number {
     }
   }
   if (bestIdx < 0) {
-    throw new RangeError("@para/arrow.argMax: column is empty or all-null");
+    throw new RangeError("@lyku/para-arrow.argMax: column is empty or all-null");
   }
   return bestIdx;
 }
@@ -888,7 +888,7 @@ function sliceValidity(src: Uint8Array | undefined, keepIdx: number[]): Uint8Arr
  */
 function concat(col: Column): ColumnValues {
   if (col.validity) {
-    throw new TypeError("@para/arrow.concat: column has nulls — handle them explicitly before materializing");
+    throw new TypeError("@lyku/para-arrow.concat: column has nulls — handle them explicitly before materializing");
   }
   switch (col.type.kind) {
     case "int32": {
@@ -926,7 +926,7 @@ function concat(col: Column): ColumnValues {
       // For materializing the underlying child buffer, callers can grab
       // `col.child.values` directly.
       throw new TypeError(
-        "@para/arrow.concat: list columns aren't a flat-typed-array shape — access col.child.values directly, or use col.get(i) per row",
+        "@lyku/para-arrow.concat: list columns aren't a flat-typed-array shape — access col.child.values directly, or use col.get(i) per row",
       );
     }
   }
@@ -953,7 +953,7 @@ function variance(col: Column, opts: VarianceOptions = {}): number {
   requireNumeric(col, "variance");
   const ddof = opts.ddof ?? 0;
   if (typeof ddof !== "number" || !Number.isFinite(ddof) || ddof < 0) {
-    throw new RangeError(`@para/arrow.variance: ddof must be a finite non-negative number; got ${ddof}`);
+    throw new RangeError(`@lyku/para-arrow.variance: ddof must be a finite non-negative number; got ${ddof}`);
   }
   // Pass 1: count + Kahan mean.
   let mean = 0;
@@ -999,7 +999,7 @@ function stddev(col: Column, opts: VarianceOptions = {}): number {
 function quantile(col: Column, q: number): number {
   requireNumeric(col, "quantile");
   if (typeof q !== "number" || q < 0 || q > 1) {
-    throw new RangeError(`@para/arrow.quantile: q must be a number in [0, 1]; got ${q}`);
+    throw new RangeError(`@lyku/para-arrow.quantile: q must be a number in [0, 1]; got ${q}`);
   }
   // Materialize non-null values into a typed array for sorting. Use Float64
   // regardless of source type for numerical comparison — int64 widens, the
@@ -1323,24 +1323,24 @@ parquet.setArrowTypes({ Column, RecordBatch, Table });
 
 function fromIPC(bytes: Uint8Array): Table {
   if (!(bytes instanceof Uint8Array)) {
-    throw new TypeError("@para/arrow.fromIPC: bytes must be a Uint8Array");
+    throw new TypeError("@lyku/para-arrow.fromIPC: bytes must be a Uint8Array");
   }
   return ipc.fromIPC(bytes) as Table;
 }
 
 function toIPC(source: Table | RecordBatch, format: "stream" | "file" = "stream"): Uint8Array {
   if (!(source instanceof Table) && !(source instanceof RecordBatch)) {
-    throw new TypeError("@para/arrow.toIPC: source must be a Table or RecordBatch");
+    throw new TypeError("@lyku/para-arrow.toIPC: source must be a Table or RecordBatch");
   }
   if (format !== "stream" && format !== "file") {
-    throw new TypeError(`@para/arrow.toIPC: format must be "stream" or "file", got ${format}`);
+    throw new TypeError(`@lyku/para-arrow.toIPC: format must be "stream" or "file", got ${format}`);
   }
   return ipc.toIPC(source, format) as Uint8Array;
 }
 
 function fromParquet(bytes: Uint8Array): Table {
   if (!(bytes instanceof Uint8Array)) {
-    throw new TypeError("@para/arrow.fromParquet: bytes must be a Uint8Array");
+    throw new TypeError("@lyku/para-arrow.fromParquet: bytes must be a Uint8Array");
   }
   return parquet.fromParquet(bytes) as Table;
 }
@@ -1350,7 +1350,7 @@ function toParquet(
   opts?: { compression?: "uncompressed" | "snappy" | "gzip" },
 ): Uint8Array {
   if (!(source instanceof Table) && !(source instanceof RecordBatch)) {
-    throw new TypeError("@para/arrow.toParquet: source must be a Table or RecordBatch");
+    throw new TypeError("@lyku/para-arrow.toParquet: source must be a Table or RecordBatch");
   }
   return parquet.toParquet(source, opts) as Uint8Array;
 }

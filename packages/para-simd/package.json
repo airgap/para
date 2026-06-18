@@ -1,5 +1,5 @@
 {
-  "name": "@para/simd",
+  "name": "@lyku/para-simd",
   "version": "0.0.0-dev",
   "private": true,
   "description": "Vector primitives over typed arrays — mulScalar / addScalar / add / mul / sum / dot / matVec / simdMap. WebAssembly v128 kernels with a scalar JS fallback. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",

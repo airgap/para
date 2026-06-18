@@ -5,7 +5,7 @@
 // Two layers:
 //
 //   1. **Sync CPU path** for `matVec` / `matmul` / `dot` / `simdMap` —
-//      scalar / WASM kernels via @para/simd. Always available.
+//      scalar / WASM kernels via @lyku/para-simd. Always available.
 //
 //   2. **WebGPU backend** for the async variants (`matVecAsync`,
 //      `matmulAsync`, `dotAsync`) — real compute shaders with
@@ -26,7 +26,7 @@
 // etc.) so it runs on any WebGPU implementation — Chromium, Firefox
 // Nightly, Safari 17.4+.
 
-import simd from "@para/simd";
+import simd from "@lyku/para-simd";
 
 // ── Sync CPU path — always available ────────────────────────────────────
 

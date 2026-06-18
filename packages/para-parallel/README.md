@@ -1,11 +1,11 @@
-# @para/parallel
+# @lyku/para-parallel
 
 Persistent Worker pool — `pmap` / `preduce` for data-parallel work, `run` for one-off off-thread tasks. Pure JS, runs on browsers, Node, Bun, Deno. Falls back to sequential execution in CSP-restricted contexts where `Worker` + `new Function` aren't available.
 
-**Native-delegating normalizer.** On the ParaBun runtime, `@para/parallel` resolves to the native builtin — SAB-backed zero-copy `pmap`/`preduce`, parallel SAB-radix `psort`, atomic `Mutex`/`Semaphore`. Off-runtime (and for by-path/bundled imports, which reach native via the recursion-safe `para:parallel` alias) this package provides faithful in-process fallbacks at the same API. `psort` off-runtime is a correct **sequential** sort (not Worker-parallel); `Mutex`/`Semaphore` are correct in-process (cross-thread SAB semantics need the runtime). `__paraParallelShim` is exported as `true` **only** when the sequential fallback is active — pin on `!mod.__paraParallelShim` if you must require a real parallel path.
+**Native-delegating normalizer.** On the ParaBun runtime, `@lyku/para-parallel` resolves to the native builtin — SAB-backed zero-copy `pmap`/`preduce`, parallel SAB-radix `psort`, atomic `Mutex`/`Semaphore`. Off-runtime (and for by-path/bundled imports, which reach native via the recursion-safe `para:parallel` alias) this package provides faithful in-process fallbacks at the same API. `psort` off-runtime is a correct **sequential** sort (not Worker-parallel); `Mutex`/`Semaphore` are correct in-process (cross-thread SAB semantics need the runtime). `__paraParallelShim` is exported as `true` **only** when the sequential fallback is active — pin on `!mod.__paraParallelShim` if you must require a real parallel path.
 
 ```js
-import { pmap, preduce, run, createPool } from "@para/parallel";
+import { pmap, preduce, run, createPool } from "@lyku/para-parallel";
 
 const rows = Array.from({ length: 1_000_000 }, (_, i) => `record-${i}`);
 const scores = await pmap(

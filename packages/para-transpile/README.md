@@ -1,6 +1,6 @@
-# @para/transpile
+# @lyku/para-transpile
 
-Standalone transpiler for [Para](https://para.script.dev) — turns `.pts` source into standard JavaScript that imports from the matching `@para/*` npm packages. No Parabun runtime required at build time.
+Standalone transpiler for [Para](https://para.script.dev) — turns `.pts` source into standard JavaScript that imports from the matching `@lyku/para-*` npm packages. No Parabun runtime required at build time.
 
 The canonical Para transpiler lives inside the [Parabun](https://parabun.script.dev) fork of Bun (Zig). This package is a TypeScript reimplementation, intended for projects that don't (or can't) install Parabun on their build host: browsers, Lambda, Cloudflare Workers, Deno, Node, the [Para playground](https://para.script.dev/play).
 
@@ -41,15 +41,15 @@ pass from the host bundler.
 ## Install
 
 ```bash
-npm install @para/transpile
-# Plus the @para/* runtime packages your code uses, e.g.:
-npm install @lyku/para-signals @para/parallel @para/pipeline
+npm install @lyku/para-transpile
+# Plus the @lyku/para-* runtime packages your code uses, e.g.:
+npm install @lyku/para-signals @lyku/para-parallel @lyku/para-pipeline
 ```
 
 ## Use
 
 ```ts
-import { transpile } from "@para/transpile";
+import { transpile } from "@lyku/para-transpile";
 
 const js = transpile(`
   const handler = err => console.error(err);

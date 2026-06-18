@@ -1,9 +1,9 @@
-# @para/arrow
+# @lyku/para-arrow
 
 In-memory columnar tables, vectorized computes, Arrow IPC streaming + file formats, and Parquet read/write. Pure JS / Wasm. Wire-compatible with apache-arrow 21.1.0 (verified end-to-end against pyarrow on 10,000-row multi-row-group fixtures).
 
 ```js
-import { Table, fromRows, toParquet, fromParquet } from "@para/arrow";
+import { Table, fromRows, toParquet, fromParquet } from "@lyku/para-arrow";
 
 const rows = [
   { id: 1, name: "alice", age: 30 },
