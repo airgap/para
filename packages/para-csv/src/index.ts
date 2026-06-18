@@ -1,11 +1,11 @@
-// Hardcoded module "@para/csv"
+// Hardcoded module "@lyku/para-csv"
 //
 // Parabun: streaming CSV parser. RFC 4180-ish (comma delimiter, double-quote
 // quoting, doubled-quote escaping inside fields). Optional header row,
 // optional type inference, custom delimiter / quote / line-ending. Output
 // is an async iterator so we never load the whole file into memory.
 //
-//   import { parseCsv } from "@para/csv";
+//   import { parseCsv } from "@lyku/para-csv";
 //
 //   for await (const row of parseCsv("./big.csv", { headers: true })) {
 //     // row is { col1: ..., col2: ... } with inferred types
@@ -15,7 +15,7 @@
 //     // row is ["v1", "v2", ...] — raw strings
 //   }
 //
-//   // Parallel mode — uses @para/parallel's worker pool. Materializes the
+//   // Parallel mode — uses @lyku/para-parallel's worker pool. Materializes the
 //   // whole input first (loses streaming) and falls back to serial if the
 //   // input contains any quote characters (we'd need a pre-pass to find
 //   // safe chunk boundaries, which v1 doesn't do):
@@ -24,7 +24,7 @@
 // Out of scope for v1: Excel dialect quirks, multi-line fields under
 // custom record separators, parallel mode for quoted CSVs.
 
-const parallel = require("@para/parallel");
+const parallel = require("@lyku/para-parallel");
 
 type CsvSource = string | Uint8Array | Blob | ReadableStream<Uint8Array> | AsyncIterable<Uint8Array | string>;
 
@@ -119,7 +119,7 @@ type ParseOptions = DialectOptions &
      */
     transform?: (value: string, column: string | number) => string;
     /**
-     * Opt-in parallel chunk parsing via @para/parallel's worker pool. Splits
+     * Opt-in parallel chunk parsing via @lyku/para-parallel's worker pool. Splits
      * the input at line boundaries and parses chunks concurrently. Two
      * caveats:
      *   1. Input is materialized to a single string first (no streaming).
@@ -305,9 +305,9 @@ async function* tokenize(source: CsvSource, dialect: DialectOptions = {}): Async
   const COMMENT = dialect.comment ?? "";
   const TRIM = dialect.trim ?? false;
   const SKIP_EMPTY = dialect.skipEmptyLines ?? true;
-  if (Q.length !== 1) throw new TypeError("@para/csv: quote must be a single character");
-  if (E.length !== 1) throw new TypeError("@para/csv: escape must be a single character");
-  if (COMMENT.length > 1) throw new TypeError("@para/csv: comment must be a single character or empty");
+  if (Q.length !== 1) throw new TypeError("@lyku/para-csv: quote must be a single character");
+  if (E.length !== 1) throw new TypeError("@lyku/para-csv: escape must be a single character");
+  if (COMMENT.length > 1) throw new TypeError("@lyku/para-csv: comment must be a single character or empty");
 
   // Resolve delimiter, honoring auto-detect (`""`).
   let D = dialect.delimiter ?? ",";
@@ -317,7 +317,7 @@ async function* tokenize(source: CsvSource, dialect: DialectOptions = {}): Async
       D = chooseDelimiter(sample, Q, COMMENT);
     });
   } else if (D.length !== 1) {
-    throw new TypeError("@para/csv: delimiter must be a single character (or empty for auto-detect)");
+    throw new TypeError("@lyku/para-csv: delimiter must be a single character (or empty for auto-detect)");
   }
   // Doubled-quote escaping and a distinct escape char are mutually
   // exclusive interpretations of the byte after a quote inside a quoted
@@ -489,7 +489,7 @@ async function* tokenize(source: CsvSource, dialect: DialectOptions = {}): Async
 
   // Flush the final row if the file didn't end with a newline.
   if (state === State.Quoted) {
-    throw new SyntaxError("@para/csv: unterminated quoted field at end of input");
+    throw new SyntaxError("@lyku/para-csv: unterminated quoted field at end of input");
   }
   if (row.length > 0 || field.length > 0 || state === State.AfterQuote) {
     row.push(finishField(field, fieldQuoted));
@@ -554,7 +554,7 @@ function pickDialect(o: DialectOptions): DialectOptions {
 const PARALLEL_MIN_BYTES = 64 * 1024;
 
 // ─── Parallel chunk parser (no-quote fast path) ────────────────────────────
-// This runs INSIDE a worker via @para/parallel.pmap. It must be a pure
+// This runs INSIDE a worker via @lyku/para-parallel.pmap. It must be a pure
 // function — no closures, no outside references — because pmap stringifies
 // it and re-evals on the worker side.
 //
@@ -760,7 +760,7 @@ async function* parseCsvImpl(
 //     schema: { ts: "f64", value: "f32", sensorId: "i32", label: "string" },
 //   });
 //   // cols.ts is a Float64Array, cols.value a Float32Array, etc.
-//   //   → feed straight into @para/simd / @para/arrow with no copy.
+//   //   → feed straight into @lyku/para-simd / @lyku/para-arrow with no copy.
 //
 // Allocation strategy: each column starts at INITIAL_CAPACITY rows and
 // doubles when full (amortized O(N) inserts). At end-of-stream each
@@ -1240,9 +1240,9 @@ function stringifyImpl(rows: Iterable<StringifyRow>, options: StringifyOptions =
   const Q = options.quote ?? '"';
   const E = options.escape ?? Q;
   const NL = options.newline ?? "\r\n";
-  if (D.length !== 1) throw new TypeError("@para/csv: delimiter must be a single character");
-  if (Q.length !== 1) throw new TypeError("@para/csv: quote must be a single character");
-  if (E.length !== 1) throw new TypeError("@para/csv: escape must be a single character");
+  if (D.length !== 1) throw new TypeError("@lyku/para-csv: delimiter must be a single character");
+  if (Q.length !== 1) throw new TypeError("@lyku/para-csv: quote must be a single character");
+  if (E.length !== 1) throw new TypeError("@lyku/para-csv: escape must be a single character");
 
   // Pre-build the regex of "must be quoted" chars. Carriage return is
   // included so a stray '\r' inside a cell doesn't poison the next row.

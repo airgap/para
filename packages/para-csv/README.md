@@ -1,17 +1,17 @@
-# @para/csv
+# @lyku/para-csv
 
 Streaming CSV parser with two output modes: row-objects (the standard JS shape) and **typed-array columns** (the unique one). The columnar mode parses straight into `Float32Array` / `Float64Array` / `Int32Array` / etc. so numeric data lands in compute-ready buffers with no per-row object allocation and no per-cell boxing.
 
 ```js
-import csv from "@para/csv";
-import { sum } from "@para/simd";
+import csv from "@lyku/para-csv";
+import { sum } from "@lyku/para-simd";
 
 // Columnar — rows go straight into typed-array buffers per column.
 const cols = await csv.parseColumns(Bun.file("./sensors.csv"), {
   schema: { ts: "f64", temp: "f32", sensorId: "i32", label: "string" },
 });
 // cols.ts is a Float64Array, cols.temp a Float32Array, etc. Feed
-// straight into @para/simd / @para/arrow with no copy.
+// straight into @lyku/para-simd / @lyku/para-arrow with no copy.
 const totalTemp = sum(cols.temp);
 ```
 
@@ -26,7 +26,7 @@ for await (const row of csv.parseCsv(file.stream())) {
 
 Most CSV libraries return `Array<{col1, col2}>` row objects. Each row is a JS Object (~56-byte header) plus a boxed `Number` for each numeric cell — ~24 bytes per number. For a 1M-row, 4-numeric-column CSV that's ~120 MB of boxing overhead before you've done any actual work.
 
-`parseColumns` writes straight into `TypedArray` buffers (one per column), grows them exponentially, and tight-fits the result at end-of-stream. For a 200K-row × 4-numeric-column CSV on this codebase: 1.4× faster than the row-objects path, and the result is 3 MB of contiguous bytes — ready to hand to `@para/simd`, `@para/arrow.fromColumns()`, GPU upload, or whatever else expects packed numeric data.
+`parseColumns` writes straight into `TypedArray` buffers (one per column), grows them exponentially, and tight-fits the result at end-of-stream. For a 200K-row × 4-numeric-column CSV on this codebase: 1.4× faster than the row-objects path, and the result is 3 MB of contiguous bytes — ready to hand to `@lyku/para-simd`, `@lyku/para-arrow.fromColumns()`, GPU upload, or whatever else expects packed numeric data.
 
 The JS ecosystem otherwise covers this with DuckDB-WASM (10+ MB bundle) or Apache Arrow JS (clunky CSV loader). Pure-JS streaming CSV → typed-array columns sits in a real gap, mostly useful for: edge functions and Workers (no room for the big bundles), browser data viz at the medium-data scale, ML/data prep where you'd rather skip Python.
 
@@ -47,7 +47,7 @@ Empty / missing numeric cells become `NaN` for floats, `0` for ints. Caller vali
 
 ### `parseCsv(source, opts?)`
 
-The classical row-objects async iterator. RFC 4180 quoting, optional headers, type inference. `parallel: true` opt-in for off-main-thread parsing via `@para/parallel`.
+The classical row-objects async iterator. RFC 4180 quoting, optional headers, type inference. `parallel: true` opt-in for off-main-thread parsing via `@lyku/para-parallel`.
 
 ```js
 for await (const row of csv.parseCsv("./big.csv", { headers: true })) {
@@ -71,7 +71,7 @@ Options (shared across `parseCsv`, `parseColumns`, `parseBatches`, `reduceColumn
 | `maxRows` | `Infinity` | Cap on data rows yielded; the header row doesn't count. Trivial preview support. |
 | `typeInference` | `true` | `parseCsv` only — auto-coerce numeric / boolean / null. |
 | `skipLines` | `0` | Skip leading rows before header detection. |
-| `parallel` | `false` | Off-main-thread parse via `@para/parallel`. See below. |
+| `parallel` | `false` | Off-main-thread parse via `@lyku/para-parallel`. See below. |
 
 A leading UTF-8 BOM is stripped from the first chunk automatically.
 

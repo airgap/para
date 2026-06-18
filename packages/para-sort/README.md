@@ -15,7 +15,7 @@ const big = await sort.u32Async(huge, { backend: "parallel" });
 ## Tiers
 
 1. **serial** — LSD radix (this package). Synchronous, deterministic, beats `TypedArray.prototype.sort()` above a measured per-kind crossover. Always available, every runtime.
-2. **parallel** — delegates to native `@para/parallel` `psort` (tuned SAB histogram+scatter radix across a worker pool). Resolvable only on the ParaBun runtime; the npm shim's `psort` is sequential, so this tier reports unavailable off-runtime. **Async only** (`*.f32Async`) — a worker pool fundamentally cannot be synchronous, and forcing the whole API async would make every tiny serial sort `await`. The sync surface covers serial/small/already-sorted; `*Async` adds parallel.
+2. **parallel** — delegates to native `@lyku/para-parallel` `psort` (tuned SAB histogram+scatter radix across a worker pool). Resolvable only on the ParaBun runtime; the npm shim's `psort` is sequential, so this tier reports unavailable off-runtime. **Async only** (`*.f32Async`) — a worker pool fundamentally cannot be synchronous, and forcing the whole API async would make every tiny serial sort `await`. The sync surface covers serial/small/already-sorted; `*Async` adds parallel.
 3. **gpu** — Phase 2. `backend:"gpu"` throws today.
 
 ## Surface

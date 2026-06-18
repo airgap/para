@@ -93,7 +93,7 @@ effect(() => render(peakSlow.value.get()));
 
 ## Why not `@preact/signals-core`?
 
-Two reasons. **Supply-chain hygiene** — keeping the leaf primitive self-contained means every Para package depends on code we read and own, not a transitive trust chain we don't control. **Differentiation** — the resource / stream-adapter / rate-limit surface above is the part Preact doesn't have, and it only composes cleanly because we own the core. Future direction: a `store({...})` primitive for proxy-based fine-grained reactivity on plain objects, with TypedArray-backed derivations fused via `@para/simd`.
+Two reasons. **Supply-chain hygiene** — keeping the leaf primitive self-contained means every Para package depends on code we read and own, not a transitive trust chain we don't control. **Differentiation** — the resource / stream-adapter / rate-limit surface above is the part Preact doesn't have, and it only composes cleanly because we own the core. Future direction: a `store({...})` primitive for proxy-based fine-grained reactivity on plain objects, with TypedArray-backed derivations fused via `@lyku/para-simd`.
 
 ## Status
 

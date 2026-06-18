@@ -616,7 +616,7 @@ export const SPLASH_JS_KEYWORDS: string[] = [
   // Module / import keywords — appear in Runtime tab demos (every
   // parabun:* snippet starts with `import X from "parabun:..."`) and
   // in the .js output pane for pipeline-style Lang demos that emit
-  // `import { ... } from "@para/pipeline"`.
+  // `import { ... } from "@lyku/para-pipeline"`.
   "import",
   "from",
   "export",

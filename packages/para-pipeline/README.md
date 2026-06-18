@@ -1,9 +1,9 @@
-# @para/pipeline
+# @lyku/para-pipeline
 
 Lazy streaming combinators for the `|>` operator. Works on any iterable or async iterable; nothing executes until a terminal pulls.
 
 ```js
-import p from "@para/pipeline";
+import p from "@lyku/para-pipeline";
 
 const out = await (
   source
@@ -50,7 +50,7 @@ const out = await p.collect(p.take(10)(p.filter(even)(p.map(double)(source))));
 | --- | --- |
 | `collect` | Materialize into `T[]`. |
 | `count` | Number of items. |
-| `sum` | Running sum (uses `@para/simd` for typed-array sources). |
+| `sum` | Running sum (uses `@lyku/para-simd` for typed-array sources). |
 | `reduce(fn, init)` | Standard reduction. |
 | `forEach(fn)` | Side effect per item; resolves when source completes. |
 | `first(pred?)` / `last(pred?)` / `find(pred)` | Selector terminals. |
@@ -83,11 +83,11 @@ const out = await p.collect(p.take(10)(p.filter(even)(p.map(double)(source))));
 | | |
 | --- | --- |
 | `pipe(source, ...stages)` | Plain function composition for callers without `|>`. |
-| `pipeParallel(source, ...stages)` | Same surface; identifies parallelizable map / reduce segments and dispatches via `@para/parallel`. Falls back to serial below 256 items. |
+| `pipeParallel(source, ...stages)` | Same surface; identifies parallelizable map / reduce segments and dispatches via `@lyku/para-parallel`. Falls back to serial below 256 items. |
 
 ## Fusion
 
-When the source is a `Float32Array` or `Float64Array`, adjacent `map` calls extend a fused chain instead of wrapping each layer in another async generator. Fusion-aware terminals (`collect`, `sum`, `toFloat32Array`, `toFloat64Array`) walk the chain, compose affine kernels when possible, and dispatch to `@para/simd` as a single pass.
+When the source is a `Float32Array` or `Float64Array`, adjacent `map` calls extend a fused chain instead of wrapping each layer in another async generator. Fusion-aware terminals (`collect`, `sum`, `toFloat32Array`, `toFloat64Array`) walk the chain, compose affine kernels when possible, and dispatch to `@lyku/para-simd` as a single pass.
 
 ```js
 const arr = new Float32Array([1, 2, 3, 4]);
@@ -96,22 +96,22 @@ await (arr |> p.map(x => x * 2) |> p.map(x => x + 1) |> p.sum); // single SIMD p
 
 ## On the ParaBun runtime
 
-Single-affine chains (`x*K + C` collapsed) on Float32Array sources opportunistically promote to `parabun:gpu` when it's available and `gpu.winsForSize(...)` says yes. The lookup is dynamic and silently falls back to `@para/simd` when `parabun:gpu` isn't resolvable (Node, browsers, anywhere outside ParaBun) — same code path either way.
+Single-affine chains (`x*K + C` collapsed) on Float32Array sources opportunistically promote to `parabun:gpu` when it's available and `gpu.winsForSize(...)` says yes. The lookup is dynamic and silently falls back to `@lyku/para-simd` when `parabun:gpu` isn't resolvable (Node, browsers, anywhere outside ParaBun) — same code path either way.
 
 ## Top-K over large / sharded data
 
 `source |> sort() |> take(k)` is **not** a sort — it's selection. `topK` does it in one streaming pass with an O(k) heap; the dataset is never sorted or materialized. Paired with the columnar projection sources, you get "top rows by score over an arbitrarily large CSV" at **O(batchSize + k) memory** — the parser holds one batch, the heap holds k:
 
 ```js
-import csv from "@para/csv";
-import p from "@para/pipeline";
+import csv from "@lyku/para-csv";
+import p from "@lyku/para-pipeline";
 
 const top5 = await p.topK(5, r => r.score)(
   p.fromColumns(csv.parseBatches(file, { schema: { id: "string", score: "f32" }, batchSize: 8192 }), ["id", "score"]),
 );
 ```
 
-`fromColumn` / `fromColumns` are structural — they accept both the `@para/csv` `parseBatches` shape (`{ name: ArrayLike }`) and `@para/arrow` `RecordBatch` (`.column(name).get(i)` + `.numRows`); this package takes no dependency on either.
+`fromColumn` / `fromColumns` are structural — they accept both the `@lyku/para-csv` `parseBatches` shape (`{ name: ArrayLike }`) and `@lyku/para-arrow` `RecordBatch` (`.column(name).get(i)` + `.numRows`); this package takes no dependency on either.
 
 `topK` is a **monoid**: `mergeTopK([topK(A), topK(B)], k) ≡ topK(A ∪ B)`. So multi-file / multi-shard top-k is local-top-k-per-shard then merge, at O(shards·k) memory regardless of total rows:
 

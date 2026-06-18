@@ -1,8 +1,8 @@
-// Browser shim for `@para/simd`. Default path is WASM v128 kernels from
+// Browser shim for `@lyku/para-simd`. Default path is WASM v128 kernels from
 // src/simd.wasm; falls back to scalar JS loops when
 // WebAssembly SIMD isn't available or the module can't be instantiated
 // (older browsers, restrictive CSP). The API surface matches upstream
-// `@para/simd` — callers don't need to know which path is live.
+// `@lyku/para-simd` — callers don't need to know which path is live.
 //
 // Performance notes:
 //   - Small inputs (N < SCALAR_THRESHOLD) use scalar loops unconditionally
@@ -140,7 +140,7 @@ function _dotJS(a, b) {
 
 // ── Public kernels ──────────────────────────────────────────────────────
 
-// `@para/simd` is f32-first. Float64Array inputs go straight to the
+// `@lyku/para-simd` is f32-first. Float64Array inputs go straight to the
 // scalar path — the WASM module is f32-only, Float64 falls back.
 function _isF32(a) {
   return a instanceof Float32Array;
@@ -303,7 +303,7 @@ function alloc(n, type) {
     return new Float32Array(n);
   }
   if (type === "f64" || type === "float64") return new Float64Array(n);
-  throw new Error(`@para/simd alloc: unsupported dtype "${type}" (browser shim supports f32 / f64)`);
+  throw new Error(`@lyku/para-simd alloc: unsupported dtype "${type}" (browser shim supports f32 / f64)`);
 }
 
 // ── Probes ──────────────────────────────────────────────────────────────

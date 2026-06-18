@@ -1,4 +1,4 @@
-# `@para/schema`
+# `@lyku/para-schema`
 
 JSON Schema 2020-12 with 1:1 TypeScript brand-type parity.
 
@@ -37,7 +37,7 @@ import type {
   SchemaValue, Schema, Infer, InferFromSchema, Result,
   // Helpers
   Handles,
-} from "@para/schema";
+} from "@lyku/para-schema";
 ```
 
 ### Constraint brands
@@ -58,7 +58,7 @@ the constraints are dropped silently.
 ### Schema values + `Handles<…>`
 
 ```ts
-import type { Handles } from "@para/schema";
+import type { Handles } from "@lyku/para-schema";
 
 const getUser = {
   request:  schema { type: "object", properties: { id: { type: "bigint" } }, required: ["id"] },

@@ -1,7 +1,7 @@
-// Arrow IPC stream reader + writer for @para/arrow.
+// Arrow IPC stream reader + writer for @lyku/para-arrow.
 //
 // Implements just enough of the Arrow IPC format spec to round-trip the six
-// types @para/arrow currently models — int32, int64, float32, float64, bool,
+// types @lyku/para-arrow currently models — int32, int64, float32, float64, bool,
 // utf8 — via the *streaming* IPC format (continuation-prefixed messages,
 // no file footer, no dictionary batches yet). The wire format is bit-for-
 // bit compatible with what pyarrow / arrow-rs / nanoarrow consume on the
@@ -71,7 +71,7 @@ export function setArrowTypes(types: ArrowTypes): void {
 
 function getTypes(): ArrowTypes {
   if (!arrowTypes) {
-    throw new Error("@para/arrow ipc: arrow.ts must call setArrowTypes() before fromIPC/toIPC");
+    throw new Error("@lyku/para-arrow ipc: arrow.ts must call setArrowTypes() before fromIPC/toIPC");
   }
   return arrowTypes;
 }
@@ -732,7 +732,7 @@ function planBody(batch: RecordBatchLike): BodyPlan {
         const offsets = col.values as Int32Array;
         push(new Uint8Array(offsets.buffer, offsets.byteOffset, offsets.byteLength));
         // Child column follows in depth-first order.
-        if (!col.child) throw new Error("@para/arrow.toIPC: list column has no child");
+        if (!col.child) throw new Error("@lyku/para-arrow.toIPC: list column has no child");
         emitColumn(col.child);
         break;
       }
@@ -969,7 +969,7 @@ function parseFieldType(fbr: FBR, fieldTablePos: number): ParsedFieldType {
   const typeId = fbr.readU8(fieldTablePos, FIELD_F_TYPE_TYPE, 0);
   const typeTablePos = fbr.readOffset(fieldTablePos, FIELD_F_TYPE);
   if (typeTablePos === undefined) {
-    throw new Error("@para/arrow.fromIPC: Field has type_type but no type table");
+    throw new Error("@lyku/para-arrow.fromIPC: Field has type_type but no type table");
   }
   switch (typeId) {
     case TYPE_INT: {
@@ -990,15 +990,15 @@ function parseFieldType(fbr: FBR, fieldTablePos: number): ParsedFieldType {
       }
       if (bw === 64) {
         if (signed) return { kind: "int64" };
-        throw new Error("@para/arrow.fromIPC: uint64 columns are not supported (no lossless target)");
+        throw new Error("@lyku/para-arrow.fromIPC: uint64 columns are not supported (no lossless target)");
       }
-      throw new Error(`@para/arrow.fromIPC: int bitWidth ${bw} not supported`);
+      throw new Error(`@lyku/para-arrow.fromIPC: int bitWidth ${bw} not supported`);
     }
     case TYPE_FLOATINGPOINT: {
       const prec = fbr.readI16(typeTablePos, FP_F_PRECISION, 0);
       if (prec === FB_PRECISION_SINGLE) return { kind: "float32" };
       if (prec === FB_PRECISION_DOUBLE) return { kind: "float64" };
-      throw new Error(`@para/arrow.fromIPC: floating-point precision ${prec} not supported`);
+      throw new Error(`@lyku/para-arrow.fromIPC: floating-point precision ${prec} not supported`);
     }
     case TYPE_BOOL:
       return { kind: "bool" };
@@ -1013,7 +1013,7 @@ function parseFieldType(fbr: FBR, fieldTablePos: number): ParsedFieldType {
       const unit = fbr.readI16(typeTablePos, DATE_F_UNIT, 1);
       if (unit === 0) return { kind: "int32" };
       if (unit === 1) return { kind: "int64" };
-      throw new Error(`@para/arrow.fromIPC: Date unit ${unit} not supported`);
+      throw new Error(`@lyku/para-arrow.fromIPC: Date unit ${unit} not supported`);
     }
     case TYPE_TIMESTAMP:
       // Always 64-bit regardless of TimeUnit; timezone metadata dropped.
@@ -1023,10 +1023,10 @@ function parseFieldType(fbr: FBR, fieldTablePos: number): ParsedFieldType {
       const bw = fbr.readI32(typeTablePos, TIME_F_BITWIDTH, 32);
       if (bw === 32) return { kind: "int32" };
       if (bw === 64) return { kind: "int64" };
-      throw new Error(`@para/arrow.fromIPC: Time bitWidth ${bw} not supported`);
+      throw new Error(`@lyku/para-arrow.fromIPC: Time bitWidth ${bw} not supported`);
     }
     default:
-      throw new Error(`@para/arrow.fromIPC: type id ${typeId} not yet supported`);
+      throw new Error(`@lyku/para-arrow.fromIPC: type id ${typeId} not yet supported`);
   }
 }
 
@@ -1050,10 +1050,10 @@ function parseField(fbr: FBR, fieldPos: number): ParsedField {
     if (indexTypePos !== undefined) {
       const bw = fbr.readI32(indexTypePos, INT_F_BITWIDTH, 32);
       const signed = fbr.readBool(indexTypePos, INT_F_IS_SIGNED, true);
-      if (!signed) throw new Error("@para/arrow.fromIPC: unsigned dictionary indexType not supported");
+      if (!signed) throw new Error("@lyku/para-arrow.fromIPC: unsigned dictionary indexType not supported");
       if (bw === 32) indexKind = "int32";
       else if (bw === 64) indexKind = "int64";
-      else throw new Error(`@para/arrow.fromIPC: dictionary indexType bitWidth ${bw} not supported`);
+      else throw new Error(`@lyku/para-arrow.fromIPC: dictionary indexType bitWidth ${bw} not supported`);
     } else {
       // Default per spec: signed int32.
       indexKind = "int32";
@@ -1064,11 +1064,11 @@ function parseField(fbr: FBR, fieldPos: number): ParsedField {
   if (parsed.kind === "list") {
     const childrenVec = fbr.readOffset(fieldPos, FIELD_F_CHILDREN);
     if (childrenVec === undefined) {
-      throw new Error("@para/arrow.fromIPC: List field is missing its children vector");
+      throw new Error("@lyku/para-arrow.fromIPC: List field is missing its children vector");
     }
     const { len } = fbr.readVector(childrenVec);
     if (len !== 1) {
-      throw new Error(`@para/arrow.fromIPC: List field must have exactly one child, got ${len}`);
+      throw new Error(`@lyku/para-arrow.fromIPC: List field must have exactly one child, got ${len}`);
     }
     const childPos = fbr.vectorOffsetAt(childrenVec, 0);
     child = parseField(fbr, childPos);
@@ -1090,7 +1090,7 @@ function parseField(fbr: FBR, fieldPos: number): ParsedField {
 // ParsedField. Recurses through list children.
 function dataTypeFromParsed(pf: ParsedField): DataType {
   if (pf.kind === "list") {
-    if (!pf.child) throw new Error("@para/arrow.fromIPC: list ParsedField has no child");
+    if (!pf.child) throw new Error("@lyku/para-arrow.fromIPC: list ParsedField has no child");
     return { kind: "list", child: dataTypeFromParsed(pf.child) };
   }
   return { kind: pf.kind } as DataType;
@@ -1098,7 +1098,7 @@ function dataTypeFromParsed(pf: ParsedField): DataType {
 
 function parseSchema(fbr: FBR, schemaTablePos: number): ParsedField[] {
   const fieldsVec = fbr.readOffset(schemaTablePos, SCHEMA_F_FIELDS);
-  if (fieldsVec === undefined) throw new Error("@para/arrow.fromIPC: Schema has no fields vector");
+  if (fieldsVec === undefined) throw new Error("@lyku/para-arrow.fromIPC: Schema has no fields vector");
   const { len } = fbr.readVector(fieldsVec);
   const out: ParsedField[] = [];
   for (let i = 0; i < len; i++) {
@@ -1124,7 +1124,7 @@ function parseDictionaryBatchHeader(fbr: FBR, dbTablePos: number): ParsedDiction
   const id = fbr.readI64(dbTablePos, DBATCH_F_ID, 0n);
   const isDelta = fbr.readBool(dbTablePos, DBATCH_F_IS_DELTA, false);
   const dataPos = fbr.readOffset(dbTablePos, DBATCH_F_DATA);
-  if (dataPos === undefined) throw new Error("@para/arrow.fromIPC: DictionaryBatch has no data table");
+  if (dataPos === undefined) throw new Error("@lyku/para-arrow.fromIPC: DictionaryBatch has no data table");
   const inner = parseRecordBatchHeader(fbr, dataPos);
   return { id, isDelta, inner };
 }
@@ -1134,7 +1134,7 @@ function parseRecordBatchHeader(fbr: FBR, rbTablePos: number): ParsedRecordBatch
   const nodesVec = fbr.readOffset(rbTablePos, RB_F_NODES);
   const buffersVec = fbr.readOffset(rbTablePos, RB_F_BUFFERS);
   if (nodesVec === undefined || buffersVec === undefined) {
-    throw new Error("@para/arrow.fromIPC: RecordBatch missing nodes or buffers vector");
+    throw new Error("@lyku/para-arrow.fromIPC: RecordBatch missing nodes or buffers vector");
   }
   const nodesLen = fbr.u32(nodesVec);
   const nodes: ParsedRecordBatch["nodes"] = [];
@@ -1201,7 +1201,7 @@ function reconstructColumn(
         }
       } else {
         throw new Error(
-          `@para/arrow.fromIPC: int32 widen path: wireWidth=${wireWidth} signed=${wireSigned} not supported`,
+          `@lyku/para-arrow.fromIPC: int32 widen path: wireWidth=${wireWidth} signed=${wireSigned} not supported`,
         );
       }
       return {
@@ -1225,7 +1225,7 @@ function reconstructColumn(
         for (let i = 0; i < rowCount; i++) out[i] = BigInt(valView.getUint32(i * 4, true));
       } else {
         throw new Error(
-          `@para/arrow.fromIPC: int64 widen path: wireWidth=${wireWidth} signed=${wireSigned} not supported`,
+          `@lyku/para-arrow.fromIPC: int64 widen path: wireWidth=${wireWidth} signed=${wireSigned} not supported`,
         );
       }
       return {
@@ -1291,9 +1291,9 @@ function reconstructColumn(
       };
     }
     case "list": {
-      if (!field.child) throw new Error("@para/arrow.fromIPC: list field has no child");
+      if (!field.child) throw new Error("@lyku/para-arrow.fromIPC: list field has no child");
       if (!nodes || nodeIndex === undefined) {
-        throw new Error("@para/arrow.fromIPC: list reconstruction requires the FieldNode list");
+        throw new Error("@lyku/para-arrow.fromIPC: list reconstruction requires the FieldNode list");
       }
       // Parent buffers: validity bitmap (already taken at bufIndex), then
       // i32 offsets at bufIndex + 1.
@@ -1476,14 +1476,14 @@ export function fromIPC(bytes: Uint8Array): TableLike {
     cursor += bodyLength;
 
     if (headerType === MESSAGE_HEADER_SCHEMA) {
-      if (headerPos === undefined) throw new Error("@para/arrow.fromIPC: Schema message has no header table");
+      if (headerPos === undefined) throw new Error("@lyku/para-arrow.fromIPC: Schema message has no header table");
       parsedFields = parseSchema(fbr, headerPos);
       schema = {
         fields: parsedFields.map(f => ({ name: f.name, type: dataTypeFromParsed(f), nullable: f.nullable })),
       };
     } else if (headerType === MESSAGE_HEADER_RECORD_BATCH) {
-      if (!schema) throw new Error("@para/arrow.fromIPC: RecordBatch arrived before Schema");
-      if (headerPos === undefined) throw new Error("@para/arrow.fromIPC: RecordBatch message has no header table");
+      if (!schema) throw new Error("@lyku/para-arrow.fromIPC: RecordBatch arrived before Schema");
+      if (headerPos === undefined) throw new Error("@lyku/para-arrow.fromIPC: RecordBatch message has no header table");
       const rb = parseRecordBatchHeader(fbr, headerPos);
       const cols: ColumnLike[] = [];
       let bufIndex = 0;
@@ -1498,7 +1498,7 @@ export function fromIPC(bytes: Uint8Array): TableLike {
           const dict = dictionaries.get(pf.dictId);
           if (!dict) {
             throw new Error(
-              `@para/arrow.fromIPC: dictionary id ${pf.dictId} referenced before its DictionaryBatch arrived`,
+              `@lyku/para-arrow.fromIPC: dictionary id ${pf.dictId} referenced before its DictionaryBatch arrived`,
             );
           }
           const {
@@ -1535,18 +1535,18 @@ export function fromIPC(bytes: Uint8Array): TableLike {
       batches.push(new RecordBatch(schema, cols, rb.length));
     } else if (headerType === MESSAGE_HEADER_DICTIONARY_BATCH) {
       if (headerPos === undefined) {
-        throw new Error("@para/arrow.fromIPC: DictionaryBatch message has no header table");
+        throw new Error("@lyku/para-arrow.fromIPC: DictionaryBatch message has no header table");
       }
       const db = parseDictionaryBatchHeader(fbr, headerPos);
       if (db.isDelta) {
         throw new Error(
-          "@para/arrow.fromIPC: dictionary deltas (isDelta=true) are not yet supported — apache-arrow's default is non-delta",
+          "@lyku/para-arrow.fromIPC: dictionary deltas (isDelta=true) are not yet supported — apache-arrow's default is non-delta",
         );
       }
       // Find the field that uses this dict id to determine the logical type.
       const owner = parsedFields.find(f => f.dictId === db.id);
       if (!owner) {
-        throw new Error(`@para/arrow.fromIPC: DictionaryBatch id ${db.id} arrived but no schema field references it`);
+        throw new Error(`@lyku/para-arrow.fromIPC: DictionaryBatch id ${db.id} arrived but no schema field references it`);
       }
       const innerNode = db.inner.nodes[0];
       const { column } = reconstructColumn(
@@ -1562,7 +1562,7 @@ export function fromIPC(bytes: Uint8Array): TableLike {
     // since bodyLength was 0).
   }
 
-  if (!schema) throw new Error("@para/arrow.fromIPC: stream ended before any Schema message");
+  if (!schema) throw new Error("@lyku/para-arrow.fromIPC: stream ended before any Schema message");
   if (batches.length === 0) return emptyTable(schema);
   return new Table(schema, batches);
 }
@@ -1622,7 +1622,7 @@ function decodeRecordBatchAt(
     bodyLength > 0 ? new Uint8Array(bytes.buffer, bytes.byteOffset + bodyStart, bodyLength) : new Uint8Array(0);
 
   if (headerType !== MESSAGE_HEADER_RECORD_BATCH || headerPos === undefined) {
-    throw new Error(`@para/arrow.fromIPC: expected RecordBatch at offset ${msgStart}, got header type ${headerType}`);
+    throw new Error(`@lyku/para-arrow.fromIPC: expected RecordBatch at offset ${msgStart}, got header type ${headerType}`);
   }
   const rb = parseRecordBatchHeader(fbr, headerPos);
   const cols: ColumnLike[] = [];
@@ -1634,7 +1634,7 @@ function decodeRecordBatchAt(
     if (pf.dictId !== undefined) {
       const dict = dictionaries.get(pf.dictId);
       if (!dict) {
-        throw new Error(`@para/arrow.fromIPC: dictionary id ${pf.dictId} referenced but no DictionaryBatch found`);
+        throw new Error(`@lyku/para-arrow.fromIPC: dictionary id ${pf.dictId} referenced but no DictionaryBatch found`);
       }
       const {
         column: indexCol,
@@ -1677,7 +1677,7 @@ function fromIPCFile(bytes: Uint8Array): TableLike {
   const footerLen = view.getInt32(footerLenPos, true);
   const minTailBytes = FILE_MAGIC_HEAD.byteLength + FILE_MAGIC_TAIL.byteLength + 4;
   if (footerLen <= 0 || footerLen > bytes.byteLength - minTailBytes) {
-    throw new Error(`@para/arrow.fromIPC: file format footer length ${footerLen} is invalid`);
+    throw new Error(`@lyku/para-arrow.fromIPC: file format footer length ${footerLen} is invalid`);
   }
   const footerStart = footerLenPos - footerLen;
   const footerBytes = new Uint8Array(bytes.buffer, bytes.byteOffset + footerStart, footerLen);
@@ -1686,7 +1686,7 @@ function fromIPCFile(bytes: Uint8Array): TableLike {
 
   const schemaPos = ffbr.readOffset(footerRoot, FOOTER_F_SCHEMA);
   if (schemaPos === undefined) {
-    throw new Error("@para/arrow.fromIPC: file format Footer is missing its Schema");
+    throw new Error("@lyku/para-arrow.fromIPC: file format Footer is missing its Schema");
   }
   const parsedFields = parseSchema(ffbr, schemaPos);
   const schema: Schema = {
@@ -1718,10 +1718,10 @@ function fromIPCFile(bytes: Uint8Array): TableLike {
       const bodyStart = metaStart + metaLen;
       const body =
         bodyLength > 0 ? new Uint8Array(bytes.buffer, bytes.byteOffset + bodyStart, bodyLength) : new Uint8Array(0);
-      if (headerPos === undefined) throw new Error("@para/arrow.fromIPC: DictionaryBatch missing header table");
+      if (headerPos === undefined) throw new Error("@lyku/para-arrow.fromIPC: DictionaryBatch missing header table");
       const db = parseDictionaryBatchHeader(mfbr, headerPos);
       if (db.isDelta) {
-        throw new Error("@para/arrow.fromIPC: dictionary deltas not supported");
+        throw new Error("@lyku/para-arrow.fromIPC: dictionary deltas not supported");
       }
       const owner = parsedFields.find(f => f.dictId === db.id);
       if (!owner) continue;

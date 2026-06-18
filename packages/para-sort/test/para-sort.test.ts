@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import sort from "../src/index";
 
-// Package tests run under system bun, so `require("@para/parallel")`
+// Package tests run under system bun, so `require("@lyku/para-parallel")`
 // resolves to the npm shim (no `psort`) — the parallel tier is reported
 // unavailable here. These cover the serial radix core, argsort, the
 // fast paths, the sync/async surface, and manual-override errors.

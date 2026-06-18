@@ -382,7 +382,7 @@ describe("topK / argTopK / mergeTopK", () => {
 });
 
 describe("fromColumn / fromColumns (columnar projection sources)", () => {
-  // Plain columnar batches — exactly the shape @para/csv parseBatches
+  // Plain columnar batches — exactly the shape @lyku/para-csv parseBatches
   // yields: { name: ArrayLike }, row count = any column's .length, final
   // batch tight-fit (shorter than the others).
   const plainBatches = [

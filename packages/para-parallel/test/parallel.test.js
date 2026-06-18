@@ -309,7 +309,7 @@ describe("pool lifecycle (alive + use)", () => {
 });
 
 // Normalizer surface added so the npm package is a faithful fallback for
-// the native @para/parallel builtin. Under system bun there is no native
+// the native @lyku/para-parallel builtin. Under system bun there is no native
 // builtin, so these exercise the shim fallbacks + the honest marker.
 describe("normalizer fallback surface (off-runtime)", () => {
   test("marks itself as the shim fallback", async () => {

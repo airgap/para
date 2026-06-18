@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@para/workspace",
+      "name": "@lyku/para-workspace",
       "devDependencies": {
         "@nx/devkit": "^20.5.0",
         "@nx/js": "^20.5.0",
@@ -18,52 +18,52 @@
       "version": "0.0.0-dev",
     },
     "packages/para-arrow": {
-      "name": "@para/arrow",
+      "name": "@lyku/para-arrow",
       "version": "0.0.0-dev",
     },
     "packages/para-csv": {
-      "name": "@para/csv",
+      "name": "@lyku/para-csv",
       "version": "0.0.0-dev",
       "dependencies": {
-        "@para/parallel": "workspace:*",
+        "@lyku/para-parallel": "workspace:*",
       },
     },
     "packages/para-decimal": {
-      "name": "@para/decimal",
+      "name": "@lyku/para-decimal",
       "version": "0.0.0-dev",
     },
     "packages/para-gpu": {
       "name": "@lyku/para-gpu",
       "version": "0.0.0-dev",
       "dependencies": {
-        "@para/simd": "workspace:*",
+        "@lyku/para-simd": "workspace:*",
       },
     },
     "packages/para-mcp": {
-      "name": "@para/mcp",
+      "name": "@lyku/para-mcp",
       "version": "0.0.0-dev",
       "dependencies": {
         "@lyku/para-signals": "workspace:*",
       },
     },
     "packages/para-parallel": {
-      "name": "@para/parallel",
+      "name": "@lyku/para-parallel",
       "version": "0.0.0-dev",
       "dependencies": {
         "@lyku/para-signals": "workspace:*",
       },
     },
     "packages/para-pipeline": {
-      "name": "@para/pipeline",
+      "name": "@lyku/para-pipeline",
       "version": "0.0.0-dev",
       "dependencies": {
-        "@para/parallel": "workspace:*",
-        "@para/simd": "workspace:*",
+        "@lyku/para-parallel": "workspace:*",
+        "@lyku/para-simd": "workspace:*",
       },
     },
     "packages/para-preprocess": {
       "name": "@lyku/para-preprocess",
-      "version": "0.0.1-pre.15",
+      "version": "0.0.1-pre.17",
       "devDependencies": {
         "bun-types": "latest",
         "svelte": "^5.20.4",
@@ -74,14 +74,14 @@
       },
     },
     "packages/para-rtp": {
-      "name": "@para/rtp",
+      "name": "@lyku/para-rtp",
       "version": "0.0.0-dev",
       "dependencies": {
         "@lyku/para-signals": "workspace:*",
       },
     },
     "packages/para-schema": {
-      "name": "@para/schema",
+      "name": "@lyku/para-schema",
       "version": "0.0.0-dev",
     },
     "packages/para-signals": {
@@ -89,19 +89,19 @@
       "version": "0.0.1-pre.4",
     },
     "packages/para-simd": {
-      "name": "@para/simd",
+      "name": "@lyku/para-simd",
       "version": "0.0.0-dev",
     },
     "packages/para-sort": {
       "name": "@lyku/para-sort",
       "version": "0.0.0-dev",
       "dependencies": {
-        "@para/parallel": "workspace:*",
+        "@lyku/para-parallel": "workspace:*",
       },
     },
     "packages/para-sync": {
       "name": "@lyku/para-sync",
-      "version": "0.0.1-pre.2",
+      "version": "0.0.1-pre.6",
       "dependencies": {
         "@lyku/para-signals": "^0.0.1-pre.0",
       },
@@ -146,8 +146,8 @@
       "name": "parabun-browser-shims",
       "version": "0.3.0",
       "dependencies": {
-        "@para/decimal": "workspace:*",
-        "@para/simd": "workspace:*",
+        "@lyku/para-decimal": "workspace:*",
+        "@lyku/para-simd": "workspace:*",
       },
       "devDependencies": {
         "wabt": "1.0.37",
@@ -388,13 +388,31 @@
 
     "@lyku/para-arena": ["@lyku/para-arena@workspace:packages/para-arena"],
 
+    "@lyku/para-arrow": ["@lyku/para-arrow@workspace:packages/para-arrow"],
+
+    "@lyku/para-csv": ["@lyku/para-csv@workspace:packages/para-csv"],
+
+    "@lyku/para-decimal": ["@lyku/para-decimal@workspace:packages/para-decimal"],
+
     "@lyku/para-gpu": ["@lyku/para-gpu@workspace:packages/para-gpu"],
+
+    "@lyku/para-mcp": ["@lyku/para-mcp@workspace:packages/para-mcp"],
+
+    "@lyku/para-parallel": ["@lyku/para-parallel@workspace:packages/para-parallel"],
 
     "@lyku/para-parity": ["@lyku/para-parity@workspace:packages/parity"],
 
+    "@lyku/para-pipeline": ["@lyku/para-pipeline@workspace:packages/para-pipeline"],
+
     "@lyku/para-preprocess": ["@lyku/para-preprocess@workspace:packages/para-preprocess"],
 
+    "@lyku/para-rtp": ["@lyku/para-rtp@workspace:packages/para-rtp"],
+
+    "@lyku/para-schema": ["@lyku/para-schema@workspace:packages/para-schema"],
+
     "@lyku/para-signals": ["@lyku/para-signals@workspace:packages/para-signals"],
+
+    "@lyku/para-simd": ["@lyku/para-simd@workspace:packages/para-simd"],
 
     "@lyku/para-sort": ["@lyku/para-sort@workspace:packages/para-sort"],
 
@@ -433,24 +451,6 @@
     "@nx/nx-win32-x64-msvc": ["@nx/nx-win32-x64-msvc@20.8.4", "", { "os": "win32", "cpu": "x64" }, "sha512-JxuuZc4h8EBqoYAiRHwskimpTJx70yn4lhIRFBoW5ICkxXW1Rw0yip/1UVsWRHXg/x9BxmH7VVazdfaQWmGu6A=="],
 
     "@nx/workspace": ["@nx/workspace@20.8.4", "", { "dependencies": { "@nx/devkit": "20.8.4", "@zkochan/js-yaml": "0.0.7", "chalk": "^4.1.0", "enquirer": "~2.3.6", "nx": "20.8.4", "picomatch": "4.0.2", "tslib": "^2.3.0", "yargs-parser": "21.1.1" } }, "sha512-TRtC+iv8d019Oj3AdKRhYcK79DNsBWF7xSZPEI+7MCNgrTZY3zhz1tY0DNUnqZSv17oGjnNFdHEEVL4lGILx5A=="],
-
-    "@para/arrow": ["@para/arrow@workspace:packages/para-arrow"],
-
-    "@para/csv": ["@para/csv@workspace:packages/para-csv"],
-
-    "@para/decimal": ["@para/decimal@workspace:packages/para-decimal"],
-
-    "@para/mcp": ["@para/mcp@workspace:packages/para-mcp"],
-
-    "@para/parallel": ["@para/parallel@workspace:packages/para-parallel"],
-
-    "@para/pipeline": ["@para/pipeline@workspace:packages/para-pipeline"],
-
-    "@para/rtp": ["@para/rtp@workspace:packages/para-rtp"],
-
-    "@para/schema": ["@para/schema@workspace:packages/para-schema"],
-
-    "@para/simd": ["@para/simd@workspace:packages/para-simd"],
 
     "@sinclair/typebox": ["@sinclair/typebox@0.27.10", "", {}, "sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA=="],
 

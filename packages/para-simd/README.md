@@ -1,9 +1,9 @@
-# @para/simd
+# @lyku/para-simd
 
 Vector primitives over typed arrays — `mulScalar`, `addScalar`, `add`, `mul`, `sum`, `dot`, `matVec`, `simdMap`. Default path is hand-assembled WebAssembly v128 kernels (`simd.wasm`); falls back to scalar JS loops when WebAssembly SIMD isn't available or the module can't be instantiated (older browsers, restrictive CSP).
 
 ```js
-import { add, mulScalar, sum, dot, simdMap } from "@para/simd";
+import { add, mulScalar, sum, dot, simdMap } from "@lyku/para-simd";
 
 const a = new Float32Array([1, 2, 3, 4]);
 const b = new Float32Array([5, 6, 7, 8]);

@@ -7,7 +7,7 @@
 //                      runtime; absent everywhere else.
 //   2. WebGPU       — navigator.gpu compute shaders (Chromium, Safari 18,
 //                      Firefox). WGSL kernels vendored in ./webgpu.js.
-//   3. CPU          — @para/simd (WASM v128 / scalar). Always available.
+//   3. CPU          — @lyku/para-simd (WASM v128 / scalar). Always available.
 //
 // WebGL is intentionally **not** a backend: WebGPU coverage in 2026 is broad
 // enough, and a WebGL2 GPGPU path is high-complexity / low-precision for
@@ -47,7 +47,7 @@ let _initPromise: Promise<void> | null = null;
 
 // parabun:gpu is a hardcoded ParaBun-runtime module. Split the specifier so
 // bundlers (Vite, esbuild, webpack) don't try to resolve it at build time —
-// same trick @para/pipeline uses for its opportunistic GPU promotion.
+// same trick @lyku/para-pipeline uses for its opportunistic GPU promotion.
 function loadNative(): any {
   try {
     const spec = "parabun" + ":gpu";
@@ -127,7 +127,7 @@ export async function dot(a: FArray, b: FArray): Promise<number> {
 
 /**
  * Elementwise map. NOTE: WebGPU has no simdMap kernel — under the `webgpu`
- * tier this still runs on CPU (@para/simd). Native runs it on the GPU when
+ * tier this still runs on CPU (@lyku/para-simd). Native runs it on the GPU when
  * the function is affine. simdMap stays cross-platform but is only
  * GPU-accelerated on the native tier.
  */

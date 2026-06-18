@@ -1,4 +1,4 @@
-// Parquet reader for @para/arrow.
+// Parquet reader for @lyku/para-arrow.
 //
 // Supports the column-oriented Apache Parquet format on read. The slice
 // of the spec covered:
@@ -73,7 +73,7 @@ export function setArrowTypes(types: ArrowTypes): void {
 
 function getTypes(): ArrowTypes {
   if (!arrowTypes) {
-    throw new Error("@para/arrow parquet: arrow.ts must call setArrowTypes() before fromParquet");
+    throw new Error("@lyku/para-arrow parquet: arrow.ts must call setArrowTypes() before fromParquet");
   }
   return arrowTypes;
 }
@@ -1588,7 +1588,7 @@ export function toParquet(
   if (compression === "snappy") codec = PQ_CODEC_SNAPPY;
   else if (compression === "gzip") codec = PQ_CODEC_GZIP;
   else if (compression !== "uncompressed") {
-    throw new RangeError(`@para/arrow.toParquet: unknown compression "${compression}"`);
+    throw new RangeError(`@lyku/para-arrow.toParquet: unknown compression "${compression}"`);
   }
 
   // Materialize columns from the source. Concat batches into single
@@ -1759,5 +1759,5 @@ function parquetPhysicalForKind(kind: string): number {
     case "utf8":
       return PQ_TYPE_BYTE_ARRAY;
   }
-  throw new Error(`@para/arrow.toParquet: type "${kind}" not supported (list / nested types pending)`);
+  throw new Error(`@lyku/para-arrow.toParquet: type "${kind}" not supported (list / nested types pending)`);
 }

@@ -4,7 +4,7 @@ Cross-runtime GPU accelerator. One **async** surface, routed at first use to the
 
 1. **`parabun:gpu`** — native Metal / CUDA, when running on the ParaBun runtime.
 2. **WebGPU** — `navigator.gpu` compute shaders (Chromium, Safari 18, Firefox).
-3. **CPU** — `@para/simd` (WASM v128 / scalar), always available.
+3. **CPU** — `@lyku/para-simd` (WASM v128 / scalar), always available.
 
 ```ts
 import gpu from "@lyku/para-gpu";

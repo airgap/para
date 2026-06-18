@@ -1,10 +1,10 @@
-// Hardcoded module "@para/rtp"
+// Hardcoded module "@lyku/para-rtp"
 //
 // Parabun: RFC 3550 RTP packet framing. Pure JS, no native deps. Lets
 // Parabun apps build voice/video transport over any wire (Bun.udp,
 // WebSocket, raw TCP, …) without dragging in a full WebRTC stack.
 //
-//   import rtp from "@para/rtp";
+//   import rtp from "@lyku/para-rtp";
 //
 //   // Sender — wrap an Opus packet in RTP
 //   const wire = rtp.pack({
@@ -72,32 +72,32 @@ type ParsedPacket = {
 
 function validatePackOptions(opts: PackOptions): void {
   if ((opts.payloadType & ~0x7f) !== 0) {
-    throw new RangeError("@para/rtp pack: payloadType must fit in 7 bits (0-127)");
+    throw new RangeError("@lyku/para-rtp pack: payloadType must fit in 7 bits (0-127)");
   }
   if ((opts.sequence & ~0xffff) !== 0) {
-    throw new RangeError("@para/rtp pack: sequence must fit in 16 bits (0-65535)");
+    throw new RangeError("@lyku/para-rtp pack: sequence must fit in 16 bits (0-65535)");
   }
   // timestamp + ssrc are 32-bit unsigned. JS bitwise ops treat them as signed
   // 32-bit, so we accept either the signed or unsigned representation as long
   // as it round-trips.
   if (!Number.isInteger(opts.timestamp) || opts.timestamp < 0 || opts.timestamp > 0xffffffff) {
-    throw new RangeError("@para/rtp pack: timestamp must fit in 32 bits (0-4294967295)");
+    throw new RangeError("@lyku/para-rtp pack: timestamp must fit in 32 bits (0-4294967295)");
   }
   if (!Number.isInteger(opts.ssrc) || opts.ssrc < 0 || opts.ssrc > 0xffffffff) {
-    throw new RangeError("@para/rtp pack: ssrc must fit in 32 bits (0-4294967295)");
+    throw new RangeError("@lyku/para-rtp pack: ssrc must fit in 32 bits (0-4294967295)");
   }
   if (opts.csrcs !== undefined) {
     if (opts.csrcs.length > 15) {
-      throw new RangeError("@para/rtp pack: csrcs has at most 15 entries");
+      throw new RangeError("@lyku/para-rtp pack: csrcs has at most 15 entries");
     }
     for (const c of opts.csrcs) {
       if (!Number.isInteger(c) || c < 0 || c > 0xffffffff) {
-        throw new RangeError("@para/rtp pack: each csrc must fit in 32 bits");
+        throw new RangeError("@lyku/para-rtp pack: each csrc must fit in 32 bits");
       }
     }
   }
   if (!(opts.payload instanceof Uint8Array)) {
-    throw new TypeError("@para/rtp pack: payload must be a Uint8Array");
+    throw new TypeError("@lyku/para-rtp pack: payload must be a Uint8Array");
   }
 }
 
@@ -129,16 +129,16 @@ function pack(opts: PackOptions): Uint8Array {
 
 function parse(bytes: Uint8Array): ParsedPacket {
   if (!(bytes instanceof Uint8Array)) {
-    throw new TypeError("@para/rtp parse: expected Uint8Array");
+    throw new TypeError("@lyku/para-rtp parse: expected Uint8Array");
   }
   if (bytes.length < RTP_FIXED_HEADER_BYTES) {
-    throw new RangeError(`@para/rtp parse: packet too short (${bytes.length} < ${RTP_FIXED_HEADER_BYTES})`);
+    throw new RangeError(`@lyku/para-rtp parse: packet too short (${bytes.length} < ${RTP_FIXED_HEADER_BYTES})`);
   }
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const b0 = bytes[0];
   const version = (b0 >> 6) & 0x03;
   if (version !== RTP_VERSION) {
-    throw new RangeError(`@para/rtp parse: unsupported RTP version ${version} (only v2 supported)`);
+    throw new RangeError(`@lyku/para-rtp parse: unsupported RTP version ${version} (only v2 supported)`);
   }
   const padding = (b0 & 0x20) !== 0;
   const extension = (b0 & 0x10) !== 0;
@@ -153,7 +153,7 @@ function parse(bytes: Uint8Array): ParsedPacket {
 
   let cursor = RTP_FIXED_HEADER_BYTES;
   if (cursor + cc * 4 > bytes.length) {
-    throw new RangeError("@para/rtp parse: CSRC list extends past packet end");
+    throw new RangeError("@lyku/para-rtp parse: CSRC list extends past packet end");
   }
   const csrcs: number[] = new Array(cc);
   for (let i = 0; i < cc; i++) {
@@ -164,13 +164,13 @@ function parse(bytes: Uint8Array): ParsedPacket {
   let extensionData: Uint8Array;
   if (extension) {
     if (cursor + 4 > bytes.length) {
-      throw new RangeError("@para/rtp parse: extension header truncated");
+      throw new RangeError("@lyku/para-rtp parse: extension header truncated");
     }
     // Extension structure: 16-bit profile-specific, 16-bit length-in-32-bit-words.
     const extWords = dv.getUint16(cursor + 2, false);
     const extTotalBytes = 4 + extWords * 4;
     if (cursor + extTotalBytes > bytes.length) {
-      throw new RangeError("@para/rtp parse: extension data extends past packet end");
+      throw new RangeError("@lyku/para-rtp parse: extension data extends past packet end");
     }
     extensionData = bytes.slice(cursor, cursor + extTotalBytes);
     cursor += extTotalBytes;
@@ -184,11 +184,11 @@ function parse(bytes: Uint8Array): ParsedPacket {
   let payloadEnd = bytes.length;
   if (padding) {
     if (payloadEnd === 0) {
-      throw new RangeError("@para/rtp parse: padding flag set but packet has no body");
+      throw new RangeError("@lyku/para-rtp parse: padding flag set but packet has no body");
     }
     const padBytes = bytes[payloadEnd - 1];
     if (padBytes === 0 || padBytes > payloadEnd - cursor) {
-      throw new RangeError("@para/rtp parse: padding count is invalid");
+      throw new RangeError("@lyku/para-rtp parse: padding count is invalid");
     }
     payloadEnd -= padBytes;
   }
@@ -265,7 +265,7 @@ class JitterBuffer {
   // this primitive actually tracks. `connected` and `jitterMs` from the
   // PLAN-module-signals row need a future Session abstraction (RTP /
   // RTCP correlation, source-arrival timestamp differencing) — neither
-  // exists in @para/rtp v1. When a Session class lands, those signals
+  // exists in @lyku/para-rtp v1. When a Session class lands, those signals
   // join the surface there, not here.
   #pendingSig: WritableSignal<number>;
   #lossCountSig: WritableSignal<number>;
@@ -291,7 +291,7 @@ class JitterBuffer {
   constructor(opts: JitterBufferOptions = {}) {
     this.maxLag = opts.maxLag ?? 5;
     if (this.maxLag < 1) {
-      throw new RangeError("@para/rtp JitterBuffer: maxLag must be >= 1");
+      throw new RangeError("@lyku/para-rtp JitterBuffer: maxLag must be >= 1");
     }
     this.#pendingSig = signalsMod.signal(0);
     this.#lossCountSig = signalsMod.signal(0);
