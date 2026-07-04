@@ -1406,15 +1406,21 @@ function uriToPath(uri: string): string {
 function pathToUri(filePath: string): string {
   // Must be the exact inverse of uriToPath (decodeURIComponent) for the
   // chars VS Code percent-encodes, so document-map lookups round-trip.
-  // `encodeURI` leaves `+` literal, but VS Code (vscode-uri) encodes it
-  // as `%2B` — SvelteKit route files are `+layout`/`+page`/`+server`, so
-  // every route `.pui` hit this: docs were keyed under the client's
-  // `%2B…` URI while getScriptSnapshot looked them up via the literal-
-  // `+` form → miss → the projected file never entered the TS program →
-  // every hover/definition failed "Could not find source file". `#` is
-  // likewise not encoded by encodeURI. Both fixed here; no client-facing
-  // URI changes (publishDiagnostics still uses the original URI).
-  return "file://" + encodeURI(filePath).replace(/#/g, "%23").replace(/\+/g, "%2B");
+  // `encodeURI` leaves the RFC-3986 sub-delims (`! $ & ' ( ) * + , ; = :
+  // ? @`) and `#` literal, but VS Code (vscode-uri) percent-encodes them
+  // all. Any of these in a path broke the roundtrip: docs were keyed
+  // under the client's `%XX…` URI while getScriptSnapshot looked them up
+  // via the literal form → miss → the projected file never entered the TS
+  // program → every hover/definition/diagnostic failed "Could not find
+  // source file". This bit SvelteKit route files hard: `+page`/`+layout`/
+  // `+server` (`+`→`%2B`) and dynamic/named segments like `@[username]`
+  // (`@`→`%40`). Encode the full sub-delim set so the output is byte-
+  // identical to vscode-uri. No client-facing URI changes
+  // (publishDiagnostics still uses the original URI).
+  return (
+    "file://" +
+    encodeURI(filePath).replace(/[#$&+,:;=?@!'()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase())
+  );
 }
 
 /** Get document content: prefer open document, fall back to disk */
