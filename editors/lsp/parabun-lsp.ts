@@ -4013,6 +4013,7 @@ const KNOWN_GLOBAL_IDENTIFIERS = new Set<string>([
   "memo",
   "defer",
   "schema",
+  "cyclic",
   "match",
   "pure",
   "Ok",

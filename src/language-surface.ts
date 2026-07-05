@@ -328,6 +328,31 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
 
   // ─── `schema` (the single shape primitive — 6 declaration forms) ───
+  // Recursion/cyclic capability modifiers (para-schema-recursion-plan.md §1.1):
+  //   declaration := [cyclicMod] "schema" [configList] ident "=" type
+  //   cyclicMod   := "cyclic" [ "(" intLiteral ")" ]
+  //   configList  := "(" key ":" value {"," key ":" value} [","] ")"
+  {
+    id: "cyclic-schema",
+    doc: "cyclic [(n)] schema — cycle-capability modifier on a schema declaration. Only a keyword when `schema` follows; `cyclic(1)` alone stays a plain call.",
+    kind: "keyword",
+    pattern: String.raw`\b(cyclic)\s*(?:\(\s*(\d+)\s*\))?(?=\s*schema\b)`,
+    scopes: {
+      "1": "storage.modifier.cyclic.parabun",
+      "2": "constant.numeric.cyclic-length.parabun",
+    },
+    lspAllowlist: true,
+  },
+  {
+    id: "schema-config-decl",
+    doc: "schema(depth: 8) NAME — declaration with config list. `schema(` followed by a paren group and then an identifier is a declaration; without the trailing identifier it remains a plain call (see schema-bare skip).",
+    kind: "keyword",
+    pattern: String.raw`\b(schema)\s*\(([^()]*)\)\s*([A-Za-z_$][\w$]*)\b`,
+    scopes: {
+      "1": "storage.type.schema.parabun",
+      "3": "entity.name.type.schema.parabun",
+    },
+  },
   {
     id: "export-schema-from",
     doc: "export schema NAME from <expr> — exported JSON Schema ingestion",
@@ -577,6 +602,7 @@ export const DEFAULT_LANGUAGES: Language[] = ["pts", "ptsx", "pjs", "pjsx"];
 export const SPLASH_PARA_KEYWORDS: string[] = [
   "pure",
   "fun",
+  "cyclic",
   "signal",
   "derived",
   "effect",
@@ -653,6 +679,7 @@ export const LSP_ALLOWLIST_TOKENS: string[] = [
   "memo",
   "defer",
   "schema",
+  "cyclic",
   "match",
   "pure",
   "Ok",
