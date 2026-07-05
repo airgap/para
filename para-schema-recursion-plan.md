@@ -83,6 +83,8 @@ cyclic(2) schema(depth: 8) Tree = { parent: Tree | null, children: Tree[] }
 
 Depth counting: one counter per recursive declaration on the current path; increments on entering that declaration's recursive arm; **resets** when crossing into an embedded declaration; back-edges never consume depth (traversal returns at the memo hit before descending).
 
+**Step-3 implementation decision (2026-07-04):** the reset rule is NOT implemented. Counters are per-declaration-id, path-scoped (decremented on return, so siblings don't accumulate), incremented on every `$ref`-mediated entry of that declaration, and never reset while on the path. Rationale: a literal reset-on-embedded-crossing lets mutually recursive declarations refresh each other's budget on every crossing (`Feed → CommentDag → Feed → …` never trips either cap), defeating the DoS bound the depth cap exists for. Attribution is preserved — each error names the declaration whose own counter tripped. `depth: n` concretely means: at most n `$ref`-mediated re-entries of that declaration on any single path (a linked chain of k nodes costs k−1). If a real case needs the reset semantics, revisit with a worked example.
+
 Non-propagation: if `schema Feed = { threads: CommentDag[] }` embeds a `cyclic` CommentDag, Feed remains acyclic; cycles are legal only within the CommentDag subgraph. Every bound/error is attributable to exactly one declaration.
 
 ### 1.5 Escape-node check (compile-time)
