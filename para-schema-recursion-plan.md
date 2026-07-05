@@ -294,10 +294,12 @@ Each step lands with its own tests; do not start the codec before validator test
 
 ## 9. Open Items Deliberately Deferred
 
-- **Checker-driven TS extractor** (§3) — own plan; §3's constraints and §7.4's tests are its acceptance criteria. The `$ref` representation (§2.1) is designed so it slots in without IR changes.
+- **Checker-driven TS extractor** (§3) — own plan: **`para-ts-extractor-plan.md`** (drafted 2026-07-04); §3's constraints and §7.4's tests are its acceptance criteria. The `$ref` representation (§2.1) is designed so it slots in without IR changes.
 - `.jschema` / `.j5schema` file syntaxes; `toJSONSchema()` lossy exporter (both made cheaper by §2.1 — schema values are already acyclic JSON).
-- `identity: preserve` full implementation (machinery must be flag-ready per §5.4).
+- ~~`identity: preserve` full implementation~~ — **DONE (2026-07-04):** `schema(identity: preserve)` config key lands `$identity` on the declaration; refTracking = cyclic ∨ identity in the codec; DAG aliasing preserved, in-flight backrefs (cycles) rejected per §5.4. It was the promised flag-flip.
 - Per-edge `cyclic` opt-in (backward-compatible narrowing; add only when a real 99%-tree-one-back-edge case demands it).
 - Hydrate-after-construct protocol for class instances at refTracking nodes.
 - Const-expression modifier parameters.
 - msgpack/JSON profile checker (this plan only guarantees the capability bits it will need exist).
+
+**Follow-ups closed (2026-07-04):** DSL braces declarations now register via `__paraSchemaRegister` (as-is, no re-decoration — `$ref`s delegate to the DSL's inline parse); the legacy thunk/Proxy path in `__paraFromSchema` is deleted (both runtimes).
