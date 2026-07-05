@@ -6,8 +6,12 @@
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
+  "bin": {
+    "para-extract": "./src/cli.ts"
+  },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./substitute": "./src/substitute.ts"
   },
   "files": [
     "src/",
