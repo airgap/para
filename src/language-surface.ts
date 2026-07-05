@@ -405,6 +405,18 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
     scopes: { "1": "storage.type.schema.parabun" },
   },
   {
+    id: "schema-ts-extract",
+    doc: "ts<import('./x').T> — TS-extraction directive at schema-body position (para-ts-extractor-plan.md §0). Closed form only: ts, <, import('specifier'), ., TypeName, >. Substituted with the extracted JSON body by para-extract; unsubstituted sites throw at runtime with instructions.",
+    kind: "keyword",
+    pattern: String.raw`\b(ts)\s*(<)\s*(import)\s*\(\s*(['"][^'"]*['"])\s*\)\s*(\.)\s*([A-Za-z_$][\w$]*)\s*(>)`,
+    scopes: {
+      "1": "storage.type.ts-extract.parabun",
+      "3": "keyword.control.import.ts",
+      "4": "string.quoted.parabun",
+      "6": "entity.name.type.schema.parabun",
+    },
+  },
+  {
     id: "schema-bare",
     doc: "Bare `schema` keyword fallback — highlights as soon as typed; skipped when followed by =/(/. (used as identifier)",
     kind: "keyword",
