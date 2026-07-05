@@ -36,6 +36,7 @@
       "name": "@lyku/para-extract",
       "version": "0.0.0-dev",
       "dependencies": {
+        "@lyku/para-schema": "workspace:*",
         "typescript": "^5.8.2",
       },
     },

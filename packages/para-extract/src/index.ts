@@ -48,6 +48,13 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
   strict: true,
   target: ts.ScriptTarget.ESNext,
   module: ts.ModuleKind.ESNext,
+  // The `parabun` condition resolves `@lyku/para-schema` to its EXTENDED
+  // variant, where constraint brands survive as intersection types. The
+  // standard variant collapses brands to bare primitives and the
+  // constraint payloads would be unrecoverable.
+  moduleResolution: ts.ModuleResolutionKind.Bundler,
+  customConditions: ["parabun"],
+  allowImportingTsExtensions: true,
   noEmit: true,
 };
 
@@ -108,6 +115,72 @@ const namedSymbolOf = (type: ts.Type): ts.Symbol | undefined => {
 };
 
 const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Read one literal constraint value out of a constraint-bag property type. */
+const literalValue = (t: ts.Type, checker: ts.TypeChecker): unknown => {
+  if (t.flags & ts.TypeFlags.StringLiteral) return (t as ts.StringLiteralType).value;
+  if (t.flags & ts.TypeFlags.NumberLiteral) return (t as ts.NumberLiteralType).value;
+  if (t.flags & ts.TypeFlags.BooleanLiteral) {
+    return (t as unknown as { intrinsicName: string }).intrinsicName === "true";
+  }
+  if (t.flags & ts.TypeFlags.BigIntLiteral) {
+    const lit = (t as ts.BigIntLiteralType).value;
+    const big = BigInt((lit.negative ? "-" : "") + lit.base10Value);
+    // JSON-safe: the validator coerces via BigInt(x) on either shape.
+    return big >= BigInt(Number.MIN_SAFE_INTEGER) && big <= BigInt(Number.MAX_SAFE_INTEGER)
+      ? Number(big)
+      : big.toString();
+  }
+  if (checker.isTupleType(t)) {
+    return checker.getTypeArguments(t as ts.TypeReference).map(el => literalValue(el, checker));
+  }
+  throw new Error(
+    `para-extract: constraint value must be a literal type, got '${checker.typeToString(t)}'`,
+  );
+};
+
+/** Extract { key: literal } pairs from a brand's constraint bag type. */
+const readConstraintBag = (bag: ts.Type, ctx: Ctx): Record<string, unknown> => {
+  const out: Record<string, unknown> = {};
+  // Alphabetical for byte-determinism of emitted bodies.
+  const props = [...ctx.checker.getPropertiesOfType(bag)].sort((a, b) =>
+    a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+  );
+  for (const prop of props) {
+    const t = ctx.checker.getTypeOfSymbol(prop);
+    if (t.flags & ts.TypeFlags.Undefined) continue;
+    out[prop.name] = literalValue(t, ctx.checker);
+  }
+  return out;
+};
+
+/**
+ * Merge brand constraints onto the lowered base schema in the Para
+ * validator's dialect: `integer: true` switches the number type to
+ * "integer"; `const: x` becomes `enum: [x]` (the validator's covered
+ * subset has enum, not const); everything else copies through.
+ */
+const applyBrandConstraints = (
+  base: Record<string, unknown>,
+  constraints: Record<string, unknown>,
+): Record<string, unknown> => {
+  const out = { ...base };
+  for (const [key, value] of Object.entries(constraints)) {
+    if (key === "integer") {
+      if (value === true && out.type === "number") out.type = "integer";
+      continue;
+    }
+    if (key === "const") {
+      // Intersect with an existing literal base (TS normalizes
+      // `boolean & Brand` into per-literal arms — `false & {const: true}`
+      // is uninhabited and must collapse to an empty enum, not `[true]`).
+      out.enum = Array.isArray(out.enum) ? out.enum.filter(v => v === value) : [value];
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
+};
 
 const HOLE_PATTERNS: Partial<Record<number, string>> = {
   [ts.TypeFlags.String]: ".*",
@@ -175,18 +248,61 @@ function lower(type: ts.Type, ctx: Ctx, isRoot = false): unknown {
     else if (sawTrue) lowered.push({ enum: [true] });
     else if (sawFalse) lowered.push({ enum: [false] });
 
-    // All-literal unions collapse to a single enum.
+    // All-literal unions collapse to a single deduplicated enum
+    // (brand-expanded boolean arms can repeat or be uninhabited).
     if (lowered.every(l => Array.isArray((l as { enum?: unknown[] }).enum))) {
-      return { enum: lowered.flatMap(l => (l as { enum: unknown[] }).enum) };
+      return { enum: [...new Set(lowered.flatMap(l => (l as { enum: unknown[] }).enum))] };
     }
     if (lowered.length === 1) return lowered[0];
     return { anyOf: lowered };
+  }
+
+  // ── intersections: constraint brands, then plain object merges ─────────
+  if (type.isIntersection()) {
+    // Para constraint brand: Brand<T, B> = T & { [__schemaBrand]: B }.
+    // The phantom member is an object type whose single property is the
+    // unique-symbol brand key; its TYPE is the constraint bag, carried as
+    // literal types (StringOf<{ minLength: 3 }> etc.).
+    let bag: ts.Type | undefined;
+    const rest: ts.Type[] = [];
+    for (const m of type.types) {
+      const props = checker.getPropertiesOfType(m);
+      // Unique-symbol property names mangle to `__@<escaped>@<id>`, and TS
+      // escapes the brand key's leading `__` to `___` — match structurally.
+      if (props.length === 1 && props[0].name.startsWith("__@") && props[0].name.includes("schemaBrand")) {
+        bag = checker.getTypeOfSymbol(props[0]);
+      } else {
+        rest.push(m);
+      }
+    }
+    if (bag && rest.length === 1) {
+      const base = lower(rest[0], ctx) as Record<string, unknown>;
+      return applyBrandConstraints(base, readConstraintBag(bag, ctx));
+    }
+    // Plain intersection: merge object members (properties ∪, required ∪).
+    const lowered = rest.map(m => lower(m, ctx)) as Array<Record<string, unknown>>;
+    if (lowered.every(l => l.type === "object")) {
+      const properties: Record<string, unknown> = {};
+      const required: string[] = [];
+      for (const l of lowered) {
+        Object.assign(properties, l.properties as Record<string, unknown>);
+        for (const r of (l.required as string[]) ?? []) if (!required.includes(r)) required.push(r);
+      }
+      return { type: "object", properties, required };
+    }
+    throw new Error(
+      `para-extract: unsupported intersection '${checker.typeToString(type)}' (only constraint brands and object-type merges lower in v1)`,
+    );
   }
 
   // ── objects ──────────────────────────────────────────────────────────────
   if (flags & ts.TypeFlags.Object) {
     if (named) {
       if (named.name === "Date") return { type: "timestamptz" };
+      if (named.name === "ReadonlyArray") {
+        const relem = checker.getTypeArguments(type as ts.TypeReference)[0];
+        return { type: "array", items: relem ? lower(relem, ctx) : {} };
+      }
       if (["Map", "Set", "WeakMap", "WeakSet"].includes(named.name)) {
         throw new Error(
           `para-extract: '${named.name}' fields are not extractable in v1 (no JSON representation in the Para schema dialect)`,

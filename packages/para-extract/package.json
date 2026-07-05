@@ -14,6 +14,7 @@
     "README.md"
   ],
   "dependencies": {
+    "@lyku/para-schema": "workspace:*",
     "typescript": "^5.8.2"
   },
   "license": "MIT",
