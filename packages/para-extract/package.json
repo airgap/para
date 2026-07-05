@@ -1,0 +1,32 @@
+{
+  "name": "@lyku/para-extract",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "Checker-driven TS → Para schema extractor (para-ts-extractor-plan.md). Resolves TypeScript types through the compiler API and lowers them to plain JSON Schema bodies for the Para schema registry — recursion becomes module-relative { $ref: \"#Name\" } registry references, exactly like Para-native recursion. TS-derived schemas are pure structure: capability modifiers (cyclic/depth/identity) live on the wrapping Para declaration, never inferred from TS source. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "dependencies": {
+    "typescript": "^5.8.2"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-extract"
+  },
+  "keywords": [
+    "typescript",
+    "schema",
+    "extractor",
+    "json-schema",
+    "para"
+  ]
+}

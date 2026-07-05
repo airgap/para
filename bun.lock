@@ -32,6 +32,13 @@
       "name": "@lyku/para-decimal",
       "version": "0.0.0-dev",
     },
+    "packages/para-extract": {
+      "name": "@lyku/para-extract",
+      "version": "0.0.0-dev",
+      "dependencies": {
+        "typescript": "^5.8.2",
+      },
+    },
     "packages/para-gpu": {
       "name": "@lyku/para-gpu",
       "version": "0.0.0-dev",
@@ -393,6 +400,8 @@
     "@lyku/para-csv": ["@lyku/para-csv@workspace:packages/para-csv"],
 
     "@lyku/para-decimal": ["@lyku/para-decimal@workspace:packages/para-decimal"],
+
+    "@lyku/para-extract": ["@lyku/para-extract@workspace:packages/para-extract"],
 
     "@lyku/para-gpu": ["@lyku/para-gpu@workspace:packages/para-gpu"],
 

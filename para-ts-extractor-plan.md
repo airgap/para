@@ -1,6 +1,7 @@
 # Para TS Extractor — Implementation Plan
 
-**Status:** Draft — split out of para-schema-recursion-plan.md §3/§9 (which deferred the checker-driven extractor to its own plan; its §3 constraints and §7.4 tests are this plan's requirements).
+**Status:** In progress — steps 1–3 implemented in `packages/para-extract` (2026-07-05): program/checker skeleton, structural lowering (objects/optionals/arrays/literal-union→enum/structural-union→anyOf/template-literal→regex/Date→timestamptz/function marker/null-undefined optionality), recursion → `$ref` with `siblings` linkage and the no-Para-declaration diagnostic, determinism test. Lockstep validator arms (`anyOf`, `function`) landed in parabun main (2281dcc1bf). Remaining: step 4 (brand round-trip, conditional/mapped stress), step 5 (registry linkage via brand markers), step 6 (`ts<…>` parser/bundler integration).
+Split out of para-schema-recursion-plan.md §3/§9 (which deferred the checker-driven extractor to its own plan; its §3 constraints and §7.4 tests are this plan's requirements).
 **Prerequisite state:** the `$ref` registry lowering, cyclic/depth capability bits, validator machinery, and REF codec are all live (parabun `feat/schema-ref-registry`). The extractor emits into that IR unchanged.
 
 ---
