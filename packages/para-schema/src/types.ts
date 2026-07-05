@@ -25,6 +25,23 @@ declare const __schemaBrand: unique symbol;
 /** Generic brand. `T` is the runtime base type, `B` is the constraint bag. */
 export type Brand<T, B> = T & { readonly [__schemaBrand]: B };
 
+/** Phantom property marking a codegen'd data type as ORIGINATING from a
+ *  Para schema declaration. */
+declare const __paraDeclBrand: unique symbol;
+
+/**
+ * `FromDecl<T, Name>` — marks a codegen'd TS type as the data shape of the
+ * Para declaration `Name` in the same module scope. The TS extractor
+ * (`@lyku/para-extract`) links references to such types back to the
+ * existing registry node — `{ $ref: "#Name" }` — instead of re-deriving
+ * their structure, so the embedded declaration keeps its own capability
+ * bits (non-propagation, recursion plan §1.4/§3).
+ *
+ * Emit it from schema→TS codegen (gen-dts-rewrite Phase-1 brand pipeline):
+ *   `export type UserData = FromDecl<Infer<typeof User>, "User">;`
+ */
+export type FromDecl<T, Name extends string> = T & { readonly [__paraDeclBrand]: Name };
+
 // -- Primitive constraint brands -------------------------------------
 
 /**

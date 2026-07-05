@@ -257,8 +257,30 @@ function lower(type: ts.Type, ctx: Ctx, isRoot = false): unknown {
     return { anyOf: lowered };
   }
 
-  // ── intersections: constraint brands, then plain object merges ─────────
+  // ── intersections: decl markers, constraint brands, object merges ──────
   if (type.isIntersection()) {
+    // Para declaration marker: FromDecl<T, Name> = T & { [__paraDeclBrand]: Name }.
+    // The type IS the data shape of an existing Para declaration — link to
+    // its registry node, never re-derive (recursion plan §3 / step 5).
+    for (const m of type.types) {
+      const props = checker.getPropertiesOfType(m);
+      if (props.length === 1 && props[0].name.startsWith("__@") && props[0].name.includes("paraDeclBrand")) {
+        const nameType = checker.getTypeOfSymbol(props[0]);
+        if (!(nameType.flags & ts.TypeFlags.StringLiteral)) {
+          throw new Error(
+            `para-extract: FromDecl name must be a string literal, got '${checker.typeToString(nameType)}'`,
+          );
+        }
+        const declRef = (nameType as ts.StringLiteralType).value;
+        if (isRoot) {
+          throw new Error(
+            `para-extract: '${ctx.declName}' resolves to FromDecl<…, "${declRef}"> — it already IS the Para declaration '${declRef}'; reference that declaration instead of re-extracting it`,
+          );
+        }
+        return { $ref: "#" + declRef };
+      }
+    }
+
     // Para constraint brand: Brand<T, B> = T & { [__schemaBrand]: B }.
     // The phantom member is an object type whose single property is the
     // unique-symbol brand key; its TYPE is the constraint bag, carried as

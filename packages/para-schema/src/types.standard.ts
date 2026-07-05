@@ -18,6 +18,8 @@
 
 export type Brand<T, _B> = T;
 
+export type FromDecl<T, _Name extends string> = T;
+
 export type StringOf<_C extends StringConstraints = StringConstraints> = string;
 export interface StringConstraints {
   readonly minLength?: number;

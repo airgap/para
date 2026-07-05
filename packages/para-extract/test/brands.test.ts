@@ -66,6 +66,24 @@ describe("constraint brand round-trip", () => {
   });
 });
 
+describe("FromDecl registry linkage (step 5)", () => {
+  test("FromDecl-marked types link to the existing registry node — never re-derived", () => {
+    expect(extract("Feed")).toEqual({
+      type: "object",
+      properties: {
+        owner: { $ref: "#User" },
+        viewers: { type: "array", items: { $ref: "#User" } },
+        caption: { type: "string" },
+      },
+      required: ["owner", "viewers", "caption"],
+    });
+  });
+
+  test("extracting a FromDecl-marked type itself is an error (it already IS a declaration)", () => {
+    expect(() => extract("ReExported")).toThrow(/already IS the Para declaration 'User'/);
+  });
+});
+
 describe("intersections and checker resolution", () => {
   test("plain object intersections merge properties and required", () => {
     expect(extract("Merged")).toEqual({

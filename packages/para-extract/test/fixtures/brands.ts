@@ -1,5 +1,14 @@
-// Brand + checker-resolution fixtures (extractor plan step 4).
-import type { ArrayOf, BigIntOf, BooleanOf, NumberOf, StringOf } from "@lyku/para-schema";
+// Brand + checker-resolution fixtures (extractor plan steps 4-5).
+import type { ArrayOf, BigIntOf, BooleanOf, FromDecl, NumberOf, StringOf } from "@lyku/para-schema";
+
+// Step 5: codegen'd data types marked as originating from Para declarations.
+export type UserData = FromDecl<{ id: bigint; name: string }, "User">;
+export interface Feed {
+  owner: UserData;
+  viewers: UserData[];
+  caption: string;
+}
+export type ReExported = UserData;
 
 export type Username = StringOf<{ minLength: 3; maxLength: 32; pattern: "^[A-Za-z0-9_]+$" }>;
 export type Email = StringOf<{ format: "email" }>;
