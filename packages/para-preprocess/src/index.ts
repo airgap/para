@@ -1060,6 +1060,113 @@ function lowerPresenceDecls(source: string): {
   return { code: out, needsOnDestroy: needs, needsPresence: needs };
 }
 
+// Index just after the '}' matching the '{' at `open` (skips string/template
+// contents). Returns -1 if unbalanced.
+function matchBrace(src: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    const c = src[i]!;
+    if (c === '"' || c === "'" || c === "`") {
+      const q = c;
+      i++;
+      while (i < src.length && src[i] !== q) {
+        if (src[i] === "\\") i++;
+        i++;
+      }
+      continue;
+    }
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) return i + 1;
+    }
+  }
+  return -1;
+}
+
+// Extract a `name(PARAM) { BODY }` arm from a mutate body. Returns the param and
+// the (trimmed) body, or null if absent/malformed.
+function extractArm(body: string, name: string): { param: string; body: string } | null {
+  const re = new RegExp(`(^|[^\\w$])${name}\\s*\\(`, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) !== null) {
+    const parenOpen = re.lastIndex - 1;
+    const parenEnd = matchParen(body, parenOpen);
+    if (parenEnd < 0) return null;
+    const param = body.slice(parenOpen + 1, parenEnd - 1).trim();
+    let j = parenEnd;
+    while (j < body.length && /\s/.test(body[j]!)) j++;
+    if (body[j] !== "{") continue;
+    const braceEnd = matchBrace(body, j);
+    if (braceEnd < 0) return null;
+    return { param, body: body.slice(j + 1, braceEnd - 1).trim() };
+  }
+  return null;
+}
+
+// Turn an imperative optimistic/rollback arm into a pure `(input, __cur) => next`.
+// The arm mutates the synced ENTITY (`cart.items = …`, or `cart = snapshot`); we
+// run its body verbatim on a shallow DRAFT of the current value and return the
+// draft — so interdependent / `+=` / whole-entity-reassign bodies all lower
+// correctly (a single spread only handles the one-assignment case).
+function armToDraftFn(entity: string, arm: { param: string; body: string }): string {
+  const draft = `__${entity}_d`;
+  const rewritten = arm.body.replace(new RegExp(`\\b${entity}\\b`, "g"), draft);
+  const param = arm.param || "_";
+  const sep = rewritten.trimEnd().endsWith(";") || rewritten === "" ? "" : ";";
+  return `(${param}, __cur) => { let ${draft} = { ...__cur }; ${rewritten}${sep} return ${draft}; }`;
+}
+
+// The optional confirm arm is a side-effect callback (not a value producer); its
+// body keeps referencing the component's reactive ENTITY var directly.
+function confirmToFn(arm: { param: string; body: string }): string {
+  return `(${arm.param || "_"}) => { ${arm.body} }`;
+}
+
+function lowerMutateDecls(source: string): {
+  code: string;
+  needsCreateIntent: boolean;
+} {
+  // `mutate NAME of ENTITY { optimistic(P){…} [rollback(P){…}] [confirm(P){…}] }`
+  // → const __m_NAME = createIntent({ replica: __syn_ENTITY, optimistic, … });
+  //   function NAME(P) { __m_NAME.apply(P); }        // §13.1
+  // ENTITY is a `sync`/`synced` binding in scope (its replica is __syn_ENTITY).
+  const re = /(^|[;\n{}])(\s*)mutate\s+([A-Za-z_$][\w$]*)\s+of\s+([A-Za-z_$][\w$]*)\s*\{/g;
+  let out = "";
+  let last = 0;
+  let needs = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const braceOpen = re.lastIndex - 1;
+    const braceEnd = matchBrace(source, braceOpen);
+    if (braceEnd < 0) continue;
+    const body = source.slice(braceOpen + 1, braceEnd - 1);
+    const opt = extractArm(body, "optimistic");
+    if (!opt) continue; // optimistic is required; malformed → leave as-is
+    const kwStart = m.index + m[1]!.length;
+    const indent = m[2]!;
+    const name = m[3]!;
+    const entity = m[4]!;
+    const rb = extractArm(body, "rollback");
+    const cf = extractArm(body, "confirm");
+    const parts = [`replica: __syn_${entity}`, `optimistic: ${armToDraftFn(entity, opt)}`];
+    if (rb) parts.push(`rollback: ${armToDraftFn(entity, rb)}`);
+    if (cf) parts.push(`confirm: ${confirmToFn(cf)}`);
+    let consumeEnd = braceEnd;
+    while (source[consumeEnd] === " " || source[consumeEnd] === "\t") consumeEnd++;
+    if (source[consumeEnd] === ";") consumeEnd++;
+    out += source.slice(last, kwStart);
+    out +=
+      `${indent}const __m_${name} = createIntent({ ${parts.join(", ")} }); ` +
+      `function ${name}(${opt.param}) { __m_${name}.apply(${opt.param}); }`;
+    needs = true;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+  return { code: out, needsCreateIntent: needs };
+}
+
 function lowerAsyncSignalDecls(source: string): {
   code: string;
   needsOnDestroy: boolean;
@@ -1215,9 +1322,14 @@ export function lowerPuiReactivity(
   const presenceResult = lowerPresenceDecls(source);
   source = presenceResult.code;
 
+  // `mutate NAME of ENTITY { … }` (Tier-2 optimistic writes, §13.1) → createIntent.
+  const mutateResult = lowerMutateDecls(source);
+  source = mutateResult.code;
+
   const needsSynced = syncFromResult.needsSynced || syncedResult.needsSynced;
   const needsSyncedQuery = syncFeedResult.needsSyncedQuery;
   const needsPresence = presenceResult.needsPresence;
+  const needsCreateIntent = mutateResult.needsCreateIntent;
 
   // Aggregate Svelte imports needed by the lowerings above. provide/inject
   // contributes setContext/getContext; using + source + async signal + sync(ed)
@@ -1376,6 +1488,7 @@ export function lowerPuiReactivity(
   if (needsSynced) paraSyncImports.push("synced");
   if (needsSyncedQuery) paraSyncImports.push("syncedQuery");
   if (needsPresence) paraSyncImports.push("presence");
+  if (needsCreateIntent) paraSyncImports.push("createIntent");
   if (paraSyncImports.length > 0 && !/from\s+['"]@lyku\/para-sync['"]/.test(result)) {
     result = `import { ${paraSyncImports.join(", ")} } from "@lyku/para-sync";${importSep}` + result;
   }

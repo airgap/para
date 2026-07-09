@@ -67,6 +67,7 @@ export function createIntent({
   send,
   nextOpId = createOpIds(),
   authority,
+  confirm: onConfirm,
 }) {
   if (
     !replica ||
@@ -135,6 +136,7 @@ export function createIntent({
     if (!pending.delete(opId)) return false;
     stats.confirmed++;
     sync();
+    if (onConfirm) onConfirm(opId); // §13.1 optional confirm arm
     return true;
   }
 
