@@ -19,6 +19,9 @@
 //     per row, composed by a membership channel into a reactive array.
 //   - presence.js  — presence: ephemeral peer state (§13.4) — a parse-gated,
 //     LWW-per-peer, disconnect-GC'd map; no sequence, no reconcile machine.
+//   - authority.js — per-field authority (§13.2): @server/@lww/@merge, projected
+//     onto the write gate (writer.js) + the reconciler's Class-B merge (client.js).
+//   - transaction.js — createTransaction: atomic multi-key intents (§13.6).
 
 export * from "./transport.js";
 export * from "./client.js";
@@ -28,4 +31,6 @@ export * from "./queue.js";
 export * from "./durable.js";
 export * from "./feeds.js";
 export * from "./presence.js";
+export * from "./authority.js";
+export * from "./transaction.js";
 export * from "./visibility.js";

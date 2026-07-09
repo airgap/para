@@ -20,6 +20,7 @@
 // log on top of it, replaying `apply` in op-id order against the fresh baseline.
 
 import { signal } from "@lyku/para-signals";
+import { guardOptimistic } from "./authority.js";
 
 /**
  * Monotonic, client-local op-id generator. The op-id order is the deterministic
@@ -56,6 +57,8 @@ export function createOpIds(prefix = "op") {
  * @param {(intent: { opId: string, v: number, value: any }) => void} [opts.send]
  *        publish the intent envelope to the transport (omit to send it yourself).
  * @param {() => string} [opts.nextOpId]  op-id source (default: a private counter).
+ * @param {import('./authority.js').Authority} [opts.authority]  per-field authority
+ *        (§13.2): @server fields are stripped from the optimistic arm's output.
  */
 export function createIntent({
   replica,
@@ -63,6 +66,7 @@ export function createIntent({
   rollback = (baseline) => baseline,
   send,
   nextOpId = createOpIds(),
+  authority,
 }) {
   if (
     !replica ||
@@ -109,7 +113,10 @@ export function createIntent({
     if (pending.size === 0) baseline = replica.peek();
     const opId = opts?.opId ?? nextOpId();
     const v = replica.nextIntent();
-    const value = optimistic(input, replica.peek());
+    const cur = replica.peek();
+    // §13.2 write gate: a @server field the arm touched is reset to the current
+    // value — the client cannot write server-authoritative fields.
+    const value = guardOptimistic(authority, cur, optimistic(input, cur));
     replica.applyLocal(value);
     pending.set(opId, { v });
     stats.applied++;

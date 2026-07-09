@@ -10,6 +10,7 @@
 // receive → parse → version-check → apply engine, transport-agnostic.
 
 import { signal } from "@lyku/para-signals";
+import { mergeFields } from "./authority.js";
 
 /** @typedef {import('./transport.js').SyncEnvelope} SyncEnvelope */
 /** @typedef {import('./transport.js').SyncTransport} SyncTransport */
@@ -90,6 +91,7 @@ export function createClientReplica({
   cell,
   schemaVersion,
   persist,
+  authority,
 }) {
   const value = cell ?? signal(undefined);
   /** @type {Cell} */
@@ -104,6 +106,9 @@ export function createClientReplica({
   // owns it so the write path (writer.js) and the reconciler share ONE monotonic
   // counter (INV-sync-12). Untouched by Tier-1 ingest; only nextIntent() bumps it.
   let intentVersion = 0;
+  // §13.2: the last server-confirmed value — the common `base` a @merge field
+  // reconciles against (only used when `authority` is provided).
+  let lastConfirmed;
 
   const stats = {
     applied: 0,
@@ -192,6 +197,7 @@ export function createClientReplica({
     // accept unconditionally as the new authoritative baseline.
     if (source === "hydration" || source === "refetch" || !initialized) {
       commit(res.value, envelope);
+      lastConfirmed = res.value; // reset the @merge base to the authoritative reseed
       return;
     }
 
@@ -202,7 +208,11 @@ export function createClientReplica({
       return;
     }
     if (envelope.sequence === cur + 1) {
-      commit(res.value, envelope); // in-order
+      // §13.2: @merge (Class-B) fields resolve mine/theirs against the base;
+      // without authority this is the plain Tier-1 overwrite (res.value).
+      const applied = authority ? mergeFields(authority, value.peek(), res.value, lastConfirmed ?? res.value) : res.value;
+      commit(applied, envelope); // in-order
+      lastConfirmed = res.value; // the server value is the new base for the next merge
       return;
     }
     // Gap: one or more envelopes were missed. v2 step 5 → refetch the full
