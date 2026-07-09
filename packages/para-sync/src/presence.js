@@ -21,6 +21,22 @@ import { signal } from "@lyku/para-signals";
 /** @typedef {import('./client.js').SyncSchema} SyncSchema */
 
 /**
+ * App-wide defaults so a lowered `presence NAME :: Schema in CHANNEL` call
+ * (`presence(CHANNEL, Schema)`) can infer its ephemeral transport + local peer
+ * id. Set ONCE near app init.
+ * @type {{ transport?: SyncTransport, peerId?: string }}
+ */
+let presenceDefaults = {};
+
+/**
+ * Configure app-wide {@link presence} delivery (merged into prior config).
+ * @param {{ transport?: SyncTransport, peerId?: string }} config
+ */
+export function configurePresence(config) {
+  presenceDefaults = { ...presenceDefaults, ...config };
+}
+
+/**
  * A presence envelope on the channel. Either a peer's current state or its leave.
  * @typedef {{ peerId: string, value?: any, leave?: boolean }} PresenceEnvelope
  */
@@ -37,7 +53,11 @@ import { signal } from "@lyku/para-signals";
  * @param {string} [opts.peerId]  the local peer id. Required to publish (`set`)
  *        or leave; omit for a read-only observer.
  */
-export function presence(channel, schema, { transport, peerId } = {}) {
+export function presence(channel, schema, opts = {}) {
+  // Delivery: explicit opts win; else the app-wide config (a lowered
+  // `presence(CHANNEL, Schema)` carries no transport/peerId).
+  const transport = opts.transport ?? presenceDefaults.transport;
+  const peerId = opts.peerId ?? presenceDefaults.peerId;
   if (typeof channel !== "string" || channel.length === 0) {
     throw new Error("presence(channel, …): `channel` must be a non-empty string");
   }
@@ -45,7 +65,7 @@ export function presence(channel, schema, { transport, peerId } = {}) {
     throw new Error("presence: `schema` (the per-peer parse gate) is required");
   }
   if (!transport || typeof transport.subscribe !== "function" || typeof transport.publish !== "function") {
-    throw new Error("presence: `transport` (an ephemeral SyncTransport) is required");
+    throw new Error("presence: a `transport` is required (pass it, or set one via configurePresence)");
   }
 
   /** @type {Map<string, T>} peerId → live value */

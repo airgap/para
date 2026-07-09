@@ -13,6 +13,23 @@
 import { signal, derived, effect } from "@lyku/para-signals";
 import { createClientReplica } from "./client.js";
 
+/**
+ * App-wide defaults so a lowered `sync feed :: T[] from query(spec)` call
+ * (`syncedQuery(T, spec)`) can infer delivery: a shared per-row value transport
+ * and a `resolveMembership(schema, spec) → MembershipStream` that opens the
+ * server query subscription from the spec. Set ONCE near app init.
+ * @type {{ transport?: any, resolveMembership?: (schema: any, spec: any) => any }}
+ */
+let queryDefaults = {};
+
+/**
+ * Configure app-wide {@link syncedQuery} delivery (merged into prior config).
+ * @param {{ transport?: any, resolveMembership?: (schema: any, spec: any) => any }} config
+ */
+export function configureSyncedQuery(config) {
+  queryDefaults = { ...queryDefaults, ...config };
+}
+
 /** @typedef {import('./transport.js').SyncEnvelope} SyncEnvelope */
 /** @typedef {import('./transport.js').SyncTransport} SyncTransport */
 /** @typedef {import('./client.js').SyncSchema} SyncSchema */
@@ -54,9 +71,15 @@ export function syncedQuery(schema, opts = {}) {
   if (!schema || typeof schema.parse !== "function") {
     throw new Error("syncedQuery: `schema` (the row schema, with parse) is required");
   }
-  const { transport, membership, seed, schemaVersion, refetchRow } = opts;
+  // Delivery: explicit opts win; else the app-wide config (a lowered
+  // `syncedQuery(T, { where, orderBy, limit })` carries no transport/membership).
+  const transport = opts.transport ?? queryDefaults.transport;
+  const membership =
+    opts.membership ??
+    (queryDefaults.resolveMembership ? () => queryDefaults.resolveMembership(schema, opts) : undefined);
+  const { seed, schemaVersion, refetchRow } = opts;
   if (!transport || typeof transport.subscribe !== "function") {
-    throw new Error("syncedQuery: `transport` (per-row value delta source) is required");
+    throw new Error("syncedQuery: a `transport` is required (pass it, or set one via configureSyncedQuery)");
   }
 
   /** @type {Map<string, ReturnType<typeof createClientReplica>>} rowKey -> replica */

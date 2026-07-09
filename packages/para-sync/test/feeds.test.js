@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { InProcessTransport, syncedQuery } from "../src/index.js";
+import { InProcessTransport, syncedQuery, configureSyncedQuery } from "../src/index.js";
 
 // A Post row: needs a string `text`.
 const postSchema = {
@@ -106,5 +106,16 @@ describe("syncedQuery — typed collections (§13.3)", () => {
   test("guards: missing schema or transport throw", () => {
     expect(() => syncedQuery(null, { transport: new InProcessTransport() })).toThrow(/schema/);
     expect(() => syncedQuery(postSchema, {})).toThrow(/transport/);
+  });
+
+  test("configureSyncedQuery infers delivery for a lowered syncedQuery(T, spec)", () => {
+    const t = new InProcessTransport();
+    const mem = memStream();
+    configureSyncedQuery({ transport: t, resolveMembership: () => mem });
+    const feed = syncedQuery(postSchema, { limit: 20 }); // lowered form: no transport/membership
+    mem.emit({ keys: ["post:1"], seeds: { "post:1": env(1, { id: 1, text: "a" }) } });
+    expect(feed.peek()).toEqual([{ id: 1, text: "a" }]);
+    feed.dispose();
+    configureSyncedQuery({ transport: undefined, resolveMembership: undefined }); // reset global
   });
 });

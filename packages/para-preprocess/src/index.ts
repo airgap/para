@@ -946,6 +946,120 @@ function lowerSyncedDecls(source: string): {
   return { code: out, needsOnDestroy: needs, needsSynced: needs };
 }
 
+// Index just after the ')' matching the '(' at `open` (skips string/template
+// contents). Returns -1 if unbalanced.
+function matchParen(src: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < src.length; i++) {
+    const c = src[i]!;
+    if (c === '"' || c === "'" || c === "`") {
+      const q = c;
+      i++;
+      while (i < src.length && src[i] !== q) {
+        if (src[i] === "\\") i++;
+        i++;
+      }
+      continue;
+    }
+    if (c === "(") depth++;
+    else if (c === ")") {
+      depth--;
+      if (depth === 0) return i + 1;
+    }
+  }
+  return -1;
+}
+
+// A synced collection binding (§13.3): the value is a reactive ARRAY, so the
+// pre-hydrate fallback is `[]` (not the handle). Same peek/subscribe/dispose
+// convention as `syncedBinding`.
+function feedBinding(indent: string, name: string, call: string): string {
+  return (
+    `${indent}const __syn_${name} = ${call}; ` +
+    `let ${name} = $state(__syn_${name}.peek?.() ?? []); ` +
+    `$effect.pre(() => __syn_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
+    `onDestroy(() => __syn_${name}.dispose?.());`
+  );
+}
+
+function lowerSyncFeedDecls(source: string): {
+  code: string;
+  needsOnDestroy: boolean;
+  needsSyncedQuery: boolean;
+} {
+  // `sync NAME :: SCHEMA[] from query(SPEC)` → `syncedQuery(SCHEMA, SPEC)` (§13.3).
+  // The array-typed `::` form with a `query(...)` source is the collection sugar;
+  // a plain `sync NAME :: SCHEMA from KEY` (no `[]` / `query`) stays with
+  // lowerSyncFromDecls — so this MUST run first (it consumes the `[]`+query form
+  // before the single-object regex can mis-match it).
+  const re =
+    /(^|[;\n{}])(\s*)sync\s+([A-Za-z_$][\w$]*)\s*::\s*([A-Za-z_$][\w$.]*)\s*\[\s*\]\s+from\s+query\s*\(/g;
+  let out = "";
+  let last = 0;
+  let needs = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const kwStart = m.index + m[1]!.length;
+    const parenOpen = re.lastIndex - 1; // the '(' of query(
+    const parenEnd = matchParen(source, parenOpen);
+    if (parenEnd < 0) continue; // unbalanced — leave as-is
+    const spec = source.slice(parenOpen + 1, parenEnd - 1).trim();
+    const name = m[3]!;
+    const schema = m[4]!;
+    let consumeEnd = parenEnd;
+    while (source[consumeEnd] === " " || source[consumeEnd] === "\t") consumeEnd++;
+    if (source[consumeEnd] === ";") consumeEnd++;
+    out += source.slice(last, kwStart);
+    out += feedBinding(m[2]!, name, `syncedQuery(${schema}, ${spec})`);
+    needs = true;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+  return { code: out, needsOnDestroy: needs, needsSyncedQuery: needs };
+}
+
+// A presence binding (§13.4): the value is a reactive Map of live peers, so the
+// pre-hydrate fallback is `new Map()`.
+function presenceBinding(indent: string, name: string, call: string): string {
+  return (
+    `${indent}const __pre_${name} = ${call}; ` +
+    `let ${name} = $state(__pre_${name}.peek?.() ?? new Map()); ` +
+    `$effect.pre(() => __pre_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
+    `onDestroy(() => __pre_${name}.dispose?.());`
+  );
+}
+
+function lowerPresenceDecls(source: string): {
+  code: string;
+  needsOnDestroy: boolean;
+  needsPresence: boolean;
+} {
+  // `presence NAME :: SCHEMA in CHANNEL` → `presence(CHANNEL, SCHEMA)` (§13.4).
+  // CHANNEL is the room key expression (may span lines; extent via derivedInitEnd).
+  const re = /(^|[;\n{}])(\s*)presence\s+([A-Za-z_$][\w$]*)\s*::\s*([A-Za-z_$][\w$.]*)\s+in\s+/g;
+  let out = "";
+  let last = 0;
+  let needs = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const kwStart = m.index + m[1]!.length;
+    const matchEnd = re.lastIndex;
+    const end = derivedInitEnd(source, matchEnd);
+    const channel = source.slice(matchEnd, end).trim();
+    const consumeEnd = source[end] === ";" ? end + 1 : end;
+    const name = m[3]!;
+    const schema = m[4]!;
+    out += source.slice(last, kwStart);
+    out += presenceBinding(m[2]!, name, `presence(${channel}, ${schema})`);
+    needs = true;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+  return { code: out, needsOnDestroy: needs, needsPresence: needs };
+}
+
 function lowerAsyncSignalDecls(source: string): {
   code: string;
   needsOnDestroy: boolean;
@@ -1082,6 +1196,12 @@ export function lowerPuiReactivity(
   const asyncSignalResult = lowerAsyncSignalDecls(source);
   source = asyncSignalResult.code;
 
+  // `sync feed :: SCHEMA[] from query(...)` (collections, §13.3) BEFORE the
+  // single-object `sync ... from KEY` — it consumes the `[]`+query form so the
+  // single-object regex can't mis-match it.
+  const syncFeedResult = lowerSyncFeedDecls(source);
+  source = syncFeedResult.code;
+
   // `sync NAME :: SCHEMA from KEY` (readable form) before `synced NAME = ARGS`
   // (full-control form) — distinct keywords (`sync` vs `synced`), but order keeps
   // the readable form's emitted `synced(...)` out of the other's scan path.
@@ -1091,18 +1211,26 @@ export function lowerPuiReactivity(
   const syncedResult = lowerSyncedDecls(source);
   source = syncedResult.code;
 
+  // `presence NAME :: SCHEMA in CHANNEL` (ephemeral peer state, §13.4).
+  const presenceResult = lowerPresenceDecls(source);
+  source = presenceResult.code;
+
   const needsSynced = syncFromResult.needsSynced || syncedResult.needsSynced;
+  const needsSyncedQuery = syncFeedResult.needsSyncedQuery;
+  const needsPresence = presenceResult.needsPresence;
 
   // Aggregate Svelte imports needed by the lowerings above. provide/inject
   // contributes setContext/getContext; using + source + async signal + sync(ed)
-  // contribute onDestroy.
+  // + feed + presence contribute onDestroy.
   const svelteImports = new Set<string>(provideInject.imports);
   if (
     usingResult.needsOnDestroy ||
     sourceResult.needsOnDestroy ||
     asyncSignalResult.needsOnDestroy ||
+    syncFeedResult.needsOnDestroy ||
     syncFromResult.needsOnDestroy ||
-    syncedResult.needsOnDestroy
+    syncedResult.needsOnDestroy ||
+    presenceResult.needsOnDestroy
   )
     svelteImports.add("onDestroy");
   // Auto-import the closed lifecycle/nav set when used as a plain call
@@ -1240,11 +1368,16 @@ export function lowerPuiReactivity(
     result = `import { ${paraImports.join(", ")} } from "@lyku/para-signals";${importSep}` + result;
   }
 
-  // `synced` keyword auto-imports the synced() constructor from @lyku/para-sync
+  // The sync-family keywords auto-import their constructors from @lyku/para-sync
   // (dedup against a hand-authored import), the way signal/derived auto-import
-  // from para-signals — so the call site never needs the import line.
-  if (needsSynced && !/from\s+['"]@lyku\/para-sync['"]/.test(result)) {
-    result = `import { synced } from "@lyku/para-sync";${importSep}` + result;
+  // from para-signals — so the call site never needs the import line. synced
+  // (sync/synced), syncedQuery (sync feed), presence (presence).
+  const paraSyncImports: string[] = [];
+  if (needsSynced) paraSyncImports.push("synced");
+  if (needsSyncedQuery) paraSyncImports.push("syncedQuery");
+  if (needsPresence) paraSyncImports.push("presence");
+  if (paraSyncImports.length > 0 && !/from\s+['"]@lyku\/para-sync['"]/.test(result)) {
+    result = `import { ${paraSyncImports.join(", ")} } from "@lyku/para-sync";${importSep}` + result;
   }
 
   // Inject extra runtime imports (setContext/getContext from provide/inject,

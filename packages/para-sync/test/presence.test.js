@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { InProcessTransport, presence } from "../src/index.js";
+import { InProcessTransport, presence, configurePresence } from "../src/index.js";
 
 // A cursor: needs a numeric `x`.
 const cursorSchema = {
@@ -86,5 +86,15 @@ describe("presence — ephemeral peer state (§13.4)", () => {
     expect(() => presence("", cursorSchema, { transport: new InProcessTransport() })).toThrow(/channel/);
     expect(() => presence("room:1", null, { transport: new InProcessTransport() })).toThrow(/schema/);
     expect(() => presence("room:1", cursorSchema, {})).toThrow(/transport/);
+  });
+
+  test("configurePresence infers delivery for a lowered presence(channel, schema)", () => {
+    const t = new InProcessTransport();
+    configurePresence({ transport: t, peerId: "me" });
+    const p = presence("room:9", cursorSchema); // lowered form: no transport/peerId
+    p.set({ x: 1 });
+    expect(p.peek().get("me")).toEqual({ x: 1 });
+    p.dispose();
+    configurePresence({ transport: undefined, peerId: undefined }); // reset global
   });
 });
