@@ -101,11 +101,13 @@ export function createIntent({
    * Optimistically apply an intent: capture the baseline (at run start), flip the
    * local cell via the policy delta, tag it (opId, v), and emit the envelope.
    * @param {any} input the mutation input (typed against the entity schema in Para)
+   * @param {{ opId?: string }} [opts]  reuse an op-id (the §13.5 replay path
+   *        re-sends a durable intent under its original op-id, fresh `v`).
    * @returns {{ opId: string, v: number, value: any }}
    */
-  function apply(input) {
+  function apply(input, opts) {
     if (pending.size === 0) baseline = replica.peek();
-    const opId = nextOpId();
+    const opId = opts?.opId ?? nextOpId();
     const v = replica.nextIntent();
     const value = optimistic(input, replica.peek());
     replica.applyLocal(value);
@@ -189,5 +191,15 @@ export function createIntent({
     pendingCount: () => pending.size,
     /** op-ids of in-flight intents, in issue order (the §13.5 replay order) */
     pendingOpIds: () => [...pending.keys()],
+    /**
+     * Drop all in-flight intents WITHOUT rolling back the cell. Used by §13.5
+     * replay after the reconciler has re-seeded the fresh server baseline: the
+     * old in-memory pending was against the stale baseline, so it is cleared and
+     * the durable log is re-folded onto the fresh one. Does not touch the cell.
+     */
+    clearPending() {
+      pending.clear();
+      sync();
+    },
   };
 }

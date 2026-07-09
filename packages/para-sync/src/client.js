@@ -89,6 +89,7 @@ export function createClientReplica({
   refetch,
   cell,
   schemaVersion,
+  persist,
 }) {
   const value = cell ?? signal(undefined);
   /** @type {Cell} */
@@ -122,6 +123,17 @@ export function createClientReplica({
     initialized = true;
     setMeta({ schemaVersion: envelope.schema_version, sequence: envelope.sequence, status: "ok" });
     stats.applied++;
+    // Read-side durability: snapshot the confirmed envelope so a cold start
+    // (offline / reload) can seed from it before any network. Only server-
+    // authoritative commits are persisted — never the optimistic overlay
+    // (applyLocal), so the persisted value is a clean replay baseline (§13.5).
+    if (persist) {
+      try {
+        persist.save(envelope);
+      } catch {
+        /* durability is best-effort; a failed save must not fail the apply */
+      }
+    }
   }
 
   function startRefetch() {
@@ -204,7 +216,17 @@ export function createClientReplica({
 
   // ── wire up ──
   const unsub = transport.subscribe(key, (envelope) => ingest(envelope, "receipt"));
-  if (seed !== undefined) ingest(seed, "hydration"); // SSR-hydration parse gate
+  // Boot seed: the SSR seed wins; else a locally-persisted snapshot (offline /
+  // cold start). Either way it crosses the same hydration parse gate.
+  let bootSeed = seed;
+  if (bootSeed == null && persist) {
+    try {
+      bootSeed = persist.load() ?? undefined;
+    } catch {
+      bootSeed = undefined;
+    }
+  }
+  if (bootSeed != null) ingest(bootSeed, "hydration");
 
   return {
     /** current value (tracked read) */

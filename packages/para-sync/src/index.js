@@ -11,9 +11,15 @@
 //   - writer.js    — createIntent: the Tier-2 optimistic write machine (§13.1)
 //     — optimistic apply → op-id correlation → confirm/reject → echo dedupe /
 //     stale-suppression → rollback, sharing the reconciler's intent counter.
+//   - queue.js     — createQueuedIntent: offline queued mutations (§13.5) — a
+//     durable log over writer.js + deterministic reconnect replay.
+//   - durable.js   — storage adapters: MutationStore (log) + SnapshotStore
+//     (read-side durability) in memory + localStorage flavors.
 
 export * from "./transport.js";
 export * from "./client.js";
 export * from "./synced.js";
 export * from "./writer.js";
+export * from "./queue.js";
+export * from "./durable.js";
 export * from "./visibility.js";
