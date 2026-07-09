@@ -15,6 +15,10 @@
 //     durable log over writer.js + deterministic reconnect replay.
 //   - durable.js   — storage adapters: MutationStore (log) + SnapshotStore
 //     (read-side durability) in memory + localStorage flavors.
+//   - feeds.js     — syncedQuery: typed collections (§13.3) — a createClientReplica
+//     per row, composed by a membership channel into a reactive array.
+//   - presence.js  — presence: ephemeral peer state (§13.4) — a parse-gated,
+//     LWW-per-peer, disconnect-GC'd map; no sequence, no reconcile machine.
 
 export * from "./transport.js";
 export * from "./client.js";
@@ -22,4 +26,6 @@ export * from "./synced.js";
 export * from "./writer.js";
 export * from "./queue.js";
 export * from "./durable.js";
+export * from "./feeds.js";
+export * from "./presence.js";
 export * from "./visibility.js";
