@@ -99,6 +99,10 @@ export function createClientReplica({
   let initialized = false;
   let disposed = false;
   let pending = Promise.resolve();
+  // Tier-2 seam (§13.1): the per-entity intent version. The read reconciler
+  // owns it so the write path (writer.js) and the reconciler share ONE monotonic
+  // counter (INV-sync-12). Untouched by Tier-1 ingest; only nextIntent() bumps it.
+  let intentVersion = 0;
 
   const stats = {
     applied: 0,
@@ -215,6 +219,21 @@ export function createClientReplica({
     stats,
     /** resolves when no recovery refetch is in flight (test/await aid) */
     whenIdle: () => pending,
+    // ── Tier-2 seams (§13.1 `mutate`) ───────────────────────────────────────
+    // The write path (writer.js) drives these; Tier-1-only consumers ignore them.
+    /** Bump + return the per-entity intent version — the optimistic-write counter. */
+    nextIntent: () => (disposed ? intentVersion : ++intentVersion),
+    /** Current intent version (untracked). */
+    peekIntent: () => intentVersion,
+    /**
+     * Optimistic local write: set the value cell WITHOUT a server sequence. The
+     * authoritative receipt still wins when it arrives (ingest commits by
+     * sequence + overwrites). This is the local flip half of §13.1.
+     * @param {any} v
+     */
+    applyLocal: (v) => {
+      if (!disposed) value.set(v);
+    },
     /** stop listening; idempotent */
     dispose: () => {
       if (disposed) return;
