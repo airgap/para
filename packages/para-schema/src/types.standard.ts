@@ -72,11 +72,15 @@ export interface ObjectConstraints {
 
 export type Result<T, E> = { readonly tag: "Ok"; readonly value: T } | { readonly tag: "Err"; readonly error: E };
 
-export type SchemaValue<T, _S = unknown> = {
+// The `& S` intersection is NOT part of the brand machinery — it's how the
+// body's own keys (`properties`, `required`, `version`, …) stay reachable on the
+// schema value, which is what lets a consumer compose a new schema out of an
+// existing one's columns. Standard mode collapses the brands, not the body.
+export type SchemaValue<T, S = unknown> = {
   parse: (v: unknown) => Result<T, string>;
   is: (v: unknown) => v is T;
-  schema: unknown;
-};
+  schema: S;
+} & S;
 
 export type Schema<T = unknown> = SchemaValue<T, any>;
 
