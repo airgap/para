@@ -1,9 +1,8 @@
 // Standard (downgraded) variant entry point. Re-exports the
 // constraint-collapsing types so vanilla TS consumers see plain TS
-// primitives instead of phantom-branded ones.
+// primitives instead of phantom-branded ones. The runtime is identical —
+// there is one validator, shared by both variants.
 
 export type * from "./types.standard.ts";
 
-import type { SchemaValue } from "./types.standard.ts";
-
-export declare function fromSchema<S>(body: S): SchemaValue<unknown, S>;
+export { fromSchema } from "./runtime.standard.js";

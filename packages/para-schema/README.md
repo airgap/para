@@ -72,11 +72,65 @@ const handler: Handles<typeof getUser, AppCtx> = (req, ctx) => {
 };
 ```
 
+## `fromSchema` — the portable runtime
+
+```ts
+import { fromSchema } from "@lyku/para-schema";
+
+const Workspace = fromSchema({
+  type: "object",
+  properties: { name: { type: "varchar", maxLength: 120 } },
+  required: ["name"],
+  additionalProperties: false,
+} as const);
+
+Workspace.parse({ name: "Lyku" });        // { tag: "Ok", value: { name: "Lyku" } }
+Workspace.parse({ name: 42 });            // { tag: "Err", error: "name: expected string" }
+Workspace.is({ name: "Lyku" });           // true
+Workspace.name.maxLength;                 // 120 — field navigation
+```
+
+**Why this exists.** On ParaBun, `schema NAME = { … }` lowers to the
+built-in validator in the Bun fork. Off ParaBun, ParaBun's own fallback
+is `__paraFromSchema = (schema) => schema` — the *identity function*. A
+schema shipped to a browser or a Cloudflare Worker therefore validated
+nothing at all. `fromSchema` is a faithful, dependency-free port of that
+validator, so the same schema gates data on the edge and in the client
+exactly as it does on the server.
+
+Codegen that already knows the resolved TS type supplies it explicitly,
+skipping brand inference:
+
+```ts
+export const organization = fromSchema<typeof body, Organization>(body);
+```
+
+The body's own keys stay enumerable (so `{ ...Workspace }` is a plain
+JSON Schema again, safe to embed in another schema literal); `parse`,
+`validate`, `is`, `schema`, and the field accessors are non-enumerable.
+
+### Dialect
+
+JSON Schema 2020-12 plus the Para/Postgres type tags, so a lockstep
+record model is already a valid body: `bigint`, `snowflake`, `varchar`,
+`text`, `char`, `numeric`, `timestamptz`, `date`, `jsonb`, `enum`.
+`required` means NOT NULL — an omitted key is nullable, and a present
+`null` fails a required field. A record with `properties` and no
+explicit `type` is treated as an object.
+
+Composition is by **embedding**: a sub-schema that is itself a wrapped
+schema (it has `.parse`) validates itself. The portable runtime has no
+module `$ref` registry, so a string `$ref` throws rather than silently
+passing — an unresolvable reference must never read as "valid".
+
+Two places this validator is deliberately *stricter* than ParaBun's,
+both cases where ParaBun is permissive by omission rather than by
+contract: `type: "date"` is checked (ParaBun has no `date` arm, so it
+falls through to permissive — and `date` is what lockstep emits for every
+temporal column), and `additionalProperties: false` is enforced.
+
 ## Notes
 
-- The runtime `fromSchema` export is a `declare function` placeholder —
-  the actual implementation lives in Bun's runtime
-  (`src/runtime.bun.js → __paraFromSchema`). The package re-exports it
-  under a stable public name for non-`.pts` consumers.
-- This package is `private: true` until `gen-dts-rewrite` lands the
-  Phase-1 codegen and the tooling can produce both variants automatically.
+- Pre-release (`0.0.x-pre`): the API may change before `0.1.0`.
+- The extended/standard type split is still hand-maintained; it becomes
+  automatic when `gen-dts-rewrite` lands the Phase-1 codegen.
