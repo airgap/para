@@ -1,0 +1,17 @@
+{
+  "name": "para-check",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/para-check/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node esbuild.mjs", "cwd": "packages/para-check" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "bun test test/", "cwd": "packages/para-check" },
+      "dependsOn": ["build"]
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "@lyku/para-check",
+  "version": "0.0.1-pre.1",
+  "description": "Batch type-checker for `.pui` Para UI components (svelte-check for the Para substrate). Projects every `.pui`/`.svelte` in a workspace to typed TSX via the same lowering + svelte2tsx pipeline the parabun LSP uses, type-checks the projections in one TypeScript program alongside the workspace's own tsconfig ambients, and reports diagnostics mapped back to original `.pui` positions. Pre-release: API may change before 0.1.0.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/para.git",
+    "directory": "packages/para-check"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "pui-check": "./dist/pui-check.cjs"
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "prepublishOnly": "node esbuild.mjs",
+    "test": "bun test test/"
+  },
+  "devDependencies": {
+    "@jridgewell/trace-mapping": "^0.3.31",
+    "@lyku/para-preprocess": "^0.0.1-pre.17",
+    "@lyku/para-transpile": "^0.0.1-pre.1",
+    "bun-types": "latest",
+    "esbuild": "^0.21.5",
+    "magic-string": "^0.30.11",
+    "svelte": "^5.55.7",
+    "svelte2tsx": "^0.7.55",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "README.md",
+    "dist"
+  ]
+}
