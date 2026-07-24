@@ -570,7 +570,18 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
   // import in the final string — mirror that order here for byte-parity.
   let prefix = "";
   if (svelteImports.size) {
-    prefix += `import { ${[...svelteImports].join(", ")} } from "@lyku/para-ui"; `;
+    // Dedup against a hand-authored import from either runtime spelling —
+    // mirrors the canonical injection's `svelte|@lyku/para-ui` dedup in
+    // para-preprocess. Without it, a .pui that explicitly does
+    // `import { onMount } from 'svelte'` gets a SECOND onMount binding in
+    // the projection: a duplicate-identifier error the build never has.
+    const existing = new Set<string>();
+    const runtimeRe = /import\s*\{([^}]+)\}\s*from\s+['"](?:svelte|@lyku\/para-ui)['"]/g;
+    let rm: RegExpExecArray | null;
+    while ((rm = runtimeRe.exec(raw)) !== null)
+      for (const n of rm[1]!.split(",")) existing.add(n.trim().split(/\s+as\s+/)[0]!);
+    const toAdd = [...svelteImports].filter(n => !existing.has(n));
+    if (toAdd.length) prefix += `import { ${toAdd.join(", ")} } from "@lyku/para-ui"; `;
   }
   // SvelteKit nav hooks come from $app/navigation (not the runtime).
   // Dedup against a hand-authored import so we don't double-declare.

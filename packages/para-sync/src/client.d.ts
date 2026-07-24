@@ -19,7 +19,7 @@ export function createClientReplica({ key, schema, transport, seed, refetch, cel
     schema: SyncSchema;
     transport: SyncTransport;
     seed?: SyncEnvelope;
-    refetch?: () => Promise<SyncEnvelope>;
+    refetch?: () => Promise<SyncEnvelope | null>;
     cell?: Cell;
     schemaVersion?: string;
 }): {

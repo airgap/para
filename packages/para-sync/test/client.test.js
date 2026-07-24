@@ -63,6 +63,22 @@ describe("createClientReplica — Tier 1 reconciler", () => {
     expect(r.stats.applied).toBe(1);
   });
 
+  test("refetch resolving null (no envelope for the key) → stale, not a crash", async () => {
+    const t = new InProcessTransport();
+    const r = createClientReplica({
+      key: "user:1",
+      schema: userSchema,
+      transport: t,
+      seed: env(1, { name: "ada" }),
+      refetch: () => Promise.resolve(null) // server: nothing synced / deleted
+    });
+    t.publish("user:1", env(2, { nope: true })); // malformed → Err → recovery
+    expect(r.stats.refetches).toBe(1);
+    await r.whenIdle();
+    expect(r.peekMeta().status).toBe("stale"); // explicit verdict, not an NPE swallowed by the catch
+    expect(r.peek()).toEqual({ name: "ada" }); // last good value stands
+  });
+
   test("parse Err on receipt → skew, cell NOT poisoned, refetch recovers", async () => {
     const t = new InProcessTransport();
     const r = createClientReplica({

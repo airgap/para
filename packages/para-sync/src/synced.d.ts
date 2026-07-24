@@ -30,7 +30,7 @@ export type SyncedOptions<T = any> = {
     /** SSR-embedded initial envelope */
     seed?: SyncEnvelope;
     /** Err/skew/gap recovery: fetch the current authoritative snapshot */
-    refetch?: () => Promise<SyncEnvelope>;
+    refetch?: () => Promise<SyncEnvelope | null>;
     /** expected schema version ("major.minor"); a MAJOR mismatch is breaking skew */
     schemaVersion?: string;
     /** reactive cell override; default: a para signal */

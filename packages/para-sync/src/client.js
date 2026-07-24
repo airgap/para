@@ -74,8 +74,9 @@ function majorMismatch(a, b) {
  * @param {SyncSchema} opts.schema                       the `parse` gate
  * @param {SyncTransport} opts.transport                 change-envelope source
  * @param {SyncEnvelope} [opts.seed]                     SSR-embedded initial envelope
- * @param {() => Promise<SyncEnvelope>} [opts.refetch]   Err/skew/gap fallback: fetch the
- *        current authoritative snapshot. Omit → no recovery (status goes 'stale').
+ * @param {() => Promise<SyncEnvelope | null>} [opts.refetch]  Err/skew/gap fallback: fetch
+ *        the current authoritative snapshot. Omit → no recovery (status goes
+ *        'stale'). Resolving null ("no envelope for this key") is stale too.
  * @param {Cell} [opts.cell]                             reactive cell (default: a para signal)
  * @param {string} [opts.schemaVersion]                  the client's expected schema
  *        version ("major.minor"). When set, an inbound envelope whose MAJOR
@@ -151,7 +152,14 @@ export function createClientReplica({
     pending = (async () => {
       try {
         const snap = await refetch();
-        if (!disposed) ingest(snap, "refetch");
+        // null is a legitimate server answer — "no envelope for this key"
+        // (nothing synced yet, or deleted). Land on stale EXPLICITLY: before
+        // this guard it reached ingest, NPE'd on .schema_version, and only
+        // ended up stale because the catch swallowed the crash.
+        if (!disposed) {
+          if (snap) ingest(snap, "refetch");
+          else setMeta({ status: "stale" });
+        }
       } catch {
         if (!disposed) setMeta({ status: "stale" });
       }

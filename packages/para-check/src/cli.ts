@@ -181,8 +181,20 @@ function main() {
   // globals (app.d.ts, $types, generated runtime types). Components come
   // in exclusively via projection.
   const ambients = parsed.fileNames.filter(fn => /\.(ts|tsx|d\.ts|js|jsx)$/.test(fn) && !fn.endsWith(".svelte") && !fn.endsWith(".pui"));
+  // The Para lowering auto-imports lifecycle/context helpers from
+  // "@lyku/para-ui". Consumer workspaces usually install the fork AS
+  // svelte (`"svelte": "npm:@lyku/para-ui"`), so the bare specifier has
+  // nothing to resolve to. Mirror that alias in reverse — only when
+  // @lyku/para-ui is genuinely absent and svelte is present.
+  const paraUiPaths: Record<string, string[]> = {};
+  if (!fs.existsSync(path.join(ws, "node_modules", "@lyku", "para-ui", "package.json")) && fs.existsSync(path.join(ws, "node_modules", "svelte", "package.json"))) {
+    paraUiPaths["@lyku/para-ui"] = [path.join(ws, "node_modules", "svelte", "index.d.ts").replace(/\\/g, "/")];
+    paraUiPaths["@lyku/para-ui/*"] = [path.join(ws, "node_modules", "svelte", "*").replace(/\\/g, "/")];
+  }
+
   const options: import("typescript").CompilerOptions = {
     ...parsed.options,
+    paths: { ...parsed.options.paths, ...paraUiPaths },
     // Projections are TSX; a Svelte project's tsconfig has no `jsx`, and
     // without it a cross-module `./X.pui` (→ X.pui.tsx) import dies with
     // TS6142. Same forcing the LSP applies.
