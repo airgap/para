@@ -122,6 +122,33 @@
       }
     },
     {
+      "comment": "sync NAME :: SCHEMA from KEY | sync NAME : TYPE from KEY — server-authoritative replica, parse-gated (::) or trusted (:) (.pui)",
+      "match": "\\b(sync)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*::?)",
+      "captures": {
+        "1": {
+          "name": "storage.type.sync.parabun"
+        }
+      }
+    },
+    {
+      "comment": "synced NAME = ARGS — full-control synced(key, opts) replica binding (.pui)",
+      "match": "\\b(synced)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*[=:])",
+      "captures": {
+        "1": {
+          "name": "storage.type.synced.parabun"
+        }
+      }
+    },
+    {
+      "comment": "mutate NAME of ENTITY { optimistic(p){…} [rollback(p){…}] [confirm(p){…}] } — Tier-2 optimistic write intent (.pui, §13.1)",
+      "match": "\\b(mutate)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s+of\\b)",
+      "captures": {
+        "1": {
+          "name": "storage.type.mutate.parabun"
+        }
+      }
+    },
+    {
       "comment": "`every MS_EXPR` postfix on a signal declaration — drives the cell from an interval",
       "match": "(?<=[\\)\\d\\w$])\\s+(every)\\s+(?=\\d|[A-Za-z_$\\(])",
       "captures": {
@@ -372,8 +399,8 @@
       }
     },
     {
-      "comment": "Bare `schema` keyword fallback — highlights as soon as typed; skipped when followed by =/(/. (used as identifier)",
-      "match": "\\b(schema)\\b(?![\\s]*[=.(])",
+      "comment": "Bare `schema` keyword fallback — highlights as soon as typed; skipped when followed by =/(/./: (used as identifier or object key)",
+      "match": "\\b(schema)\\b(?![\\s]*[=.(:])",
       "captures": {
         "1": {
           "name": "storage.type.schema.parabun"

@@ -190,6 +190,34 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
     scopes: { "1": "storage.type.source.parabun" },
     lspAllowlist: true,
   },
+  // ─── Sync / synced (server-authoritative replication, .pui) ───────
+  // The fourth distance of the reactive idea: a value changing across
+  // a trust boundary (spec ch. 08). All three declaration forms lower
+  // to `synced(...)` from @lyku/para-sync via para-preprocess.
+  {
+    id: "sync-decl",
+    doc: "sync NAME :: SCHEMA from KEY | sync NAME : TYPE from KEY — server-authoritative replica, parse-gated (::) or trusted (:) (.pui)",
+    kind: "keyword",
+    pattern: String.raw`\b(sync)\b(?=\s+[A-Za-z_$][\w$]*\s*::?)`,
+    scopes: { "1": "storage.type.sync.parabun" },
+    lspAllowlist: true,
+  },
+  {
+    id: "synced-decl",
+    doc: "synced NAME = ARGS — full-control synced(key, opts) replica binding (.pui)",
+    kind: "keyword",
+    pattern: String.raw`\b(synced)\b(?=\s+[A-Za-z_$][\w$]*\s*[=:])`,
+    scopes: { "1": "storage.type.synced.parabun" },
+    lspAllowlist: true,
+  },
+  {
+    id: "mutate-decl",
+    doc: "mutate NAME of ENTITY { optimistic(p){…} [rollback(p){…}] [confirm(p){…}] } — Tier-2 optimistic write intent (.pui, §13.1)",
+    kind: "keyword",
+    pattern: String.raw`\b(mutate)\b(?=\s+[A-Za-z_$][\w$]*\s+of\b)`,
+    scopes: { "1": "storage.type.mutate.parabun" },
+    lspAllowlist: true,
+  },
   {
     id: "every-postfix",
     doc: "`every MS_EXPR` postfix on a signal declaration — drives the cell from an interval",
@@ -418,9 +446,9 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "schema-bare",
-    doc: "Bare `schema` keyword fallback — highlights as soon as typed; skipped when followed by =/(/. (used as identifier)",
+    doc: "Bare `schema` keyword fallback — highlights as soon as typed; skipped when followed by =/(/./: (used as identifier or object key)",
     kind: "keyword",
-    pattern: String.raw`\b(schema)\b(?![\s]*[=.(])`,
+    pattern: String.raw`\b(schema)\b(?![\s]*[=.(:])`,
     scopes: { "1": "storage.type.schema.parabun" },
     lspAllowlist: true,
   },
@@ -619,6 +647,9 @@ export const SPLASH_PARA_KEYWORDS: string[] = [
   "derived",
   "effect",
   "source",
+  "sync",
+  "synced",
+  "mutate",
   "when",
   "arena",
   "memo",
@@ -686,6 +717,9 @@ export const LSP_ALLOWLIST_TOKENS: string[] = [
   "derived",
   "effect",
   "source",
+  "sync",
+  "synced",
+  "mutate",
   "when",
   "arena",
   "memo",
