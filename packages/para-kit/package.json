@@ -1,0 +1,39 @@
+{
+  "name": "@lyku/para-kit",
+  "version": "0.0.1-pre.0",
+  "description": "The P9 fullstack projection for Para sync (spec ch. 08 §13.7–§13.8, plan step 5): emits the escape-analyzed <file>.server.pts artifacts and the sync manifest, hosts one createServerSource per live subscription key, and bridges SyncEnvelopes over SSE with a client SseTransport implementing the para-sync dumb-pipe contract. SvelteKit-shaped handlers; the artifact contract is host-agnostic. Pre-release: API may change before 0.1.0.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js"
+    }
+  },
+  "bin": {
+    "para-kit": "./src/cli.js"
+  },
+  "dependencies": {
+    "@lyku/para-preprocess": "^0.0.1-pre.17",
+    "@lyku/para-sync": "^0.0.1-pre.7"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airgap/parabun.git",
+    "directory": "packages/para-kit"
+  },
+  "keywords": [
+    "sveltekit",
+    "sync",
+    "sse",
+    "para"
+  ]
+}
