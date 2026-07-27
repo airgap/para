@@ -21,6 +21,9 @@
 //   - query-authority.js — createQueryAuthority: the server-side query host
 //     (§13.7 liveness) — read-set registration, wrote()/invalidate()
 //     re-evaluation, per-row sequences, outbound parse gate, membership diffs.
+//   - server-source.js — createServerSource: the opaque server-source host
+//     (§13.8) — one extracted server expression under a declared refresh
+//     policy (every/on/once), publishing Tier-1 envelopes on its key.
 //   - presence.js  — presence: ephemeral peer state (§13.4) — a parse-gated,
 //     LWW-per-peer, disconnect-GC'd map; no sequence, no reconcile machine.
 //   - authority.js — per-field authority (§13.2): @server/@lww/@merge, projected
@@ -35,6 +38,7 @@ export * from "./queue.js";
 export * from "./durable.js";
 export * from "./feeds.js";
 export * from "./query-authority.js";
+export * from "./server-source.js";
 export * from "./presence.js";
 export * from "./authority.js";
 export * from "./transaction.js";

@@ -1131,6 +1131,282 @@ function lowerSyncOneDecls(source: string): {
   return { code: out, needsSyncedOne: needs };
 }
 
+// ─── §13.8 server sources: `sync NAME :: SCHEMA from server EXPR POLICY` ────
+
+// JS reserved words + ambient globals the escape analysis never treats as
+// wire params or imports — they exist on both sides of the boundary.
+const SERVER_EXPR_AMBIENT = new Set([
+  "await", "new", "typeof", "instanceof", "in", "of", "void", "delete",
+  "true", "false", "null", "undefined", "NaN", "Infinity",
+  "Math", "JSON", "Date", "Number", "String", "Boolean", "Array", "Object",
+  "BigInt", "Promise", "Map", "Set", "Symbol", "RegExp", "Error", "URL",
+  "structuredClone", "parseInt", "parseFloat", "isNaN", "isFinite",
+]);
+
+// End (exclusive) of a server EXPR: the first TOP-LEVEL refresh-policy
+// keyword (`every` / `on` / `once`), scanning depth- and string-aware so a
+// policy word inside a call argument or string never terminates the
+// expression. Returns -1 when no policy appears before the statement end —
+// the mandatory-policy compile error (§13.8).
+function serverExprEnd(src: string, start: number, stmtEnd: number): { exprEnd: number; policy: string } | -1 {
+  let i = start;
+  let depth = 0;
+  while (i < stmtEnd) {
+    const c = src[i]!;
+    if (c === '"' || c === "'" || c === "`") {
+      const q = c;
+      i++;
+      while (i < stmtEnd) {
+        const d = src[i]!;
+        if (d === "\\") { i += 2; continue; }
+        if (q === "`" && d === "$" && src[i + 1] === "{") {
+          let td = 1; i += 2;
+          while (i < stmtEnd && td > 0) { const e = src[i]!; if (e === "{") td++; else if (e === "}") td--; i++; }
+          continue;
+        }
+        if (d === q) { i++; break; }
+        i++;
+      }
+      continue;
+    }
+    if (c === "(" || c === "[" || c === "{") { depth++; i++; continue; }
+    if (c === ")" || c === "]" || c === "}") { depth--; i++; continue; }
+    if (depth === 0 && /\s/.test(src[i - 1] ?? "")) {
+      const rest = src.slice(i, stmtEnd);
+      const m = rest.match(/^(every|on|once)\b/);
+      if (m) return { exprEnd: i, policy: m[1]! };
+    }
+    i++;
+  }
+  return -1;
+}
+
+export interface ServerSourceMeta {
+  name: string;
+  declId: string;
+  schema: string;
+  params: string[];
+  policy: string; // emitted as code: `{ every: (…) }` | `{ on: (…) }` | `{ once: true }`
+  expr: string;
+}
+
+/**
+ * §13.8 extraction: find every `sync NAME :: SCHEMA from server EXPR POLICY`
+ * declaration, escape-analyze the server expression, rewrite the client side
+ * to a tracked `synced(subKey(declId, [params]), SCHEMA)` binding, and emit a
+ * readable, ejectable server module (INV-mpb-1) exporting one entry per
+ * declaration for `createServerSource` hosting.
+ *
+ * Escape analysis (v1, same regex/extent fidelity as the rest of this file):
+ * free identifiers of EXPR partition into (1) file imports → hoisted into the
+ * server module — used ANYWHERE else client-side in the file is a compile
+ * error, EXCEPT the schema annotation's root identifier (schemas are
+ * isomorphic values, deliberately legal on both sides); (2) component-scope
+ * declarations (prop/signal/let/const/…) → positional wire params, re-keying
+ * the subscription when they change; (3) ambient globals → travel with the
+ * artifact. `this` in a server expression is a compile error.
+ *
+ * This runs INSIDE lowerPuiReactivity (so a .pui compiles standalone) and is
+ * exported for the P9 emitter, which calls it on the original source to
+ * obtain `serverModule` and write the sibling artifact.
+ */
+export function extractServerSources(
+  source: string,
+  opts: { moduleId?: string } = {}
+): { code: string; serverModule?: string; sources: ServerSourceMeta[]; diagnostics: string[] } {
+  const moduleId = opts.moduleId ?? "module";
+  const re =
+    /(^|[;\n{}])(\s*)sync\s+([A-Za-z_$][\w$]*)\s*::\s*([A-Za-z_$][\w$.]*)\s+from\s+server\s+/g;
+  const sources: ServerSourceMeta[] = [];
+  const diagnostics: string[] = [];
+  let out = "";
+  let last = 0;
+  let m: RegExpExecArray | null;
+
+  // File imports: local name → module specifier (default, named incl. aliases,
+  // namespace). Used to hoist server-side imports and detect boundary crossings.
+  const importOf = new Map<string, string>();
+  const importRe =
+    /import\s+(?:type\s+)?(?:([A-Za-z_$][\w$]*)\s*(?:,\s*)?)?(?:\{([^}]*)\}|\*\s+as\s+([A-Za-z_$][\w$]*))?\s*from\s*['"]([^'"]+)['"]/g;
+  let im: RegExpExecArray | null;
+  while ((im = importRe.exec(source)) !== null) {
+    const mod = im[4]!;
+    if (im[1]) importOf.set(im[1], mod);
+    if (im[3]) importOf.set(im[3], mod);
+    if (im[2]) {
+      for (const part of im[2].split(",")) {
+        const name = part.trim().split(/\s+as\s+/).pop()?.trim();
+        if (name) importOf.set(name, mod);
+      }
+    }
+  }
+
+  // Component-scope declarations — candidates for wire params.
+  const componentNames = new Set<string>();
+  const declRe =
+    /(?:^|[;\n{}(])\s*(?:prop|signal|source|derived|synced|using|let|const|var)\s+([A-Za-z_$][\w$]*)/g;
+  let dm: RegExpExecArray | null;
+  while ((dm = declRe.exec(source)) !== null) componentNames.add(dm[1]!);
+  const syncRe = /(?:^|[;\n{}])\s*sync\s+([A-Za-z_$][\w$]*)/g;
+  while ((dm = syncRe.exec(source)) !== null) componentNames.add(dm[1]!);
+
+  const spans: Array<{ from: number; to: number }> = [];
+  while ((m = re.exec(source)) !== null) {
+    const kwStart = m.index + m[1]!.length;
+    const exprStart = re.lastIndex;
+    const name = m[3]!;
+    const schema = m[4]!;
+    const stmtEnd = derivedInitEnd(source, exprStart);
+    const found = serverExprEnd(source, exprStart, stmtEnd);
+    if (found === -1) {
+      diagnostics.push(
+        `sync ${name}: a \`from server\` source must declare a refresh policy — \`every MS\`, \`on KEY\`, or \`once\` (§13.8; liveness is never implied for opaque server code)`
+      );
+      last = last; // leave the declaration in place; the caller raises the diagnostics
+      re.lastIndex = stmtEnd;
+      continue;
+    }
+    const expr = source.slice(exprStart, found.exprEnd).trim();
+    const policyKw = found.policy;
+    const argStart = found.exprEnd + policyKw.length;
+    const argEndRaw = source.slice(argStart, stmtEnd).trim();
+    let policy: string;
+    if (policyKw === "once") {
+      if (argEndRaw.length > 0) {
+        diagnostics.push(`sync ${name}: \`once\` takes no argument (got \`${argEndRaw}\`)`);
+      }
+      policy = `{ once: true }`;
+    } else if (policyKw === "every") {
+      if (argEndRaw.length === 0) {
+        diagnostics.push(`sync ${name}: \`every\` needs a cadence in ms (e.g. \`every 30000\`)`);
+        policy = `{ once: true }`;
+      } else policy = `{ every: (${argEndRaw}) }`;
+    } else {
+      if (argEndRaw.length === 0) {
+        diagnostics.push(`sync ${name}: \`on\` needs an invalidation key (e.g. \`on "users:changed"\`)`);
+        policy = `{ once: true }`;
+      } else policy = `{ on: (${argEndRaw}) }`;
+    }
+
+    if (/\bthis\b/.test(expr)) {
+      diagnostics.push(
+        `sync ${name}: \`this\` cannot cross the server boundary — a server expression has no component instance`
+      );
+    }
+
+    // Free identifiers of EXPR (skip property accesses and object keys).
+    const params: string[] = [];
+    const hoisted = new Set<string>();
+    const idRe = /(?<![.\w$])[A-Za-z_$][\w$]*/g;
+    let idm: RegExpExecArray | null;
+    while ((idm = idRe.exec(expr)) !== null) {
+      const id = idm[0]!;
+      if (SERVER_EXPR_AMBIENT.has(id)) continue;
+      const after = expr.slice(idm.index + id.length).match(/^\s*:/);
+      if (after && !expr.slice(idm.index + id.length).startsWith("::")) continue; // object key
+      if (importOf.has(id)) {
+        hoisted.add(id);
+        continue;
+      }
+      if (componentNames.has(id) && !params.includes(id)) params.push(id);
+      // Unknown bare identifiers travel with the artifact (globals on the host).
+    }
+
+    const declId = `${moduleId}#${name}`;
+    sources.push({ name, declId, schema, params, policy, expr });
+
+    // Boundary check happens after the loop (needs every server span known).
+    spans.push({ from: kwStart, to: source[stmtEnd] === ";" ? stmtEnd + 1 : stmtEnd });
+
+    const consumeEnd = source[stmtEnd] === ";" ? stmtEnd + 1 : stmtEnd;
+    out += source.slice(last, kwStart);
+    out +=
+      `${m[2]}let ${name} = $state(undefined as any); ` +
+      `$effect.pre(() => { ` +
+      `const __sv_${name} = synced(subKey(${JSON.stringify(declId)}, [${params.join(", ")}]), ${schema}); ` +
+      `const __sz_${name} = __sv_${name}.peek?.(); ` +
+      `if (__sz_${name} !== undefined) ${name} = __sz_${name}; ` +
+      `const __un_${name} = __sv_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; }); ` +
+      `return () => { __un_${name}?.(); __sv_${name}.dispose?.(); }; ` +
+      `});`;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+
+  if (sources.length === 0) return { code: source, sources, diagnostics };
+
+  // Boundary check: an import referenced by a server expression must not ALSO
+  // be used by client-side code — except schema roots (isomorphic values).
+  const schemaRoots = new Set(sources.map((s) => s.schema.split(".")[0]!));
+  let clientRemainder = "";
+  {
+    let pos = 0;
+    for (const sp of spans.sort((a, b) => a.from - b.from)) {
+      clientRemainder += source.slice(pos, sp.from);
+      pos = sp.to;
+    }
+    clientRemainder += source.slice(pos);
+    // Import statements themselves don't count as client USE.
+    clientRemainder = clientRemainder.replace(importRe, "");
+  }
+  const allHoisted = new Set<string>();
+  for (const s of sources) {
+    const idRe = /(?<![.\w$])[A-Za-z_$][\w$]*/g;
+    let idm: RegExpExecArray | null;
+    while ((idm = idRe.exec(s.expr)) !== null) {
+      if (importOf.has(idm[0]!)) allHoisted.add(idm[0]!);
+    }
+  }
+  for (const id of allHoisted) {
+    if (schemaRoots.has(id)) continue;
+    if (new RegExp(`(?<![.\\w$])${id}\\b`).test(clientRemainder)) {
+      diagnostics.push(
+        `import \`${id}\` (from "${importOf.get(id)}") is used on BOTH sides of the server boundary — split the file, or extract a shared module (§13.8 escape analysis)`
+      );
+    }
+  }
+
+  // The server module (INV-mpb-1: readable, ejectable, zero reflection).
+  const importLines = new Map<string, Set<string>>();
+  for (const id of allHoisted) {
+    const mod = importOf.get(id)!;
+    if (!importLines.has(mod)) importLines.set(mod, new Set());
+    importLines.get(mod)!.add(id);
+  }
+  for (const root of schemaRoots) {
+    if (importOf.has(root)) {
+      const mod = importOf.get(root)!;
+      if (!importLines.has(mod)) importLines.set(mod, new Set());
+      importLines.get(mod)!.add(root);
+    }
+  }
+  const serverModule =
+    `// AUTO-GENERATED by para-preprocess from ${moduleId} — §13.8 server sources.\n` +
+    `// Ejectable: plain code, host it with createServerSource(@lyku/para-sync).\n` +
+    [...importLines.entries()]
+      .map(([mod, names]) => `import { ${[...names].sort().join(", ")} } from "${mod}";`)
+      .join("\n") +
+    (importLines.size > 0 ? "\n\n" : "\n") +
+    `export const __paraServerSources = [\n` +
+    sources
+      .map(
+        (s) =>
+          `  {\n` +
+          `    name: ${JSON.stringify(s.name)},\n` +
+          `    declId: ${JSON.stringify(s.declId)},\n` +
+          `    schema: ${s.schema},\n` +
+          `    params: ${JSON.stringify(s.params)},\n` +
+          `    policy: ${s.policy},\n` +
+          `    run: (${s.params.length > 0 ? `{ ${s.params.join(", ")} }` : ""}) => (${s.expr}),\n` +
+          `  },`
+      )
+      .join("\n") +
+    `\n];\n`;
+
+  return { code: out, serverModule, sources, diagnostics };
+}
+
 // A presence binding (§13.4): the value is a reactive Map of live peers, so the
 // pre-hydrate fallback is `new Map()`.
 function presenceBinding(indent: string, name: string, call: string): string {
@@ -1395,7 +1671,22 @@ export function lowerPuiReactivity(
   runtime: "@lyku/para-ui" | "svelte" = "@lyku/para-ui",
   linePreserving = false,
   hmr = false,
+  moduleId?: string,
 ): string {
+  // §13.8 server sources FIRST among the sync family: the single-object
+  // pass's KEY grammar would otherwise capture `server EXPR every …` as a
+  // key expression and emit garbage. Diagnostics are COMPILE ERRORS (a
+  // missing refresh policy, a both-sides import, `this` in a server
+  // expression) — thrown here, not warned. The server module itself is
+  // emitted by the P9 build path calling extractServerSources directly
+  // with the same moduleId, so client subKey === host subKey.
+  const serverResult = extractServerSources(source, { moduleId });
+  if (serverResult.diagnostics.length > 0) {
+    throw new Error(`para-preprocess (§13.8):\n  ${serverResult.diagnostics.join("\n  ")}`);
+  }
+  source = serverResult.code;
+  const needsServerSync = serverResult.sources.length > 0;
+
   // Effect blocks first (brace-aware) so subsequent regex passes don't
   // accidentally chew the rewritten `$effect(() => {...})` body.
   source = lowerEffectBlocks(source);
@@ -1613,7 +1904,8 @@ export function lowerPuiReactivity(
   // from para-signals — so the call site never needs the import line. synced
   // (sync/synced), syncedQuery (sync feed), presence (presence).
   const paraSyncImports: string[] = [];
-  if (needsSynced) paraSyncImports.push("synced");
+  if (needsSynced || needsServerSync) paraSyncImports.push("synced");
+  if (needsServerSync) paraSyncImports.push("subKey");
   if (needsSyncedQuery) paraSyncImports.push("syncedQuery");
   if (syncOneResult.needsSyncedOne) paraSyncImports.push("syncedOne");
   if (needsPresence) paraSyncImports.push("presence");
@@ -1704,7 +1996,9 @@ export function parabunPreprocess(opts: ParabunPreprocessOptions = {}): Preproce
       // bridge reactivity (`signal`/`derived`/`effect` → $state/$effect). After
       // both passes the content is standard TS, so parabun's own transpile (when
       // running under Bun) sees nothing parabun-specific left to transform.
-      const preprocessed = isPui ? lowerPuiReactivity(lowerParaScript(content), runtime, false, hmr) : content;
+      const preprocessed = isPui
+        ? lowerPuiReactivity(lowerParaScript(content), runtime, false, hmr, filename)
+        : content;
       // Svelte's preprocess loop short-circuits with no_change() when
       // `processed.code === content && !processed.map` (see
       // svelte/compiler/preprocess/index.js process_single_tag) — which

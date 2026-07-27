@@ -219,6 +219,16 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
     lspAllowlist: true,
   },
   {
+    id: "sync-server-source",
+    doc: "sync NAME :: SCHEMA from server EXPR every/on/once — opaque server-source sync: the visible runtime-boundary marker + declared refresh policy (.pui, §13.8)",
+    kind: "keyword",
+    // Contextual ONLY (`server` directly after `from`): bare `server` is a
+    // ubiquitous identifier, so no splash keyword and no LSP allowlist entry —
+    // the grammar position is the entire signal.
+    pattern: String.raw`(?<=\bfrom)\s+(server)\b`,
+    scopes: { "1": "storage.modifier.server.parabun" },
+  },
+  {
     id: "every-postfix",
     doc: "`every MS_EXPR` postfix on a signal declaration — drives the cell from an interval",
     kind: "keyword",

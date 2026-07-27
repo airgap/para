@@ -149,6 +149,15 @@
       }
     },
     {
+      "comment": "sync NAME :: SCHEMA from server EXPR every/on/once — opaque server-source sync: the visible runtime-boundary marker + declared refresh policy (.pui, §13.8)",
+      "match": "(?<=\\bfrom)\\s+(server)\\b",
+      "captures": {
+        "1": {
+          "name": "storage.modifier.server.parabun"
+        }
+      }
+    },
+    {
       "comment": "`every MS_EXPR` postfix on a signal declaration — drives the cell from an interval",
       "match": "(?<=[\\)\\d\\w$])\\s+(every)\\s+(?=\\d|[A-Za-z_$\\(])",
       "captures": {
@@ -158,7 +167,7 @@
       }
     },
     {
-      "comment": "derived NAME = EXPR or derived NAME { … } — read-only computed cell ($derived / $derived.by)",
+      "comment": "derived NAME = EXPR / derived NAME { … } — read-only computed cell ($derived / $derived.by); derived NAME :: SCHEMA = EXPR — query-derived cell: tracked re-run, latest-wins, parse-gated settle (querySignal, .pui)",
       "match": "\\b(derived)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*[=,;:!{])",
       "captures": {
         "1": {
