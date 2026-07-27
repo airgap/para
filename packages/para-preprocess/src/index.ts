@@ -724,6 +724,65 @@ function lowerDerivedDecls(source: string): string {
   return out;
 }
 
+function lowerQueryDerivedDecls(source: string): {
+  code: string;
+  needsQuerySignal: boolean;
+} {
+  // `derived NAME :: SCHEMA = EXPR` → the query-derived cell (spec ch. 07
+  // §10.7): a client-pull async cell that re-runs when signals read in
+  // EXPR change, parse-gates each settle through SCHEMA, and keeps the
+  // previous data during a refetch (stale-while-revalidate). The `::`
+  // is the discriminator — plain `derived NAME = EXPR` and the single-`:`
+  // TS-annotation form stay with lowerDerivedDecls.
+  //
+  // MUST run before lowerDerivedDecls: its optional-annotation regex
+  // (`(?::\s*[^=;]+?)?`) would swallow `:: SCHEMA` as a type annotation
+  // and emit an ungated plain $derived — silently dropping the gate.
+  //
+  // The whole binding lives inside ONE $effect.pre. querySignal fires its
+  // thunk synchronously (the promiseSignal idiom), so reads of tracked
+  // state inside EXPR register as dependencies of THIS effect — a change
+  // re-runs it, and the cleanup disposes the superseded run (abort +
+  // late-settle drop = latest-wins with no run-id machinery). Unmount is
+  // the same teardown path, so no onDestroy is needed.
+  //
+  // `__qdv_` is deliberately a PLAIN let (evolving-any, no annotation):
+  // the previous cell value handed to `{ prev }` must NOT be read off the
+  // $state cell inside the effect — that read would register the cell
+  // itself as a dependency, and every settle (`NAME = __v`) would then
+  // re-trigger the effect: an infinite rebind/refetch loop.
+  const re = /(^|[;\n{}])(\s*)derived\s+([A-Za-z_$][\w$]*)\s*::\s*([^=;\n]+?)\s*=\s*/g;
+  let out = "";
+  let last = 0;
+  let needs = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const kwStart = m.index + m[1]!.length;
+    const matchEnd = re.lastIndex;
+    const name = m[3]!;
+    const schema = m[4]!.trim();
+    const end = derivedInitEnd(source, matchEnd);
+    const expr = source.slice(matchEnd, end).trim();
+    const consumeEnd = source[end] === ";" ? end + 1 : end;
+    out += source.slice(last, kwStart);
+    out +=
+      `${m[2]}let ${name} = $state({ data: undefined, error: undefined, pending: true }); ` +
+      `let __qdv_${name}; ` +
+      `$effect.pre(() => { ` +
+      `const __qd_${name} = querySignal(() => (${expr}), ${schema}, { prev: __qdv_${name} }); ` +
+      `const __sd_${name} = __qd_${name}.peek?.(); ` +
+      `if (__sd_${name} !== undefined) { __qdv_${name} = __sd_${name}; ${name} = __sd_${name}; } ` +
+      `const __un_${name} = __qd_${name}.subscribe?.((__v: typeof ${name}) => { __qdv_${name} = __v; ${name} = __v; }); ` +
+      `return () => { __un_${name}?.(); __qd_${name}.dispose?.(); }; ` +
+      `});`;
+    needs = true;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+  return { code: out, needsQuerySignal: needs };
+}
+
 function lowerPropDecls(source: string): string {
   // `prop NAME: TYPE` / `prop NAME: TYPE = DEFAULT` declarations merge
   // into a single `let { ... }: { ... } = $props()` destructure, emitted
@@ -1287,6 +1346,11 @@ export function lowerPuiReactivity(
   // Effect blocks first (brace-aware) so subsequent regex passes don't
   // accidentally chew the rewritten `$effect(() => {...})` body.
   source = lowerEffectBlocks(source);
+  // Query-derived (`derived NAME :: SCHEMA = EXPR`, §10.7) BEFORE the
+  // plain derived pass — see lowerQueryDerivedDecls for why order is
+  // load-bearing (the plain pass would eat `:: SCHEMA` as an annotation).
+  const queryDerivedResult = lowerQueryDerivedDecls(source);
+  source = queryDerivedResult.code;
   source = lowerDerivedBlocks(source);
   source = lowerDerivedDecls(source);
   source = lowerPropDecls(source);
@@ -1476,7 +1540,12 @@ export function lowerPuiReactivity(
     if (hmr) paraImports.push("hmrSignal");
   }
   if (asyncSignalResult.needsPromiseSignal) paraImports.push("promiseSignal");
-  if (paraImports.length > 0 && !/from\s+['"]@para\/signals['"]/.test(result)) {
+  if (queryDerivedResult.needsQuerySignal) paraImports.push("querySignal");
+  // Dedup matches BOTH scope spellings: the regex previously checked only
+  // the retired `@para/signals` scope (missed in the @para→@lyku sweep),
+  // so a hand-authored `@lyku/para-signals` import collided with the
+  // injected one — a duplicate-binding SyntaxError, not just noise.
+  if (paraImports.length > 0 && !/from\s+['"](?:@para\/signals|@lyku\/para-signals)['"]/.test(result)) {
     result = `import { ${paraImports.join(", ")} } from "@lyku/para-signals";${importSep}` + result;
   }
 

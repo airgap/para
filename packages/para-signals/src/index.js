@@ -237,6 +237,82 @@ export function promiseSignal(thunk) {
 }
 
 /**
+ * promiseSignal's tracked, gated sibling — the producer behind the
+ * `.pui` query-derived cell `derived NAME :: SCHEMA = EXPR` (spec ch. 07
+ * §10.7). One querySignal instance is ONE run: the bridge constructs it
+ * inside `$effect.pre`, so signal reads in the thunk are tracked (the
+ * thunk fires synchronously, same as promiseSignal) and a dependency
+ * change re-keys by disposing this instance and constructing a fresh
+ * one. Latest-wins therefore needs no run-id machinery here: dispose()
+ * aborts the in-flight request AND drops a late settle.
+ *
+ * The settle crosses the schema's parse gate (a trust boundary — the
+ * response came off a wire): `Ok` stores the PARSED value; `Err` lands
+ * in `error` as a state, never a throw (the sync inbound-gate mode).
+ *
+ * Stale-while-revalidate: `opts.prev` is the previous cell value from
+ * the superseded run — its `data` seeds this run's cell so a re-key
+ * shows the old value with `pending: true` instead of a flash to
+ * undefined. Cold start (no prev) begins at `data: undefined`.
+ *
+ * Client-pull with no reconcile — deliberately in para-signals, not
+ * para-sync.
+ *
+ * @template T
+ * @param {(abort: AbortSignal) => unknown | Promise<unknown>} thunk
+ * @param {{ parse(v: unknown): { tag: "Ok", value: T } | { tag: "Err", error: unknown } }} schema
+ * @param {{ prev?: { data?: T } }} [opts]
+ */
+export function querySignal(thunk, schema, opts = {}) {
+  if (!schema || typeof schema.parse !== "function") {
+    throw new Error("querySignal: the provided schema has no parse(value) method");
+  }
+  const prev = opts.prev;
+  const state = new WritableSignal({
+    data: prev === undefined || prev === null ? undefined : prev.data,
+    error: undefined,
+    pending: true,
+  });
+  const ac = new AbortController();
+  let disposed = false;
+  // Synchronous fire, same rationale as promiseSignal: the request starts
+  // immediately AND reads of tracked state happen inside the caller's
+  // effect scope — which is what makes the re-key tracking work at all.
+  let p;
+  try {
+    p = Promise.resolve(thunk(ac.signal));
+  } catch (error) {
+    p = Promise.reject(error);
+  }
+  p.then(
+    value => {
+      if (disposed) return;
+      let r;
+      try {
+        r = schema.parse(value);
+      } catch (error) {
+        state.set({ data: undefined, error, pending: false });
+        return;
+      }
+      if (r && r.tag === "Ok") state.set({ data: r.value, error: undefined, pending: false });
+      else if (r && r.tag === "Err") state.set({ data: undefined, error: r.error, pending: false });
+      else state.set({ data: undefined, error: new Error("querySignal: schema.parse returned a non-Result"), pending: false });
+    },
+    error => {
+      if (!disposed) state.set({ data: undefined, error, pending: false });
+    },
+  );
+  return {
+    peek: () => state.peek(),
+    subscribe: cb => state.subscribe(cb),
+    dispose: () => {
+      disposed = true;
+      ac.abort();
+    },
+  };
+}
+
+/**
  * HMR-stable signal. Keyed by a module-stable string (e.g.
  * `import.meta.url + "::name"`), the FIRST call creates the signal via
  * `make()`; subsequent calls — after a vite/HMR module re-evaluation —

@@ -231,7 +231,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "derived-decl",
-    doc: "derived NAME = EXPR or derived NAME { … } — read-only computed cell ($derived / $derived.by)",
+    doc: "derived NAME = EXPR / derived NAME { … } — read-only computed cell ($derived / $derived.by); derived NAME :: SCHEMA = EXPR — query-derived cell: tracked re-run, latest-wins, parse-gated settle (querySignal, .pui)",
     kind: "keyword",
     pattern: String.raw`\b(derived)\b(?=\s+[A-Za-z_$][\w$]*\s*[=,;:!{])`,
     scopes: { "1": "storage.type.derived.parabun" },
