@@ -16,7 +16,11 @@
 //   - durable.js   — storage adapters: MutationStore (log) + SnapshotStore
 //     (read-side durability) in memory + localStorage flavors.
 //   - feeds.js     — syncedQuery: typed collections (§13.3) — a createClientReplica
-//     per row, composed by a membership channel into a reactive array.
+//     per row, composed by a membership channel into a reactive array; syncedOne:
+//     the §13.7 scalar (limit-1) degeneration with the ready gate.
+//   - query-authority.js — createQueryAuthority: the server-side query host
+//     (§13.7 liveness) — read-set registration, wrote()/invalidate()
+//     re-evaluation, per-row sequences, outbound parse gate, membership diffs.
 //   - presence.js  — presence: ephemeral peer state (§13.4) — a parse-gated,
 //     LWW-per-peer, disconnect-GC'd map; no sequence, no reconcile machine.
 //   - authority.js — per-field authority (§13.2): @server/@lww/@merge, projected
@@ -30,6 +34,7 @@ export * from "./writer.js";
 export * from "./queue.js";
 export * from "./durable.js";
 export * from "./feeds.js";
+export * from "./query-authority.js";
 export * from "./presence.js";
 export * from "./authority.js";
 export * from "./transaction.js";
