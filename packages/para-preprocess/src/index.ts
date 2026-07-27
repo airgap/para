@@ -1078,6 +1078,59 @@ function lowerSyncFeedDecls(source: string): {
   return { code: out, needsOnDestroy: needs, needsSyncedQuery: needs };
 }
 
+function lowerSyncOneDecls(source: string): {
+  code: string;
+  needsSyncedOne: boolean;
+} {
+  // `sync NAME :: SCHEMA from query(SPEC)` — scalar, NO `[]` — → the §13.7
+  // scalar query binding. Runs AFTER lowerSyncFeedDecls (which consumes the
+  // `[]`+query collection form) and BEFORE lowerSyncFromDecls (whose KEY
+  // grammar accepts any expression, so `query({...})` would be captured as
+  // a client-evaluated key and lowered to `synced(query(...), SCHEMA)`).
+  //
+  // Unlike the construct-once keyed binding (syncedBinding), this is the
+  // TRACKED re-subscription bridge (§13.7 normative rule): the whole
+  // binding lives in one $effect.pre, so client-reactive values read in
+  // SPEC are dependencies — a change disposes the old handle and binds a
+  // fresh one. The cell is deliberately NOT reset on re-key: it keeps the
+  // stale value, and syncedOne's ready gate keeps the fresh subscription
+  // silent until its first membership fact, so there is no undefined
+  // flash between re-key and new baseline (stale-while-revalidate).
+  const re =
+    /(^|[;\n{}])(\s*)sync\s+([A-Za-z_$][\w$]*)\s*::\s*([A-Za-z_$][\w$.]*)\s+from\s+query\s*\(/g;
+  let out = "";
+  let last = 0;
+  let needs = false;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const kwStart = m.index + m[1]!.length;
+    const parenOpen = re.lastIndex - 1;
+    const parenEnd = matchParen(source, parenOpen);
+    if (parenEnd < 0) continue; // unbalanced — leave as-is
+    const spec = source.slice(parenOpen + 1, parenEnd - 1).trim();
+    const name = m[3]!;
+    const schema = m[4]!;
+    let consumeEnd = parenEnd;
+    while (source[consumeEnd] === " " || source[consumeEnd] === "\t") consumeEnd++;
+    if (source[consumeEnd] === ";") consumeEnd++;
+    out += source.slice(last, kwStart);
+    out +=
+      `${m[2]}let ${name} = $state(undefined as any); ` +
+      `$effect.pre(() => { ` +
+      `const __sq_${name} = syncedOne(${schema}, ${spec}); ` +
+      `const __ss_${name} = __sq_${name}.peek?.(); ` +
+      `if (__ss_${name} !== undefined) ${name} = __ss_${name}; ` +
+      `const __un_${name} = __sq_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; }); ` +
+      `return () => { __un_${name}?.(); __sq_${name}.dispose?.(); }; ` +
+      `});`;
+    needs = true;
+    last = consumeEnd;
+    re.lastIndex = consumeEnd;
+  }
+  out += source.slice(last);
+  return { code: out, needsSyncedOne: needs };
+}
+
 // A presence binding (§13.4): the value is a reactive Map of live peers, so the
 // pre-hydrate fallback is `new Map()`.
 function presenceBinding(indent: string, name: string, call: string): string {
@@ -1373,6 +1426,12 @@ export function lowerPuiReactivity(
   const syncFeedResult = lowerSyncFeedDecls(source);
   source = syncFeedResult.code;
 
+  // `sync NAME :: SCHEMA from query(...)` — scalar, §13.7 — after the feed
+  // pass (which owns `[]`+query) and before the single-object pass (whose
+  // KEY grammar would swallow `query({...})` as a key expression).
+  const syncOneResult = lowerSyncOneDecls(source);
+  source = syncOneResult.code;
+
   // `sync NAME :: SCHEMA from KEY` (readable form) before `synced NAME = ARGS`
   // (full-control form) — distinct keywords (`sync` vs `synced`), but order keeps
   // the readable form's emitted `synced(...)` out of the other's scan path.
@@ -1556,6 +1615,7 @@ export function lowerPuiReactivity(
   const paraSyncImports: string[] = [];
   if (needsSynced) paraSyncImports.push("synced");
   if (needsSyncedQuery) paraSyncImports.push("syncedQuery");
+  if (syncOneResult.needsSyncedOne) paraSyncImports.push("syncedOne");
   if (needsPresence) paraSyncImports.push("presence");
   if (needsCreateIntent) paraSyncImports.push("createIntent");
   if (paraSyncImports.length > 0 && !/from\s+['"]@lyku\/para-sync['"]/.test(result)) {

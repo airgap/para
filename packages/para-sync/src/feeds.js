@@ -10,7 +10,7 @@
 // The value is a reactive array in membership order. `row(key)` exposes a row's
 // replica so an offline-queued mutation (§13.5) can target it by row key.
 
-import { signal, derived, effect } from "@lyku/para-signals";
+import { signal, derived, effect, batch } from "@lyku/para-signals";
 import { createClientReplica } from "./client.js";
 
 /**
@@ -172,5 +172,85 @@ export function syncedQuery(schema, opts = {}) {
       rows.clear();
       orderSig.set([]);
     },
+  };
+}
+
+/**
+ * Scalar query sync (§13.7): ONE entity selected by a typed predicate —
+ * the `limit: 1` degeneration of {@link syncedQuery}, sharing its whole
+ * machinery (per-row createClientReplica, membership vs value channels)
+ * by composition, not a new engine. The `.pui` form
+ * `sync user :: User from query({ where })` lowers here.
+ *
+ * The value is `T | undefined`, and `undefined` is a MEMBERSHIP FACT
+ * ("the server said no row matches"), never a not-yet-loaded state. The
+ * `ready` gate is what keeps those distinct: before the first membership
+ * fact (an SSR `seed`, or the first membership delta), `peek()` returns
+ * `undefined` and `subscribe` stays silent — so a re-keyed component
+ * binding keeps showing its stale value instead of flashing undefined
+ * while the new subscription loads. After ready, an empty key set emits
+ * a real `undefined` (row absent / deleted).
+ *
+ * @template [T=any]
+ * @param {SyncSchema} schema  the row schema (parse gate per envelope).
+ * @param {object} [opts]  syncedQuery opts; `limit` defaults to 1.
+ */
+export function syncedOne(schema, opts = {}) {
+  if (!schema || typeof schema.parse !== "function") {
+    throw new Error("syncedOne: `schema` (with parse) is required");
+  }
+  const readySig = signal(Boolean(opts.seed));
+  // Wrap the membership stream (explicit, or resolved from the app-wide
+  // config — resolved HERE so the limit:1 injection reaches the server
+  // subscription) to flip `ready` on the first delta.
+  const rawMembership =
+    opts.membership ??
+    (queryDefaults.resolveMembership
+      ? queryDefaults.resolveMembership(schema, { limit: 1, ...opts })
+      : undefined);
+  const resolved = typeof rawMembership === "function" ? rawMembership() : rawMembership;
+  const membership = resolved
+    ? {
+        // Membership applies BEFORE ready flips, and both inside one batch:
+        // effects drain synchronously in para-signals, so flipping ready
+        // first would emit a spurious `undefined` ("no row" — a false fact)
+        // in the gap before the delta lands.
+        listen: (onDelta) =>
+          resolved.listen((d) =>
+            batch(() => {
+              onDelta(d);
+              readySig.set(true);
+            })
+          ),
+        close: () => resolved.close?.(),
+      }
+    : undefined;
+  const q = syncedQuery(schema, { ...opts, limit: opts.limit ?? 1, membership });
+  // Reading readySig INSIDE the derived makes the ready flip itself a
+  // tracked change, so a subscriber sees the first real fact the moment
+  // membership lands.
+  const one = derived(() => (readySig.get() ? q.get()[0] : undefined));
+  return {
+    /** the entity (tracked read) — `undefined` means "no row matches" once ready */
+    get: () => one.get(),
+    /** the entity (untracked); `undefined` before the first membership fact */
+    peek: () => (readySig.peek() ? one.peek() : undefined),
+    /**
+     * Fires on every change AFTER the first membership fact; silent before
+     * (the SWR contract for re-keyed bindings). Returns an unsubscribe.
+     * @param {(v: T | undefined) => void} onChange
+     */
+    subscribe(onChange) {
+      return effect(() => {
+        const v = one.get();
+        if (readySig.get()) onChange(v);
+      });
+    },
+    /** true once a membership fact (seed or delta) has arrived */
+    ready: () => readySig.peek(),
+    /** the row's replica (Tier-2 seams), or undefined when no row */
+    row: () => q.row(q.rowKeys()[0]),
+    /** stop membership + the row replica; idempotent */
+    dispose: () => q.dispose(),
   };
 }
