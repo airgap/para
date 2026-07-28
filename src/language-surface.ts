@@ -670,6 +670,13 @@ export const SPLASH_PARA_KEYWORDS: string[] = [
   "para",
   "is",
   "every",
+  /* Contextual — only meaningful after `from`, and the TextMate/LSP
+   * layers scope it that way (`sync-server-source`). The splash
+   * regex is word-boundary-dumb, but the reel's only bare `server`
+   * outside the `from server` form sits in comments/strings, which
+   * the marker passes protect first. Added when the splash reel
+   * gained its `from server` snippet. */
+  "server",
 ];
 
 /** Plain-JS reserved words the splash highlights on BOTH sides of the
