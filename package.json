@@ -1,27 +1,15 @@
 {
-  "name": "@lyku/para-workspace",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Para language ecosystem — packages, LSP, and UI tooling that consume the ParaBun runtime. Extracted from the parabun Bun-fork so the fork stays minimal/rebaseable against upstream Bun; this repo owns the para packages, their release, and (privately) the design docs.",
-  "workspaces": [
-    "packages/*",
-    "!packages/para-svelte",
-    "!packages/para-codemod"
-  ],
-  "scripts": {
-    "build": "nx run-many --target=build --skip-nx-cache --parallel=99 --output-style=stream",
-    "test": "nx run-many --target=test --skip-nx-cache --parallel=99 --output-style=stream",
-    "lint": "nx run-many --target=lint --skip-nx-cache --parallel=99 --output-style=stream",
-    "typecheck": "nx run-many --target=typecheck --skip-nx-cache --parallel=99 --output-style=stream",
-    "codegen": "bun scripts/codegen.ts",
-    "codegen:check": "bun scripts/codegen.ts --check"
-  },
-  "devDependencies": {
-    "@nx/devkit": "^20.5.0",
-    "@nx/js": "^20.5.0",
-    "@nx/workspace": "^20.5.0",
-    "nx": "^20.5.0",
-    "prettier": "^3.5.3",
-    "typescript": "^5.8.2"
-  }
+	"name": "@lyku/para-workspace",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Para language ecosystem \u2014 packages, LSP, and UI tooling that consume the ParaBun runtime. Extracted from the parabun Bun-fork so the fork stays minimal/rebaseable against upstream Bun; this repo owns the para packages, their release, and (privately) the design docs.",
+	"scripts": {
+		"build": "nx run-many --target=build --skip-nx-cache --parallel=99 --output-style=stream",
+		"test": "nx run-many --target=test --skip-nx-cache --parallel=99 --output-style=stream",
+		"lint": "nx run-many --target=lint --skip-nx-cache --parallel=99 --output-style=stream",
+		"typecheck": "nx run-many --target=typecheck --skip-nx-cache --parallel=99 --output-style=stream",
+		"codegen": "bun scripts/codegen.ts",
+		"codegen:check": "bun scripts/codegen.ts --check"
+	},
+	"//": "Demoted workspace root (ADR-0025): the monorepo root owns workspace membership and toolchain deps; scripts kept for para-scoped runs. airgap/para remains the CI/publish source until the Jenkins cutover."
 }

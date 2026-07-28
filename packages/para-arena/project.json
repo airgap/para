@@ -1,12 +1,18 @@
 {
   "name": "para-arena",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/para-arena/src",
+  "sourceRoot": "para/packages/para-arena/src",
   "projectType": "library",
   "targets": {
     "test": {
       "executor": "nx:run-commands",
-      "options": { "command": "bun test", "cwd": "packages/para-arena" }
+      "options": {
+        "command": "bun test",
+        "cwd": "para/packages/para-arena"
+      }
     }
-  }
+  },
+  "tags": [
+    "scope:para"
+  ]
 }

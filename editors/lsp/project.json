@@ -1,21 +1,31 @@
 {
   "name": "parabun-lsp",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "editors/lsp",
+  "sourceRoot": "para/editors/lsp",
   "projectType": "application",
-  "tags": ["standalone-bun-lock", "tier-b"],
+  "tags": [
+    "needs-parabun",
+    "scope:para",
+    "standalone-bun-lock",
+    "tier-b"
+  ],
   "targets": {
     "install": {
       "executor": "nx:run-commands",
-      "options": { "command": "bun install", "cwd": "editors/lsp" }
+      "options": {
+        "command": "bun install",
+        "cwd": "para/editors/lsp"
+      }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
         "command": "\"${PARABUN_BIN:-parabun}\" test/pui-lower-parity.smoke.ts && \"${PARABUN_BIN:-parabun}\" test/pui-import-inference.smoke.ts && \"${PARABUN_BIN:-parabun}\" test/component-embedded.smoke.ts",
-        "cwd": "editors/lsp"
+        "cwd": "para/editors/lsp"
       },
-      "dependsOn": ["install"]
+      "dependsOn": [
+        "install"
+      ]
     }
   }
 }

@@ -1,12 +1,18 @@
 {
   "name": "para-rtp",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/para-rtp/src",
+  "sourceRoot": "para/packages/para-rtp/src",
   "projectType": "library",
   "targets": {
     "test": {
       "executor": "nx:run-commands",
-      "options": { "command": "bun test", "cwd": "packages/para-rtp" }
+      "options": {
+        "command": "bun test",
+        "cwd": "para/packages/para-rtp"
+      }
     }
-  }
+  },
+  "tags": [
+    "scope:para"
+  ]
 }

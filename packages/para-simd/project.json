@@ -1,12 +1,18 @@
 {
   "name": "para-simd",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/para-simd/src",
+  "sourceRoot": "para/packages/para-simd/src",
   "projectType": "library",
   "targets": {
     "test": {
       "executor": "nx:run-commands",
-      "options": { "command": "bun test", "cwd": "packages/para-simd" }
+      "options": {
+        "command": "bun test",
+        "cwd": "para/packages/para-simd"
+      }
     }
-  }
+  },
+  "tags": [
+    "scope:para"
+  ]
 }

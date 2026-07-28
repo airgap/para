@@ -1,18 +1,30 @@
 {
   "name": "parabun-ts-plugin",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "editors/ts-plugin/src",
+  "sourceRoot": "para/editors/ts-plugin/src",
   "projectType": "application",
-  "tags": ["standalone", "tier-b"],
+  "tags": [
+    "scope:para",
+    "standalone",
+    "tier-b"
+  ],
   "targets": {
     "install": {
       "executor": "nx:run-commands",
-      "options": { "command": "bun install", "cwd": "editors/ts-plugin" }
+      "options": {
+        "command": "bun install",
+        "cwd": "para/editors/ts-plugin"
+      }
     },
     "build": {
       "executor": "nx:run-commands",
-      "options": { "command": "node esbuild.mjs", "cwd": "editors/ts-plugin" },
-      "dependsOn": ["install"]
+      "options": {
+        "command": "node esbuild.mjs",
+        "cwd": "para/editors/ts-plugin"
+      },
+      "dependsOn": [
+        "install"
+      ]
     }
   }
 }

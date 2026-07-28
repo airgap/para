@@ -13,4 +13,13 @@ if (!fname) {
 }
 
 const src = await Bun.file(fname).text();
-process.stdout.write(new Bun.Transpiler({ loader: "ts" }).transformSync(src));
+// Newer parabun builds parse Para under the dedicated "pts" loader; the
+// older pinned debug builds folded it into "ts". Prefer "pts", fall back.
+let transpiler: Bun.Transpiler;
+try {
+  transpiler = new Bun.Transpiler({ loader: "pts" as never });
+  transpiler.transformSync("let x = 1");
+} catch {
+  transpiler = new Bun.Transpiler({ loader: "ts" });
+}
+process.stdout.write(transpiler.transformSync(src));
