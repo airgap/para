@@ -208,11 +208,31 @@ pipeline {
 					filename 'jenkins/Dockerfile.ci-linux'
 					label 'linux'
 					customWorkspace '/raid/jenkins-workspaces/para-bench'
-					args '-v /var/lib/jenkins/.ssh-ci:/tmp/.ssh-ci:ro'
 				}
 			}
 			steps {
 				checkout scm
+				// Macro corpus: HOST-side sparse shallow lyku checkout into the
+				// persistent workspace. Must not run in-container: t.muzz.in's
+				// ssh only resolves through the host's ssh config (Cloudflare
+				// fronts the DNS name and does not proxy ssh), and GitSCM
+				// checkout executes on the host launcher even under a docker
+				// agent (JENKINS-30600) — which is exactly what we need.
+				dir('.bench-corpus') {
+					checkout([
+						$class: 'GitSCM',
+						branches: [[name: '*/main']],
+						extensions: [
+							[$class: 'CloneOption', depth: 1, shallow: true, noTags: true],
+							[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [
+								[$class: 'SparseCheckoutPath', path: 'org/'],
+								[$class: 'SparseCheckoutPath', path: 'co/'],
+								[$class: 'SparseCheckoutPath', path: 'framework/']
+							]]
+						],
+						userRemoteConfigs: [[url: 'git@t.muzz.in:muzzin/lyku.git', credentialsId: 'gitea-ssh']]
+					])
+				}
 				withCredentials([usernamePassword(
 					credentialsId: 'github-pat',
 					usernameVariable: 'GH_USER',
@@ -234,19 +254,6 @@ pipeline {
 							chmod +x .parabun/parabun-linux-x64
 							export PARABUN_BIN="$PWD/.parabun/parabun-linux-x64"
 
-							# Macro corpus: shallow sparse lyku checkout, reused
-							# across nightlies (persistent workspace). blob:none
-							# is best-effort — git ignores the filter if Gitea
-							# has uploadpack.allowFilter off.
-							export GIT_SSH_COMMAND="ssh -i /tmp/.ssh-ci/id_ed25519 -o UserKnownHostsFile=/tmp/.ssh-ci/known_hosts -o StrictHostKeyChecking=no"
-							if [ -d .bench-corpus/.git ]; then
-								git -C .bench-corpus fetch --depth=1 origin main
-								git -C .bench-corpus checkout -f FETCH_HEAD
-							else
-								git clone --depth=1 --filter=blob:none --sparse \
-									git@t.muzz.in:muzzin/lyku.git .bench-corpus
-								git -C .bench-corpus sparse-checkout set org co framework
-							fi
 							echo "corpus at $(git -C .bench-corpus rev-parse --short HEAD)"
 
 							bun install
