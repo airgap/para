@@ -1,5 +1,10 @@
 node_modules
 dist
+# para-preprocess dist is COMMITTED (ADR-0025): every svelte config imports
+# it and nx graph construction loads those configs, so the built entry must
+# exist on any fresh checkout without a bootstrap step. Rebuild with tsc
+# (the Codegen stage still rebuilds fresh each CI run).
+!packages/para-preprocess/dist
 .nx/cache
 .nx/workspace-data
 tmp
