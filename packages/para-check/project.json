@@ -9,7 +9,15 @@
       "options": {
         "command": "node esbuild.mjs",
         "cwd": "para/packages/para-check"
-      }
+      },
+      "dependsOn": [
+        {
+          "projects": [
+            "parabun-lsp"
+          ],
+          "target": "install"
+        }
+      ]
     },
     "test": {
       "executor": "nx:run-commands",
