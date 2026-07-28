@@ -21,7 +21,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Base toolchain + everything Bun's buildkite Dockerfile installs, minus the
 # arm64 cross-compile shim (we only build x86_64 here).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        wget curl git unzip ca-certificates gnupg lsb-release \
+        wget curl git unzip ca-certificates gnupg lsb-release openssh-client \
         software-properties-common apt-transport-https \
         python3 ninja-build \
         ruby ruby-dev bison gawk perl make ccache golang \
