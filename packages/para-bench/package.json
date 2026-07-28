@@ -1,0 +1,20 @@
+{
+	"name": "@lyku/para-bench",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Differential performance benchmark across the Para ↔ ParaBun boundary. Times the same corpus through the parabun binary (batch + per-spawn) AND the @lyku/para-transpile JS mirror, so compile-speed regressions and the native-vs-mirror multiplier are visible as a trend instead of folklore. Correctness parity lives in @lyku/para-parity; this package only measures. Never published.",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/airgap/para.git",
+		"directory": "packages/para-bench"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"@lyku/para-transpile": "workspace:*",
+		"@lyku/parabun-bin": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "*"
+	}
+}

@@ -1,0 +1,19 @@
+{
+	"name": "para-bench",
+	"$schema": "../../node_modules/nx/schemas/project-schema.json",
+	"sourceRoot": "packages/para-bench",
+	"projectType": "library",
+	"targets": {
+		"bench": {
+			"executor": "nx:run-commands",
+			"options": { "command": "bun bench.ts", "cwd": "packages/para-bench" }
+		},
+		"bench-check": {
+			"executor": "nx:run-commands",
+			"options": {
+				"command": "bun bench.ts --check ${BENCH_BASELINE:-bench-baseline.json}",
+				"cwd": "packages/para-bench"
+			}
+		}
+	}
+}

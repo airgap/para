@@ -46,6 +46,8 @@ pipeline {
 		       description: 'airgap/parabun release tag to pin for the BLOCKING parity gate. Empty = read packages/parabun-bin/manifest.json version (the committed pin). The lockfile/manifest is the source of truth; this is an override.')
 		booleanParam(name: 'RUN_CANARY', defaultValue: false,
 		             description: 'Force the non-blocking canary (parity vs LATEST parabun). Auto-on for the nightly cron build.')
+		booleanParam(name: 'RUN_BENCH', defaultValue: false,
+		             description: 'Force the non-blocking perf bench (parabun vs the @lyku/para-transpile mirror over the lyku corpus). Auto-on for the nightly cron build.')
 		booleanParam(name: 'PUBLISH_NPM', defaultValue: false,
 		             description: 'Publish @lyku/para-preprocess + @lyku/para-ui (pnpm-built) + package the .vsix. Off by default. Uses Doppler NPM_ACCESS_TOKEN (ci-deploy/prd).')
 	}
@@ -183,6 +185,91 @@ pipeline {
 							bunx nx run parity:canary --skip-nx-cache
 						'''
 					}
+				}
+			}
+		}
+
+		// Differential perf trend (NON-BLOCKING) — packages/para-bench.
+		// Times the LATEST parabun release and the @lyku/para-transpile
+		// mirror over the lyku monorepo corpus (the largest Para codebase),
+		// compares against the previous run's baseline kept in this
+		// persistent workspace, and goes UNSTABLE (never FAILED) on a >25%
+		// regression. Trend signal only; the blocking perf/behavior gate
+		// belongs on parabun's side (the lyku-integration required check).
+		stage('Bench (nightly perf trend)') {
+			when {
+				anyOf {
+					triggeredBy 'TimerTrigger'
+					expression { params.RUN_BENCH }
+				}
+			}
+			agent {
+				dockerfile {
+					filename 'jenkins/Dockerfile.ci-linux'
+					label 'linux'
+					customWorkspace '/raid/jenkins-workspaces/para-bench'
+					args '-v /var/lib/jenkins/.ssh-ci:/tmp/.ssh-ci:ro'
+				}
+			}
+			steps {
+				checkout scm
+				withCredentials([usernamePassword(
+					credentialsId: 'github-pat',
+					usernameVariable: 'GH_USER',
+					passwordVariable: 'GH_TOKEN',
+				)]) {
+					catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+						sh '''
+							set -eu
+							export HOME="${WORKSPACE}"
+
+							# LATEST parabun release — the binary about to be pinned
+							# is the one whose speed we want on the trend line.
+							LATEST=$(gh release list --repo airgap/parabun \
+								--limit 1 --json tagName --jq '.[0].tagName')
+							echo "latest parabun: $LATEST"
+							mkdir -p .parabun
+							gh release download "$LATEST" --repo airgap/parabun \
+								--pattern 'parabun-linux-x64' --dir .parabun --clobber
+							chmod +x .parabun/parabun-linux-x64
+							export PARABUN_BIN="$PWD/.parabun/parabun-linux-x64"
+
+							# Macro corpus: shallow sparse lyku checkout, reused
+							# across nightlies (persistent workspace). blob:none
+							# is best-effort — git ignores the filter if Gitea
+							# has uploadpack.allowFilter off.
+							export GIT_SSH_COMMAND="ssh -i /tmp/.ssh-ci/id_ed25519 -o UserKnownHostsFile=/tmp/.ssh-ci/known_hosts -o StrictHostKeyChecking=no"
+							if [ -d .bench-corpus/.git ]; then
+								git -C .bench-corpus fetch --depth=1 origin main
+								git -C .bench-corpus checkout -f FETCH_HEAD
+							else
+								git clone --depth=1 --filter=blob:none --sparse \
+									git@t.muzz.in:muzzin/lyku.git .bench-corpus
+								git -C .bench-corpus sparse-checkout set org co framework
+							fi
+							echo "corpus at $(git -C .bench-corpus rev-parse --short HEAD)"
+
+							bun install
+
+							# Compare against the previous nightly, then advance
+							# the baseline either way — each run is judged against
+							# its predecessor, so a regression is flagged exactly
+							# once instead of forever.
+							BASELINE="$PWD/bench-baseline.json"
+							export BENCH_CORPUS="$PWD/.bench-corpus"
+							export BENCH_OUT="$PWD/bench.json"
+							cd packages/para-bench
+							RC=0
+							if [ -f "$BASELINE" ]; then
+								bun bench.ts --check "$BASELINE" || RC=$?
+							else
+								bun bench.ts || RC=$?
+							fi
+							cp "$BENCH_OUT" "$BASELINE"
+							exit $RC
+						'''
+					}
+					archiveArtifacts artifacts: 'bench.json', allowEmptyArchive: true, fingerprint: true
 				}
 			}
 		}
