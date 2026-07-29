@@ -29,3 +29,7 @@ await build({
   conditions: ["bun", "import", "default"],
   logLevel: "info",
 });
+
+// bin targets need the exec bit; bun only chmods at install time when the file already exists
+import { chmodSync } from "node:fs";
+chmodSync(new URL("./dist/pui-check.cjs", import.meta.url), 0o755);
