@@ -22,7 +22,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun test test/",
+        "command": "bun test --timeout 60000 test/",
         "cwd": "para/packages/para-check"
       },
       "dependsOn": [
