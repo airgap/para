@@ -4,6 +4,7 @@
   "sourceRoot": "para/editors/vscode/parabun/src",
   "projectType": "application",
   "tags": [
+    "no-tests-yet",
     "scope:para",
     "standalone-bun-lock",
     "tier-b",
