@@ -297,7 +297,7 @@ pipeline {
 					set -eu
 					set +x
 					export HOME="${WORKSPACE}"
-					export DOPPLER_TOKEN=$(grep DOPPLER_TOKEN_CI_DEPLOY /etc/default/jenkins-doppler | cut -d= -f2)
+					export DOPPLER_TOKEN=$(grep '^DOPPLER_TOKEN_CI_DEPLOY=' /etc/default/jenkins-doppler | cut -d= -f2-)
 					NPM_TOKEN=$(doppler secrets get NPM_ACCESS_TOKEN --plain --project ci-deploy --config prd)
 					echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$HOME/.npmrc"
 					echo "auth ok: $(npm whoami)"
