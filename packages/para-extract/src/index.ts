@@ -12,7 +12,7 @@
  * - Self-references lower to module-relative `{ $ref: "#<declName>" }`;
  *   references to types listed in `siblings` lower to their Para
  *   declaration's `$ref` and are never re-derived (non-propagation).
- * - Recursion through a type with no Para declaration is an error — the
+ * - Recursion through a type with no Para declaration is an error: the
  *   registry has no node to point at.
  * - Determinism: two extractions of the same type yield byte-identical
  *   bodies (property order = source declaration order).
@@ -40,7 +40,7 @@ export interface ExtractOptions {
 }
 
 export interface ExtractResult {
-  /** Plain acyclic JSON Schema body — feed to `__paraSchemaDecl` / `schema NAME from`. */
+  /** Plain acyclic JSON Schema body: feed to `__paraSchemaDecl` / `schema NAME from`. */
   schema: Record<string, unknown>;
 }
 
@@ -96,7 +96,7 @@ interface Ctx {
   declName: string;
   rootSym: ts.Symbol;
   siblings: Record<string, string>;
-  /** Named types currently being structurally expanded — a hit means
+  /** Named types currently being structurally expanded: a hit means
    *  recursion through a type with no Para declaration. */
   expanding: Set<ts.Symbol>;
 }
@@ -109,7 +109,7 @@ const namedSymbolOf = (type: ts.Type): ts.Symbol | undefined => {
   if (type.aliasSymbol) return type.aliasSymbol;
   const sym = type.getSymbol();
   if (!sym) return undefined;
-  // Anonymous object literals get the internal `__type` symbol — not a name.
+  // Anonymous object literals get the internal `__type` symbol, not a name.
   if (sym.name === "__type" || sym.name === "__object") return undefined;
   return sym;
 };
@@ -172,7 +172,7 @@ const applyBrandConstraints = (
     }
     if (key === "const") {
       // Intersect with an existing literal base (TS normalizes
-      // `boolean & Brand` into per-literal arms — `false & {const: true}`
+      // `boolean & Brand` into per-literal arms: `false & {const: true}`
       // is uninhabited and must collapse to an empty enum, not `[true]`).
       out.enum = Array.isArray(out.enum) ? out.enum.filter(v => v === value) : [value];
       continue;
@@ -260,7 +260,7 @@ function lower(type: ts.Type, ctx: Ctx, isRoot = false): unknown {
   // ── intersections: decl markers, constraint brands, object merges ──────
   if (type.isIntersection()) {
     // Para declaration marker: FromDecl<T, Name> = T & { [__paraDeclBrand]: Name }.
-    // The type IS the data shape of an existing Para declaration — link to
+    // The type IS the data shape of an existing Para declaration: link to
     // its registry node, never re-derive (recursion plan §3 / step 5).
     for (const m of type.types) {
       const props = checker.getPropertiesOfType(m);
@@ -274,7 +274,7 @@ function lower(type: ts.Type, ctx: Ctx, isRoot = false): unknown {
         const declRef = (nameType as ts.StringLiteralType).value;
         if (isRoot) {
           throw new Error(
-            `para-extract: '${ctx.declName}' resolves to FromDecl<…, "${declRef}"> — it already IS the Para declaration '${declRef}'; reference that declaration instead of re-extracting it`,
+            `para-extract: '${ctx.declName}' resolves to FromDecl<…, "${declRef}">. It already IS the Para declaration '${declRef}'; reference that declaration instead of re-extracting it`,
           );
         }
         return { $ref: "#" + declRef };
@@ -290,7 +290,7 @@ function lower(type: ts.Type, ctx: Ctx, isRoot = false): unknown {
     for (const m of type.types) {
       const props = checker.getPropertiesOfType(m);
       // Unique-symbol property names mangle to `__@<escaped>@<id>`, and TS
-      // escapes the brand key's leading `__` to `___` — match structurally.
+      // escapes the brand key's leading `__` to `___`: match structurally.
       if (props.length === 1 && props[0].name.startsWith("__@") && props[0].name.includes("schemaBrand")) {
         bag = checker.getTypeOfSymbol(props[0]);
       } else {
@@ -337,7 +337,7 @@ function lower(type: ts.Type, ctx: Ctx, isRoot = false): unknown {
       return { type: "array", items: elem ? lower(elem, ctx) : {} };
     }
     if (checker.isTupleType(type)) {
-      // Degrade: the Para validator has no prefixItems — permissive array.
+      // Degrade: the Para validator has no prefixItems. Permissive array.
       return { type: "array" };
     }
 
@@ -347,11 +347,11 @@ function lower(type: ts.Type, ctx: Ctx, isRoot = false): unknown {
     }
 
     // Recursion through a named type with no Para declaration cannot be
-    // represented — the registry has no node for the `$ref` to land on.
+    // represented: the registry has no node for the `$ref` to land on.
     if (named) {
       if (ctx.expanding.has(named)) {
         throw new Error(
-          `para-extract: recursive TS type '${named.name}' has no Para declaration — ` +
+          `para-extract: recursive TS type '${named.name}' has no Para declaration: ` +
             `declare it (\`schema ${named.name} = ts<…>\`) and list it in \`siblings\``,
         );
       }

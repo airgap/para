@@ -2,7 +2,7 @@
   "name": "@lyku/para-decimal",
   "version": "0.0.0-dev",
   "private": true,
-  "description": "Self-contained exact-decimal arithmetic for Para. Backs the `0.1d` numeric-literal suffix — `0.1d` lowers to `__paraDec(\"0.1\")`, and the resulting Decimal value composes via `.plus` / `.minus` / `.times` / `.dividedBy` / `.eq` / `.lt` etc. Internal repr is `{ coef: bigint, exp: number }`, so every operation that doesn't divide is exact. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "description": "Self-contained exact-decimal arithmetic for Para. Backs the `0.1d` numeric-literal suffix: `0.1d` lowers to `__paraDec(\"0.1\")`, and the resulting Decimal value composes via `.plus` / `.minus` / `.times` / `.dividedBy` / `.eq` / `.lt` etc. Internal repr is `{ coef: bigint, exp: number }`, so every operation that doesn't divide is exact. NOT YET RELEASED: private:true / 0.0.0-dev pending the workspace split.",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",

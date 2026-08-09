@@ -59,7 +59,7 @@ describe("effect single-statement form (effect STMT;)", () => {
   test("`effect EXPR;` → EXPRESSION-bodied effect(() => EXPR) (implicit return / cleanup preserved)", () => {
     const out = transpile(`effect appSync.sync();\nconst x = 1;`);
     expect(out).toBe(`require("@lyku/para-signals").effect(() => appSync.sync())\nconst x = 1;`);
-    // NOT a block body — a block would discard a teardown return.
+    // NOT a block body: a block would discard a teardown return.
     expect(out).not.toContain("=> {");
   });
 
@@ -124,11 +124,11 @@ describe("when block", () => {
 });
 
 // Predicate-less paired `when X { } when not { }` is NOT canonical Para
-// (zero parabun corpus coverage; the Zig parser rejects it — see the P2
+// (zero parabun corpus coverage; the Zig parser rejects it: see the P2
 // boundary doc). The mirror's paired-form path was removed. Consecutive
 // `when` blocks are independent: each carries its own predicate.
 describe("consecutive when blocks (independent, not paired)", () => {
-  test("when X { } when not Y { } — Y is its own predicate", () => {
+  test("when X { } when not Y { }: Y is its own predicate", () => {
     const out = transpile("when a { f(); } when not b { g(); }");
     expect(out).toContain(`when(() => a, () => { f(); })`);
     expect(out).toContain(`when(() => !(b), () => { g(); })`);

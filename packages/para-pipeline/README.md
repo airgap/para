@@ -22,7 +22,7 @@ const out = await p.collect(p.take(10)(p.filter(even)(p.map(double)(source))));
 
 ## Operator surface
 
-**Combinators** (transforms — return a stream)
+**Combinators** (transforms, return a stream)
 
 | | |
 | --- | --- |
@@ -44,7 +44,7 @@ const out = await p.collect(p.take(10)(p.filter(even)(p.map(double)(source))));
 | `catchError(handler)` | Recover from upstream errors with a value or substitute stream. |
 | `retry(times)` | Restart the source on error up to `times` times. |
 
-**Terminals** (consume a stream — return a `Promise`)
+**Terminals** (consume a stream, return a `Promise`)
 
 | | |
 | --- | --- |
@@ -55,8 +55,8 @@ const out = await p.collect(p.take(10)(p.filter(even)(p.map(double)(source))));
 | `forEach(fn)` | Side effect per item; resolves when source completes. |
 | `first(pred?)` / `last(pred?)` / `find(pred)` | Selector terminals. |
 | `min(keyFn?)` / `max(keyFn?)` | Extreme by numeric key. |
-| `topK(k, keyFn?, {by})` | The `k` best, ordered best→worst. Streaming bounded heap: O(n log k) time, **O(k) memory** — never sorts or buffers the dataset. `by:"max"` (default) / `"min"`. Stable on ties (earliest k). |
-| `argTopK(k, keyFn?, {by})` | Same, returns a `Uint32Array` of source indices — the "top *rows*" form (keep keys, gather columns yourself). |
+| `topK(k, keyFn?, {by})` | The `k` best, ordered best→worst. Streaming bounded heap: O(n log k) time, **O(k) memory**, never sorts or buffers the dataset. `by:"max"` (default) / `"min"`. Stable on ties (earliest k). |
+| `argTopK(k, keyFn?, {by})` | Same, returns a `Uint32Array` of source indices, the "top *rows*" form (keep keys, gather columns yourself). |
 | `every(pred)` / `some(pred)` | Universal / existential. |
 | `toMap(keyFn, valueFn?)` / `toSet` | Collect into `Map` / `Set`. |
 | `groupBy(keyFn)` | `Map<K, T[]>`. |
@@ -96,11 +96,11 @@ await (arr |> p.map(x => x * 2) |> p.map(x => x + 1) |> p.sum); // single SIMD p
 
 ## On the ParaBun runtime
 
-Single-affine chains (`x*K + C` collapsed) on Float32Array sources opportunistically promote to `parabun:gpu` when it's available and `gpu.winsForSize(...)` says yes. The lookup is dynamic and silently falls back to `@lyku/para-simd` when `parabun:gpu` isn't resolvable (Node, browsers, anywhere outside ParaBun) — same code path either way.
+Single-affine chains (`x*K + C` collapsed) on Float32Array sources opportunistically promote to `parabun:gpu` when it's available and `gpu.winsForSize(...)` says yes. The lookup is dynamic and silently falls back to `@lyku/para-simd` when `parabun:gpu` isn't resolvable (Node, browsers, anywhere outside ParaBun), same code path either way.
 
 ## Top-K over large / sharded data
 
-`source |> sort() |> take(k)` is **not** a sort — it's selection. `topK` does it in one streaming pass with an O(k) heap; the dataset is never sorted or materialized. Paired with the columnar projection sources, you get "top rows by score over an arbitrarily large CSV" at **O(batchSize + k) memory** — the parser holds one batch, the heap holds k:
+`source |> sort() |> take(k)` is **not** a sort. It's selection. `topK` does it in one streaming pass with an O(k) heap; the dataset is never sorted or materialized. Paired with the columnar projection sources, you get "top rows by score over an arbitrarily large CSV" at **O(batchSize + k) memory**, the parser holds one batch, the heap holds k:
 
 ```js
 import csv from "@lyku/para-csv";
@@ -111,7 +111,7 @@ const top5 = await p.topK(5, r => r.score)(
 );
 ```
 
-`fromColumn` / `fromColumns` are structural — they accept both the `@lyku/para-csv` `parseBatches` shape (`{ name: ArrayLike }`) and `@lyku/para-arrow` `RecordBatch` (`.column(name).get(i)` + `.numRows`); this package takes no dependency on either.
+`fromColumn` / `fromColumns` are structural: they accept both the `@lyku/para-csv` `parseBatches` shape (`{ name: ArrayLike }`) and `@lyku/para-arrow` `RecordBatch` (`.column(name).get(i)` + `.numRows`); this package takes no dependency on either.
 
 `topK` is a **monoid**: `mergeTopK([topK(A), topK(B)], k) ≡ topK(A ∪ B)`. So multi-file / multi-shard top-k is local-top-k-per-shard then merge, at O(shards·k) memory regardless of total rows:
 
@@ -122,4 +122,4 @@ const global = p.mergeTopK(locals, 5, keyFn); // synchronous combine
 
 ## Status
 
-`private:true / 0.0.0-dev` — pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.
+`private:true / 0.0.0-dev`, pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.

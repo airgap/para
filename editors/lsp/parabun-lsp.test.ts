@@ -1,5 +1,5 @@
 // Slice 0 verification for the reactive-graph hover. Unit-tests the pure
-// static analysis + hover string — NOT in-editor rendering (that needs the
+// static analysis + hover string: NOT in-editor rendering (that needs the
 // installed .vsix + a real hover popup; the explicit next gate).
 // PARABUN_LSP_NO_LISTEN keeps importing the server from taking over stdin.
 process.env.PARABUN_LSP_NO_LISTEN = "1";
@@ -47,10 +47,10 @@ describe("staticReactiveDependents", () => {
   });
 });
 
-describe("getParabunHover — signal/derived name", () => {
+describe("getParabunHover: signal/derived name", () => {
   test("signal name lists its reactive dependents", () => {
     const h = getParabunHover(SRC, 0, 7);
-    expect(h).toContain("`count` — reactive signal");
+    expect(h).toContain("`count`: reactive signal");
     expect(h).toContain("derived doubled");
     expect(h).toContain("effect { … }");
     expect(h).toContain("when count > 10");
@@ -59,7 +59,7 @@ describe("getParabunHover — signal/derived name", () => {
 
   test("derived name → read-only, no dependents here", () => {
     const h = getParabunHover(SRC, 1, 10);
-    expect(h).toContain("`doubled` — reactive derived (read-only)");
+    expect(h).toContain("`doubled`: reactive derived (read-only)");
     expect(h).toContain("No static single-file dependents found");
   });
 
@@ -69,6 +69,6 @@ describe("getParabunHover — signal/derived name", () => {
   });
 
   test("`signal` keyword hover unchanged", () => {
-    expect(getParabunHover(SRC, 0, 2)).toContain("`signal` — reactive binding");
+    expect(getParabunHover(SRC, 0, 2)).toContain("`signal`: reactive binding");
   });
 });

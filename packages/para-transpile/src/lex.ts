@@ -1,6 +1,6 @@
 // Tiny tokenizer that's just enough to recognize string / template-literal /
 // comment regions so the rewriters don't fire inside them. Not a real JS
-// parser — operates on raw character sequences and tracks state with a
+// parser: operates on raw character sequences and tracks state with a
 // simple finite-state machine. Covers the cases that matter for Para
 // surface-level rewrites.
 
@@ -204,7 +204,7 @@ export function scanRegions(src: string): Span[] {
         continue;
       }
       if (c === "[") {
-        // character class — consume until ]
+        // character class. Consume until ]
         i++;
         while (i < src.length && src[i] !== "]") {
           if (src[i] === "\\") i++;
@@ -221,7 +221,7 @@ export function scanRegions(src: string): Span[] {
         continue;
       }
       if (c === "\n") {
-        // unterminated regex — treat the `/` as division retroactively by
+        // unterminated regex. Treat the `/` as division retroactively by
         // bailing back to code at this newline.
         push(i, "code");
         continue;

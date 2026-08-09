@@ -1,7 +1,7 @@
 {
   "name": "@lyku/para-ui-native",
   "version": "0.0.1-pre.0",
-  "description": "Native-reactive .pui components + handle adapters — bind parabun's native capability modules (audio/camera/llm/gpu) into component-reactive `source` cells. The Para UI moat: reactive state that IS a native capability. Pre-release.",
+  "description": "Native-reactive .pui components + handle adapters: bind parabun's native capability modules (audio/camera/llm/gpu) into component-reactive `source` cells. The Para UI moat: reactive state that IS a native capability. Pre-release.",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {

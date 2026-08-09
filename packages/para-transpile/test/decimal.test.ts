@@ -1,4 +1,4 @@
-// `Nd` decimal literal lowering — `Nd` → `__paraDec("N")`.
+// `Nd` decimal literal lowering: `Nd` → `__paraDec("N")`.
 
 import { describe, expect, test } from "bun:test";
 import { transpile } from "../src/index";
@@ -74,7 +74,7 @@ describe("decimal literal lowering", () => {
   });
 
   test("does not fire on `1de` (longer identifier suffix)", () => {
-    // `1de` is a syntax error in raw JS — but if a user's source contains
+    // `1de` is a syntax error in raw JS, but if a user's source contains
     // the substring inside something else (e.g. a property access shape
     // we don't expect), we don't want to grab it.
     expect(transpileBare("const x = obj.1de;").trim()).toBe("const x = obj.1de;");

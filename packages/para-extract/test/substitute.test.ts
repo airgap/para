@@ -1,4 +1,4 @@
-// Substitution engine — extractor plan step 6 (build-step side).
+// Substitution engine: extractor plan step 6 (build-step side).
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { emitJs, substituteSource } from "../src/substitute.ts";

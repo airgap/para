@@ -1,11 +1,11 @@
-// Decimal class — unit tests. Validates correctness of the headline
+// Decimal class: unit tests. Validates correctness of the headline
 // "0.1 + 0.2 === 0.3" property, scale alignment, division/rounding, and
 // toString round-trips.
 
 import { describe, expect, test } from "bun:test";
 import { __paraDec, Decimal, type RoundingMode } from "../src/index";
 
-describe("Decimal — headline correctness", () => {
+describe("Decimal: headline correctness", () => {
   test("0.1 + 0.2 === 0.3 (the whole point)", () => {
     expect(Decimal.from("0.1").plus("0.2").eq("0.3")).toBe(true);
   });
@@ -31,7 +31,7 @@ describe("Decimal — headline correctness", () => {
   });
 });
 
-describe("Decimal.from — parsing", () => {
+describe("Decimal.from: parsing", () => {
   test("integer", () => {
     expect(Decimal.from("42").toString()).toBe("42");
   });
@@ -76,11 +76,11 @@ describe("Decimal.from — parsing", () => {
     expect(Decimal.from(123n).toString()).toBe("123");
   });
 
-  test("from number — small integer", () => {
+  test("from number: small integer", () => {
     expect(Decimal.from(42).toString()).toBe("42");
   });
 
-  test("from number — small decimal preserves source", () => {
+  test("from number: small decimal preserves source", () => {
     // Number(0.1) round-trips through toString to "0.1".
     expect(Decimal.from(0.1).toString()).toBe("0.1");
   });
@@ -107,7 +107,7 @@ describe("Decimal.from — parsing", () => {
   });
 });
 
-describe("Decimal — arithmetic", () => {
+describe("Decimal: arithmetic", () => {
   test("plus exact (no scale shift)", () => {
     expect(Decimal.from("1.5").plus("2.5").toString()).toBe("4.0");
   });
@@ -124,41 +124,41 @@ describe("Decimal — arithmetic", () => {
     expect(Decimal.from("7").times("6").toString()).toBe("42");
   });
 
-  test("times decimals — exact", () => {
+  test("times decimals: exact", () => {
     expect(Decimal.from("0.1").times("0.1").toString()).toBe("0.01");
   });
 
-  test("times — large bigint", () => {
+  test("times: large bigint", () => {
     expect(Decimal.from("999999999999999999").times("999999999999999999").toString()).toBe(
       "999999999999999998000000000000000001",
     );
   });
 
-  test("dividedBy — exact terminating", () => {
+  test("dividedBy: exact terminating", () => {
     expect(Decimal.from("1").dividedBy("4").toString()).toBe("0.25");
   });
 
-  test("dividedBy — short alias .div", () => {
+  test("dividedBy: short alias .div", () => {
     expect(Decimal.from("1").div("4").toString()).toBe("0.25");
   });
 
-  test("dividedBy — by negative", () => {
+  test("dividedBy: by negative", () => {
     expect(Decimal.from("1").dividedBy("-4").toString()).toBe("-0.25");
   });
 
-  test("dividedBy — repeating with precision 5", () => {
+  test("dividedBy: repeating with precision 5", () => {
     expect(Decimal.from("1").dividedBy("3", { precision: 5 }).toString()).toBe("0.33333");
   });
 
-  test("dividedBy — repeating with precision 10", () => {
+  test("dividedBy: repeating with precision 10", () => {
     expect(Decimal.from("1").dividedBy("3", { precision: 10 }).toString()).toBe("0.3333333333");
   });
 
-  test("dividedBy — by zero throws", () => {
+  test("dividedBy: by zero throws", () => {
     expect(() => Decimal.from("1").dividedBy("0")).toThrow();
   });
 
-  test("dividedBy — zero divided by anything is zero", () => {
+  test("dividedBy: zero divided by anything is zero", () => {
     expect(Decimal.from("0").dividedBy("7").eq("0")).toBe(true);
   });
 
@@ -179,7 +179,7 @@ describe("Decimal — arithmetic", () => {
   });
 });
 
-describe("Decimal — comparisons", () => {
+describe("Decimal: comparisons", () => {
   test("eq same value different scale", () => {
     // 1.0 and 1 are equal even though their internal repr differs.
     expect(Decimal.from("1.0").eq("1")).toBe(true);
@@ -223,7 +223,7 @@ describe("Decimal — comparisons", () => {
   });
 });
 
-describe("Decimal — toString round-trips", () => {
+describe("Decimal: toString round-trips", () => {
   const ROUND_TRIP_CASES = [
     "0",
     "1",
@@ -245,7 +245,7 @@ describe("Decimal — toString round-trips", () => {
   }
 });
 
-describe("Decimal — toNumber", () => {
+describe("Decimal: toNumber", () => {
   test("0.1 → 0.1 (Number representation lands here)", () => {
     expect(Decimal.from("0.1").toNumber()).toBe(0.1);
   });
@@ -261,13 +261,13 @@ describe("Decimal — toNumber", () => {
   });
 
   test("toNumber is documented-lossy for huge values", () => {
-    // 2^53 + 1 is not representable as a Number — this lossily collapses to 2^53.
+    // 2^53 + 1 is not representable as a Number. This lossily collapses to 2^53.
     const tooBig = "9007199254740993";
     expect(Decimal.from(tooBig).toNumber()).toBe(9007199254740992);
   });
 });
 
-describe("Decimal — toBigInt", () => {
+describe("Decimal: toBigInt", () => {
   test("integer toBigInt", () => {
     expect(Decimal.from("42").toBigInt()).toBe(42n);
   });
@@ -278,9 +278,9 @@ describe("Decimal — toBigInt", () => {
   });
 });
 
-describe("Decimal — rounding modes", () => {
+describe("Decimal: rounding modes", () => {
   // Showcase: dividing 1 by 0.7 with different rounding modes at low precision.
-  // Exact value of 1 / 0.7 is 1.42857142857142857142857... — so at
+  // Exact value of 1 / 0.7 is 1.42857142857142857142857..., so at
   // precision 3 the relevant digits are "1.42|857..." (last digit = 2,
   // digit being rounded = 8 ≥ 5 → all "round up" modes go to 1.43,
   // truncate → 1.42).
@@ -326,10 +326,10 @@ describe("Decimal — rounding modes", () => {
   });
 });
 
-describe("Decimal — General Decimal Arithmetic spec spot-checks", () => {
+describe("Decimal: General Decimal Arithmetic spec spot-checks", () => {
   // Hand-picked cases from Mike Cowlishaw's GDA test suite
   // (https://speleotrove.com/decimal/dectest.html), addition tests in the
-  // dec*.decTest files. We don't try to cover the corpus — just enough to
+  // dec*.decTest files. We don't try to cover the corpus, just enough to
   // catch obvious bugs in scale alignment and sign handling.
   test("addx004: 12 + 7.00 = 19.00", () => {
     expect(Decimal.from("12").plus("7.00").toString()).toBe("19.00");
@@ -344,7 +344,7 @@ describe("Decimal — General Decimal Arithmetic spec spot-checks", () => {
   });
 
   test("subx004: 0.10 - 0.10 = 0.00", () => {
-    // Our toString collapses zero to "0" regardless of exp — the canonical
+    // Our toString collapses zero to "0" regardless of exp, the canonical
     // GDA result is "0.00" but we deliberately deviate (zero is the only
     // value where exp-preservation costs more than it's worth). Verify
     // both: the canonical equality holds, and our toString is "0".
@@ -370,7 +370,7 @@ describe("Decimal — General Decimal Arithmetic spec spot-checks", () => {
   });
 });
 
-describe("__paraDec — runtime helper", () => {
+describe("__paraDec: runtime helper", () => {
   test("returns a Decimal", () => {
     expect(__paraDec("1.5")).toBeInstanceOf(Decimal);
   });

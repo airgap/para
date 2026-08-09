@@ -1,7 +1,7 @@
 {
   "name": "@lyku/para-transpile",
   "version": "0.0.1-pre.1",
-  "description": "Standalone transpiler for Para (.pts) — turns Para source into standard JavaScript. The JS-side mirror of the canonical ParaBun parser; parity-gated against a pinned parabun release (see /raid/para-design/para-parabun-boundary.md). Pre-release (0.0.x-pre): API may change before 0.1.0.",
+  "description": "Standalone transpiler for Para (.pts): turns Para source into standard JavaScript. The JS-side mirror of the canonical ParaBun parser; parity-gated against a pinned parabun release (see /raid/para-design/para-parabun-boundary.md). Pre-release (0.0.x-pre): API may change before 0.1.0.",
   "repository": {
     "type": "git",
     "url": "https://github.com/airgap/para.git",

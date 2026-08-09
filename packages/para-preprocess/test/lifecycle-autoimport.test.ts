@@ -14,7 +14,7 @@ onMount(() => { console.log("up"); });
   expect(out).toContain(`onMount(() => { console.log("up"); })`);
 });
 
-test("`mount { … }` is NOT sugar anymore — left untouched (not lowered to onMount)", () => {
+test("`mount { … }` is NOT sugar anymore, left untouched (not lowered to onMount)", () => {
   const out = lower(`<script lang="ts">
 mount { doStuff(); }
 </script>`);
@@ -53,7 +53,7 @@ const y = "afterNavigate";
   expect(out).not.toContain(`from "$app/navigation"`);
 });
 
-test("effect is still a keyword (reactive primitive — unaffected by the mount retirement)", () => {
+test("effect is still a keyword (reactive primitive, unaffected by the mount retirement)", () => {
   const out = lower(`<script lang="ts">
 effect syncThing();
 </script>`);

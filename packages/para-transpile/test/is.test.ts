@@ -35,7 +35,7 @@ describe("is type-guard operator", () => {
     );
   });
 
-  test("as a return value (inside a block — region-based, block-aware)", () => {
+  test("as a return value (inside a block, region-based, block-aware)", () => {
     expect(transpile("function check(x) { return x is User; }")).toBe(
       'function check(x) { return User.parse(x).tag === "Ok"; }',
     );
@@ -47,7 +47,7 @@ describe("is type-guard operator", () => {
     );
   });
 
-  test("only Capitalized RHS triggers — `is x` stays an identifier", () => {
+  test("only Capitalized RHS triggers: `is x` stays an identifier", () => {
     expect(transpile("const is = 5;\nconst r = is + 1;")).toBe("const is = 5;\nconst r = is + 1;");
   });
 

@@ -1,10 +1,10 @@
-// @lyku/para-sync — cross-entity transactional sync (§13.6).
+// @lyku/para-sync: cross-entity transactional sync (§13.6).
 //
 // Some intents span MULTIPLE synced entities atomically: move an item from
 // cart:A to cart:B, transfer a balance, reassign a task across boards. Applied as
 // independent §13.1 intents they can tear (one confirms, one rejects → the item
 // is in neither cart or both). An atomic multi-key intent makes the optimistic
-// apply, the confirm/reject, and the rollback span all keys as ONE unit — a
+// apply, the confirm/reject, and the rollback span all keys as ONE unit: a
 // transaction across the trust boundary.
 //
 // The atomic boundary is §13.1's single op-id extended to a GROUP op-id; each
@@ -35,7 +35,7 @@ import { guardOptimistic } from "./authority.js";
  *
  * @param {object} opts
  * @param {string} [opts.groupOpId]        the correlating group op-id (default: generated).
- * @param {TxIntentSpec[]} opts.intents    the arms — at least one, distinct keys.
+ * @param {TxIntentSpec[]} opts.intents    the arms: at least one, distinct keys.
  * @param {(grouped: { groupOpId: string, intents: Array<{ key: string, v: number, value: any }> }) => void} [opts.send]
  *        publish the grouped envelope (omit to send it yourself).
  * @param {() => string} [opts.nextOpId]   group op-id source when `groupOpId` is omitted.

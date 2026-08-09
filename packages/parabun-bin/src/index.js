@@ -1,7 +1,7 @@
 // Resolver for the pinned `parabun` release binary.
 //
 // This package's installed VERSION is the pin: bumping it (and the
-// lockfile) is the deliberate, reviewed act of moving the boundary —
+// lockfile) is the deliberate, reviewed act of moving the boundary:
 // see /raid/para-design/para-parabun-boundary.md (B2). The actual
 // platform binaries ship as optional deps `@lyku/parabun-bin-<os>-<arch>`,
 // generated + published by parabun's Jenkins on release (P2-c). Each is
@@ -9,13 +9,13 @@
 // integrity: a tampered/mismatched binary fails loud, not silently).
 //
 // Resolution order:
-//   1. PARABUN_BIN env override — an explicit absolute path. Trusted,
+//   1. PARABUN_BIN env override: an explicit absolute path. Trusted,
 //      NOT hash-verified (it is the deliberate escape hatch: local dev,
 //      a freshly-built binary, or the stand-in before Jenkins publishes
 //      the real per-platform packages). Surfaces via `.verified=false`.
 //   2. The matching per-platform optional dependency, sha256-verified
 //      against manifest.json.
-//   3. Throw — clear, actionable, names the platform and both fixes.
+//   3. Throw: clear, actionable, names the platform and both fixes.
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -39,7 +39,7 @@ function readManifest() {
 export function platformKey(platform = process.platform, arch = process.arch) {
   const os = { linux: "linux", darwin: "darwin", win32: "win32" }[platform];
   const cpu = { x64: "x64", arm64: "arm64" }[arch];
-  if (!os || !cpu) return `${platform}-${arch}`; // unsupported — surfaced in error
+  if (!os || !cpu) return `${platform}-${arch}`; // unsupported: surfaced in error
   return `${os}-${cpu}`;
 }
 
@@ -72,7 +72,7 @@ export function resolveParabun() {
   if (!entry) {
     throw new Error(
       `@lyku/parabun-bin: no pinned binary for platform "${key}". ` +
-        `Supported: ${Object.keys(manifest.platforms).join(", ") || "(none — manifest not yet baked by Jenkins)"}. ` +
+        `Supported: ${Object.keys(manifest.platforms).join(", ") || "(none, manifest not yet baked by Jenkins)"}. ` +
         `Set PARABUN_BIN=/abs/path/to/parabun to use a local build.`,
     );
   }
@@ -89,7 +89,7 @@ export function resolveParabun() {
   } catch {
     throw new Error(
       `@lyku/parabun-bin: platform package "${entry.pkg}" is not installed ` +
-        `(it is an optionalDependency — install may have skipped it, or it ` +
+        `(it is an optionalDependency: install may have skipped it, or it ` +
         `is not yet published). Set PARABUN_BIN=/abs/path/to/parabun to use a ` +
         `local build, or run \`bun install\` with the platform package available.`,
     );
@@ -101,7 +101,7 @@ export function resolveParabun() {
       `@lyku/parabun-bin: sha256 mismatch for ${entry.pkg} (${key}).\n` +
         `  expected: ${entry.sha256}\n` +
         `  actual:   ${actual}\n` +
-        `The pinned binary does not match the baked manifest — refusing to ` +
+        `The pinned binary does not match the baked manifest: refusing to ` +
         `run a binary the boundary contract did not vouch for.`,
     );
   }

@@ -1,29 +1,29 @@
-// @lyku/para-sync — the authority-side query host (§13.7 liveness, plan step 3).
+// @lyku/para-sync: the authority-side query host (§13.7 liveness, plan step 3).
 //
 // The server story for L-query sources: a query is LIVE because the authority
-// knows its READ-SET — which table/rows the result depends on — so a write
+// knows its READ-SET, which table/rows the result depends on, so a write
 // flowing through the authority re-evaluates exactly the intersecting
 // subscriptions and re-publishes what changed. This module is the
 // evaluator-agnostic HOST: `evaluate` (spec → rows) and `readSetOf`
-// (spec → read-set) are supplied by the deployment — lockstep-pg compiles the
+// (spec → read-set) are supplied by the deployment: lockstep-pg compiles the
 // typed spec to SQL and derives the precise read-set in production; tests and
 // monoliths hand in plain functions. The host owns everything else: per-row
 // sequences, the outbound parse gate, membership diffing, and delta fan-out.
 //
 // Composition with the client spine is deliberate and exact:
-//   - a subscription IS a feeds.js MembershipStream ({ listen, close }) — the
+//   - a subscription IS a feeds.js MembershipStream ({ listen, close }), the
 //     value a `.pui` binding's `membership` opt (or configureSyncedQuery's
 //     resolveMembership) wants;
 //   - row VALUE deltas travel the SyncTransport keyed by row key, so each
 //     client-side createClientReplica reconciles by (schema_version, sequence)
 //     exactly as for any other synced entity. Steady-state ingest demands
 //     sequence === current + 1, so the authority bumps a row's sequence by
-//     EXACTLY one per real change (deep-equal short-circuit — a write that
+//     EXACTLY one per real change (deep-equal short-circuit: a write that
 //     leaves a row's value identical publishes nothing).
 //
 // Both-ends gating (the §13.8 principle applies here too): every row an
 // evaluation returns crosses the schema's parse gate BEFORE it can seed or
-// publish — a server-side bug surfaces once at the boundary (onError), never
+// publish. A server-side bug surfaces once at the boundary (onError), never
 // as reconcile chaos on N clients.
 
 /** @typedef {import('./transport.js').SyncTransport} SyncTransport */
@@ -67,14 +67,14 @@ function intersects(readSet, scope) {
 
 /**
  * Create the authority-side host for one row schema ("one entity, one
- * authority" — the `.para` manifest's `authority { S => … }` granularity).
+ * authority", the `.para` manifest's `authority { S => … }` granularity).
  *
  * @param {object} cfg
  * @param {SyncTransport} cfg.transport  where row value envelopes publish.
  * @param {(spec: any) => any[] | Promise<any[]>} cfg.evaluate  spec → rows
  *        (lockstep-pg-compiled SQL in production; any function in tests).
  * @param {(row: any) => string} cfg.keyOf  row → row key (e.g. r => `user:${r.id}`).
- * @param {SyncSchema} cfg.schema  the row schema — the OUTBOUND parse gate.
+ * @param {SyncSchema} cfg.schema  the row schema, the OUTBOUND parse gate.
  * @param {(spec: any) => any} [cfg.readSetOf]  spec → read-set; defaults to
  *        "the whole world" (`*`), i.e. every write re-evaluates. Precision is
  *        the deployment's job (lockstep-pg knows the columns/rows a compiled
@@ -130,7 +130,7 @@ export function createQueryAuthority({
       }
       if (!r || r.tag !== "Ok") {
         onError?.(r && r.tag === "Err" ? r.error : new Error("non-Result parse"), { phase: "parse" });
-        continue; // gated out — never seeds, never publishes
+        continue; // gated out, never seeds, never publishes
       }
       const rowKey = keyOf(r.value);
       keys.push(rowKey);
@@ -161,7 +161,7 @@ export function createQueryAuthority({
   return {
     /**
      * Open a live subscription for a query spec. The return value IS a
-     * feeds.js MembershipStream — hand it to `syncedOne`/`syncedQuery` as
+     * feeds.js MembershipStream. Hand it to `syncedOne`/`syncedQuery` as
      * the `membership` opt (or return it from resolveMembership). The
      * first membership delta (keys + full seeds) arrives after the initial
      * evaluation completes; value deltas ride the shared transport.

@@ -59,7 +59,7 @@
     "parabun-model": {
       "patterns": [
         {
-          "comment": "export model NAME from <expr> — ingest existing JSON Schema",
+          "comment": "export model NAME from <expr>: ingest existing JSON Schema",
           "match": "\\b(export)\\s+(schema)\\s+([A-Za-z_$][\\w$]*)\\s+(from)\\b",
           "captures": {
             "1": {
@@ -77,7 +77,7 @@
           }
         },
         {
-          "comment": "model NAME from <expr> — ingest existing JSON Schema",
+          "comment": "model NAME from <expr>: ingest existing JSON Schema",
           "match": "\\b(schema)\\s+([A-Za-z_$][\\w$]*)\\s+(from)\\b",
           "captures": {
             "1": {
@@ -92,7 +92,7 @@
           }
         },
         {
-          "comment": "export model NAME { ... } — declaration",
+          "comment": "export model NAME { ... }: declaration",
           "match": "\\b(export)\\s+(schema)\\s+([A-Za-z_$][\\w$]*)\\b(?=\\s*\\{)",
           "captures": {
             "1": {
@@ -107,7 +107,7 @@
           }
         },
         {
-          "comment": "model NAME { ... } — declaration",
+          "comment": "model NAME { ... }: declaration",
           "match": "\\b(schema)\\s+([A-Za-z_$][\\w$]*)\\b(?=\\s*\\{)",
           "captures": {
             "1": {
@@ -119,7 +119,7 @@
           }
         },
         {
-          "comment": "schema { ... } — inline JSON Schema literal",
+          "comment": "schema { ... }: inline JSON Schema literal",
           "match": "\\b(schema)\\b(?=\\s*\\{)",
           "captures": {
             "1": {
@@ -128,7 +128,7 @@
           }
         },
         {
-          "comment": "Bare `schema` keyword fallback — highlights as soon as the user types it, the way `class` / `interface` / `enum` do. Skipped when `schema` is followed by `=` / `(` / `.` (which means it's being used as an identifier — `const schema = ...`, `schema(args)`, `obj.schema`).",
+          "comment": "Bare `schema` keyword fallback: highlights as soon as the user types it, the way `class` / `interface` / `enum` do. Skipped when `schema` is followed by `=` / `(` / `.` (which means it's being used as an identifier: `const schema = ...`, `schema(args)`, `obj.schema`).",
           "match": "\\b(schema)\\b(?![\\s]*[=.(])",
           "captures": {
             "1": {
@@ -141,7 +141,7 @@
     "parabun-match": {
       "patterns": [
         {
-          "comment": "match EXPR { ... } — pattern matching expression",
+          "comment": "match EXPR { ... }: pattern matching expression",
           "match": "\\b(match)\\b(?=\\s+[A-Za-z_$(])",
           "captures": {
             "1": {
@@ -154,7 +154,7 @@
     "parabun-effect": {
       "patterns": [
         {
-          "comment": "effect { ... } — signal effect block",
+          "comment": "effect { ... }: signal effect block",
           "match": "\\b(effect)\\b(?=\\s*\\{)",
           "captures": {
             "1": {
@@ -179,7 +179,7 @@
           }
         },
         {
-          "comment": "when EXPR { ... } — guarded block",
+          "comment": "when EXPR { ... }: guarded block",
           "match": "\\b(when)\\b(?=\\s+[!A-Za-z_$(])",
           "captures": {
             "1": {
@@ -192,7 +192,7 @@
     "parabun-arena": {
       "patterns": [
         {
-          "comment": "arena { ... } — DeferGC scope",
+          "comment": "arena { ... }: DeferGC scope",
           "match": "\\b(arena)\\b(?=\\s*\\{)",
           "captures": {
             "1": {
@@ -205,7 +205,7 @@
     "parabun-signal": {
       "patterns": [
         {
-          "comment": "signal NAME = ... — reactive cell declaration",
+          "comment": "signal NAME = ...: reactive cell declaration",
           "match": "\\b(signal)\\s+([A-Za-z_$][\\w$]*)\\b",
           "captures": {
             "1": {
@@ -217,7 +217,7 @@
           }
         },
         {
-          "comment": "Bare `signal` keyword fallback — highlights as soon as the user types it. Skipped when `signal` is followed by `=` / `(` / `.` so an identifier-named-`signal` (`const signal = ...`, `signal(...)`, `obj.signal`) doesn't false-positive.",
+          "comment": "Bare `signal` keyword fallback: highlights as soon as the user types it. Skipped when `signal` is followed by `=` / `(` / `.` so an identifier-named-`signal` (`const signal = ...`, `signal(...)`, `obj.signal`) doesn't false-positive.",
           "match": "\\b(signal)\\b(?![\\s]*[=.(])",
           "captures": {
             "1": {
@@ -230,7 +230,7 @@
     "parabun-validation-marker": {
       "patterns": [
         {
-          "comment": ":: per-arg validation marker — `(req:: User)` runs User.parse at fn entry",
+          "comment": ":: per-arg validation marker: `(req:: User)` runs User.parse at fn entry",
           "name": "keyword.operator.validate.parabun",
           "match": "::"
         }
@@ -239,7 +239,7 @@
     "parabun-result-ctors": {
       "patterns": [
         {
-          "comment": "Ok / Err / Some / None — Result/Option constructor application",
+          "comment": "Ok / Err / Some / None: Result/Option constructor application",
           "match": "\\b(Ok|Err|Some)\\b(?=\\s*\\()",
           "captures": {
             "1": {
@@ -248,7 +248,7 @@
           }
         },
         {
-          "comment": "None — bare Option constant",
+          "comment": "None: bare Option constant",
           "match": "\\b(None)\\b(?!\\s*[\\.\\[\\(])",
           "captures": {
             "1": {
@@ -418,7 +418,7 @@
     "parabun-parallel": {
       "patterns": [
         {
-          "comment": "parallel/para let/const — statement form, fan-out promise composition",
+          "comment": "parallel/para let/const: statement form, fan-out promise composition",
           "match": "\\b(parallel|para)\\s+(let|const)\\b",
           "captures": {
             "1": {
@@ -430,7 +430,7 @@
           }
         },
         {
-          "comment": "parallel/para { … } — expression form, fan-out promise composition",
+          "comment": "parallel/para { … }: expression form, fan-out promise composition",
           "match": "\\b(parallel|para)\\b(?=\\s*\\{)",
           "captures": {
             "1": {
@@ -443,7 +443,7 @@
     "parabun-decimal-literal": {
       "patterns": [
         {
-          "comment": "Nd decimal literal — base-10 number followed by `d` suffix",
+          "comment": "Nd decimal literal: base-10 number followed by `d` suffix",
           "match": "(?<![\\w$.])((?:\\.\\d+|\\d+(?:\\.\\d*)?)(?:[eE][+-]?\\d+)?)(d)(?![\\w$])",
           "captures": {
             "1": {
@@ -459,7 +459,7 @@
     "parabun-is": {
       "patterns": [
         {
-          "comment": "expr is not Type — runtime negated type-guard",
+          "comment": "expr is not Type: runtime negated type-guard",
           "match": "\\b(is)\\s+(not)\\b(?=\\s+[A-Z])",
           "captures": {
             "1": {
@@ -471,7 +471,7 @@
           }
         },
         {
-          "comment": "expr is Type — runtime type-guard, lowers to Type.parse(expr).tag === \"Ok\"",
+          "comment": "expr is Type: runtime type-guard, lowers to Type.parse(expr).tag === \"Ok\"",
           "match": "\\b(is)\\b(?=\\s+[A-Z])",
           "captures": {
             "1": {

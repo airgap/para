@@ -1,7 +1,7 @@
 {
   "name": "parabun-browser-shims",
   "version": "0.3.0",
-  "description": "Browser-compatible shims for the few specifiers Parabun's parse-time desugarings emit that don't yet have @lyku/para-* packages: bun:wrap (the wrap-macro runtime), parabun:gpu (CPU + WebGPU backend), parabun:llm (throw-stub). The cross-runtime Lib modules (signals/parallel/simd/arena/etc.) have moved to individual @lyku/para-* npm packages — install those directly. This package is slated for removal in 0.4.x once the remaining shims migrate or get retired.",
+  "description": "Browser-compatible shims for the few specifiers Parabun's parse-time desugarings emit that don't yet have @lyku/para-* packages: bun:wrap (the wrap-macro runtime), parabun:gpu (CPU + WebGPU backend), parabun:llm (throw-stub). The cross-runtime Lib modules (signals/parallel/simd/arena/etc.) have moved to individual @lyku/para-* npm packages. Install those directly. This package is slated for removal in 0.4.x once the remaining shims migrate or get retired.",
   "type": "module",
   "main": "./src/index.js",
   "module": "./src/index.js",

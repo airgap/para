@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// para-kit CLI — the fs shell around the pure emitter (emit.js).
+// para-kit CLI: the fs shell around the pure emitter (emit.js).
 //
 //   para-kit emit <srcDir> [--manifest <path>] [--endpoint <path>] [--check]
 //
@@ -39,7 +39,7 @@ const manifestPath = flag("--manifest") ?? join(root, "lib/para-sync-manifest.js
 const endpointPath = flag("--endpoint") ?? join(root, "routes/para-sync/+server.ts");
 
 const files = walk(root).map((p) => ({
-  // moduleId = root-relative path — MUST match what the preprocess sees as
+  // moduleId = root-relative path: MUST match what the preprocess sees as
   // `filename` (client subKey ≡ host subKey). SvelteKit hands the
   // preprocessor absolute paths; para-preprocess uses them verbatim, so we
   // emit with the same absolute path when the tree is walked absolutely.
@@ -73,7 +73,7 @@ emitOne(result.manifest.path, result.manifest.code, "manifest");
 if (!existsSync(endpointPath) && !check && result.artifacts.length > 0) {
   mkdirSync(dirname(endpointPath), { recursive: true });
   writeFileSync(endpointPath, endpointTemplate());
-  console.log(`✓ wrote ${relative(process.cwd(), endpointPath)} (once — yours to edit)`);
+  console.log(`✓ wrote ${relative(process.cwd(), endpointPath)} (once, yours to edit)`);
 }
 
 if (check && drift > 0) process.exit(1);

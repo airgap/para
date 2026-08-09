@@ -1,20 +1,20 @@
 /**
- * Para schema type system — JSON Schema 2020-12 with 1:1 brand-type parity.
+ * Para schema type system: JSON Schema 2020-12 with 1:1 brand-type parity.
  *
  * Two output modes:
- *   1. Extended (`parabun` package-export condition) — full constraint
+ *   1. Extended (`parabun` package-export condition): full constraint
  *      brands. `StringOf<{ minLength: 3 }>` is structurally distinct from
  *      `string` and from a `StringOf<{ minLength: 5 }>`. Constraints are
  *      kept in the type so a downstream consumer can derive UI hints,
  *      generate fixtures, run schema-aware refactors, etc.
- *   2. Standard (default) — every brand collapses to its base TS primitive.
+ *   2. Standard (default): every brand collapses to its base TS primitive.
  *      Importing the same module from a vanilla TS project yields plain
  *      `string` / `number` / `{ id: bigint }` types, no `@lyku/para-schema`
  *      dependency required.
  *
  * The library file you're reading is the EXTENDED variant. The downgrade
  * is provided by a sibling `.standard.d.ts` shipped under the package's
- * default `types` export — see `package.json`.
+ * default `types` export. See `package.json`.
  */
 
 // -- Phantom brand machinery ------------------------------------------
@@ -30,10 +30,10 @@ export type Brand<T, B> = T & { readonly [__schemaBrand]: B };
 declare const __paraDeclBrand: unique symbol;
 
 /**
- * `FromDecl<T, Name>` — marks a codegen'd TS type as the data shape of the
+ * `FromDecl<T, Name>`: marks a codegen'd TS type as the data shape of the
  * Para declaration `Name` in the same module scope. The TS extractor
  * (`@lyku/para-extract`) links references to such types back to the
- * existing registry node — `{ $ref: "#Name" }` — instead of re-deriving
+ * existing registry node (`{ $ref: "#Name" }`) instead of re-deriving
  * their structure, so the embedded declaration keeps its own capability
  * bits (non-propagation, recursion plan §1.4/§3).
  *
@@ -45,7 +45,7 @@ export type FromDecl<T, Name extends string> = T & { readonly [__paraDeclBrand]:
 // -- Primitive constraint brands -------------------------------------
 
 /**
- * `StringOf<C>` — a `string` carrying the constraint shape `C`.
+ * `StringOf<C>`: a `string` carrying the constraint shape `C`.
  * `C` may include any of: `minLength`, `maxLength`, `pattern`, `format`,
  * `enum`, `const`. Constraints not provided default to "no bound".
  */
@@ -105,7 +105,7 @@ export interface BooleanConstraints {
 
 // -- Composite brands ------------------------------------------------
 
-/** Branded array — element type and `minItems`/`maxItems`/`uniqueItems`. */
+/** Branded array: element type and `minItems`/`maxItems`/`uniqueItems`. */
 export type ArrayOf<T, C extends ArrayConstraints = {}> = Brand<readonly T[], C>;
 export interface ArrayConstraints {
   readonly minItems?: number;
@@ -141,7 +141,7 @@ export type SchemaValue<T, S = unknown> = {
   schema: S;
 } & S;
 
-/** A general "any schema" supertype — useful as a generic constraint. */
+/** A general "any schema" supertype, useful as a generic constraint. */
 export type Schema<T = unknown> = SchemaValue<T, any>;
 
 // -- Inference -------------------------------------------------------
@@ -204,7 +204,7 @@ type TrimUndefined<T> = { [K in keyof T as T[K] extends undefined ? never : K]: 
  *
  *   const fooHandler: Handles<typeof myModel> = (req, ctx) => …;
  *
- * `Ctx` defaults to `unknown` — applications usually substitute their own
+ * `Ctx` defaults to `unknown`. Applications usually substitute their own
  * (e.g. `Handles<typeof getUser, AppCtx>`).
  */
 export type Handles<M extends { request: Schema; response: Schema }, Ctx = unknown> = (

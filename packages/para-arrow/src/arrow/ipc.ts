@@ -1,8 +1,8 @@
 // Arrow IPC stream reader + writer for @lyku/para-arrow.
 //
 // Implements just enough of the Arrow IPC format spec to round-trip the six
-// types @lyku/para-arrow currently models — int32, int64, float32, float64, bool,
-// utf8 — via the *streaming* IPC format (continuation-prefixed messages,
+// types @lyku/para-arrow currently models: int32, int64, float32, float64, bool,
+// utf8, via the *streaming* IPC format (continuation-prefixed messages,
 // no file footer, no dictionary batches yet). The wire format is bit-for-
 // bit compatible with what pyarrow / arrow-rs / nanoarrow consume on the
 // streaming path.
@@ -14,14 +14,14 @@
 // metadata, body buffer compression, big-endian streams. Each is independent
 // follow-up work.
 //
-// FlatBuffers handling is hand-rolled — the schema metadata uses
+// FlatBuffers handling is hand-rolled: the schema metadata uses
 // FlatBuffers but we only emit and consume tables we control, so a tiny
 // purpose-built builder + reader (FBB / FBR below) is enough. No npm
 // flatbuffers dep, no generated bindings.
 
 // arrow.ts loads this file via require() and injects the constructors it
 // needs through `setArrowTypes()` after evaluating its own module body.
-// We don't import them here — bun's builtin bundler doesn't support
+// We don't import them here: bun's builtin bundler doesn't support
 // `..`-style imports between bun:* sub-files, and a plain string-key
 // registry is enough for our needs.
 
@@ -88,7 +88,7 @@ const TYPE_TIME = 9;
 const TYPE_TIMESTAMP = 10;
 const TYPE_LIST = 12;
 // We emit Int / FloatingPoint / Bool / Utf8 directly. We READ Date / Time /
-// Timestamp by coercing to int32 / int64 — the unit + (for Timestamp) the
+// Timestamp by coercing to int32 / int64: the unit + (for Timestamp) the
 // timezone are surfaced as integers without unit metadata, so round-trip
 // re-emits them as plain int. Real applications that need typed dates can
 // wrap the resulting integer column with their own date library.
@@ -123,7 +123,7 @@ class FBB {
   buf: Uint8Array;
   view: DataView;
   cursor: number;
-  // Per-table state — null when not inside startObject/endObject.
+  // Per-table state: null when not inside startObject/endObject.
   vtable: Uint32Array | null;
   objStart: number;
 
@@ -229,7 +229,7 @@ class FBB {
     return this.cursor;
   }
 
-  // Write a vector of u8 / i8 — used for the bools-as-bitmap "stored"
+  // Write a vector of u8 / i8, used for the bools-as-bitmap "stored"
   // bytes that come out of a separate body buffer. Offsets are absolute.
   writeVectorOfBytes(bytes: Uint8Array): number {
     this.prep(4, 4 + bytes.length);
@@ -351,13 +351,13 @@ class FBB {
     this.writeUint16(vtSize);
     const vtableStart = this.cursor;
 
-    // No prep here — the pre-alignment above already left cursor 4-aligned
+    // No prep here: the pre-alignment above already left cursor 4-aligned
     // for the back-pointer.
     this.cursor += 4;
     const tablePos = this.posOf();
     // SOffsetT (signed): stored = slot_pos - vtable_pos in output coordinates.
     // In our cursor coords, both are (cursor_final - X), so the difference is
-    // (vtableStart - cursor) — negative when vtable was written before slot,
+    // (vtableStart - cursor), negative when vtable was written before slot,
     // which is our case. Reader: vtable_pos = slot_pos - stored.
     this.view.setInt32(tablePos, vtableStart - this.cursor, true);
 
@@ -425,7 +425,7 @@ class FBR {
   }
 
   // Convenience: read scalar at field, or default. (We don't need very wide
-  // scalar coverage — Arrow's Schema metadata uses i16/i32/i64/u8/bool.)
+  // scalar coverage: Arrow's Schema metadata uses i16/i32/i64/u8/bool.)
   readU8(tablePos: number, fieldId: number, defaultVal: number): number {
     const p = this.fieldPos(tablePos, fieldId);
     return p === undefined ? defaultVal : this.u8(p);
@@ -447,7 +447,7 @@ class FBR {
     return p === undefined ? defaultVal : this.u8(p) !== 0;
   }
 
-  // Read offset field — returns the absolute position the offset points to,
+  // Read offset field: returns the absolute position the offset points to,
   // or undefined if absent.
   readOffset(tablePos: number, fieldId: number): number | undefined {
     const p = this.fieldPos(tablePos, fieldId);
@@ -462,7 +462,7 @@ class FBR {
     return new TextDecoder().decode(bytes);
   }
 
-  // Read a vector — returns its position (start of length prefix) and length.
+  // Read a vector: returns its position (start of length prefix) and length.
   readVector(vecPos: number): { pos: number; len: number } {
     return { pos: vecPos, len: this.u32(vecPos) };
   }
@@ -498,9 +498,9 @@ const INT_F_IS_SIGNED = 1;
 // FloatingPoint { precision:i16 }
 const FP_F_PRECISION = 0;
 
-// Bool {} — empty table
+// Bool {}: empty table
 
-// Utf8 {} — empty table
+// Utf8 {}: empty table
 
 // Message { version:i16, header_type:u8, header:Type, bodyLength:i64, custom_metadata:[KV] }
 const MSG_F_VERSION = 0;
@@ -581,7 +581,7 @@ function encodeField(fbb: FBB, field: Field): number {
     const childField: Field = {
       name: "item",
       type: field.type.child,
-      // Children inherit nullability conservatively — assume nullable so
+      // Children inherit nullability conservatively: assume nullable so
       // round-trips that include nulls in the child column work.
       nullable: true,
     };
@@ -659,7 +659,7 @@ function planBody(batch: RecordBatchLike): BodyPlan {
     }
     nodes.push({ length: col.length, nullCount });
 
-    // Validity bitmap (always emitted; empty when no nulls — Arrow allows
+    // Validity bitmap (always emitted; empty when no nulls, Arrow allows
     // an empty buffer for no-null columns).
     if (col.validity) {
       // Validity buffer length is ceil(length / 8) bytes.
@@ -813,7 +813,7 @@ function eosFrame(): Uint8Array {
 
 // File format magic bytes. The leading magic is "ARROW1" (6 bytes) followed
 // by two NUL padding bytes for 8-byte alignment of the streaming messages.
-// The trailing magic is just "ARROW1" — no padding (per the format spec).
+// The trailing magic is just "ARROW1", no padding (per the format spec).
 const FILE_MAGIC_HEAD = new Uint8Array([0x41, 0x52, 0x52, 0x4f, 0x57, 0x31, 0x00, 0x00]);
 const FILE_MAGIC_TAIL = new Uint8Array([0x41, 0x52, 0x52, 0x4f, 0x57, 0x31]);
 
@@ -842,7 +842,7 @@ export function toIPC(source: TableLike | RecordBatchLike, format: "stream" | "f
     offsetCursor += FILE_MAGIC_HEAD.byteLength;
   }
 
-  // Schema message — empty body.
+  // Schema message: empty body.
   {
     const fbb = new FBB();
     const headerOffset = encodeSchemaMessage(fbb, schema);
@@ -896,7 +896,7 @@ export function toIPC(source: TableLike | RecordBatchLike, format: "stream" | "f
     fbb.writeUint32(blocks.length);
     const recordBatchesVec = fbb.cursor;
 
-    // dictionaries vector — empty (we don't emit dict batches).
+    // dictionaries vector: empty (we don't emit dict batches).
     fbb.prep(8, 4);
     fbb.writeUint32(0);
     const dictionariesVec = fbb.cursor;
@@ -939,7 +939,7 @@ type ParsedField = {
    *  → int32, uint32 → int64). Undefined when wire matches the logical
    *  kind's natural width. */
   wireWidth?: 1 | 2 | 4 | 8;
-  /** Wire-format signedness when widening — needed to decide between
+  /** Wire-format signedness when widening, needed to decide between
    *  sign-extension and zero-extension. */
   wireSigned?: boolean;
   /** When set, this field is dictionary-encoded. The body buffers in a
@@ -1005,7 +1005,7 @@ function parseFieldType(fbr: FBR, fieldTablePos: number): ParsedFieldType {
     case TYPE_UTF8:
       return { kind: "utf8" };
     case TYPE_LIST:
-      // List type table is empty — child element type lives in the field's
+      // List type table is empty: child element type lives in the field's
       // children vector. The caller (parseField) handles that.
       return { kind: "list" };
     case TYPE_DATE: {
@@ -1184,7 +1184,7 @@ function reconstructColumn(
       const out = new Int32Array(rowCount);
       const valView = new DataView(body.buffer, body.byteOffset + valBuf.offset, valBuf.length);
       if (wireWidth === 4 && wireSigned) {
-        // Native int32 — same-width copy.
+        // Native int32: same-width copy.
         const view = new Int32Array(body.buffer, body.byteOffset + valBuf.offset, rowCount);
         out.set(view);
       } else if (wireWidth === 1) {
@@ -1217,7 +1217,7 @@ function reconstructColumn(
       const out = new BigInt64Array(rowCount);
       const valView = new DataView(body.buffer, body.byteOffset + valBuf.offset, valBuf.length);
       if (wireWidth === 8 && wireSigned) {
-        // Native int64 — same-width copy.
+        // Native int64: same-width copy.
         const view = new BigInt64Array(body.buffer, body.byteOffset + valBuf.offset, rowCount);
         out.set(view);
       } else if (wireWidth === 4 && !wireSigned) {
@@ -1540,7 +1540,7 @@ export function fromIPC(bytes: Uint8Array): TableLike {
       const db = parseDictionaryBatchHeader(fbr, headerPos);
       if (db.isDelta) {
         throw new Error(
-          "@lyku/para-arrow.fromIPC: dictionary deltas (isDelta=true) are not yet supported — apache-arrow's default is non-delta",
+          "@lyku/para-arrow.fromIPC: dictionary deltas (isDelta=true) are not yet supported: apache-arrow's default is non-delta",
         );
       }
       // Find the field that uses this dict id to determine the logical type.
@@ -1584,7 +1584,7 @@ function emptyTable(schema: Schema): TableLike {
       case "utf8":
         return new Column({ kind: "utf8" }, 0, []);
       case "list":
-        // Single-entry offsets ([0]) — there are no rows so no per-row
+        // Single-entry offsets ([0]): there are no rows so no per-row
         // offset, but the offsets buffer still needs the trailing total.
         return new Column(type, 0, new Int32Array([0]), undefined, makeEmpty(type.child));
     }

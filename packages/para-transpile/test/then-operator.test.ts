@@ -106,23 +106,23 @@ const result = fetch("/api")
     // itself just consumed the LHS, so there's nothing to the left of the dot
     // to read a property from.
 
-    test("..> .json() — single method call", () => {
+    test("..> .json(): single method call", () => {
       expect(transpile("const x = p ..> .json();").trim()).toBe("const x = p.then((__pcv) => __pcv.json());");
     });
 
-    test("..> .data — property access (no parens)", () => {
+    test("..> .data: property access (no parens)", () => {
       expect(transpile("const x = p ..> .data;").trim()).toBe("const x = p.then((__pcv) => __pcv.data);");
     });
 
-    test("..> .users[0].id — chained property + index + property", () => {
+    test("..> .users[0].id: chained property + index + property", () => {
       expect(transpile("const x = p ..> .users[0].id;").trim()).toBe("const x = p.then((__pcv) => __pcv.users[0].id);");
     });
 
-    test("..> .toString() — argless method call", () => {
+    test("..> .toString(): argless method call", () => {
       expect(transpile("const x = p ..> .toString();").trim()).toBe("const x = p.then((__pcv) => __pcv.toString());");
     });
 
-    test("..> .map(x => x * 2) — inner arrow argument", () => {
+    test("..> .map(x => x * 2): inner arrow argument", () => {
       // The inner `x => x * 2` is an argument to `.map`; the synthesized arrow
       // wraps the whole `.map(...)` call, not the inner `x => x * 2`.
       expect(transpile("const x = p ..> .map(x => x * 2);").trim()).toBe(
@@ -130,11 +130,11 @@ const result = fetch("/api")
       );
     });
 
-    test("..! .message — error message extraction", () => {
+    test("..! .message: error message extraction", () => {
       expect(transpile("const x = p ..! .message;").trim()).toBe("const x = p.catch((__pcv) => __pcv.message);");
     });
 
-    test("..! .stack — property on error", () => {
+    test("..! .stack: property on error", () => {
       expect(transpile("const x = p ..! .stack;").trim()).toBe("const x = p.catch((__pcv) => __pcv.stack);");
     });
 
@@ -144,20 +144,20 @@ const result = fetch("/api")
       );
     });
 
-    test("identifier handler still works (regression — no leading dot)", () => {
+    test("identifier handler still works (regression: no leading dot)", () => {
       expect(transpile("const x = p ..> parseJson;").trim()).toBe("const x = p.then(parseJson);");
     });
 
-    test("parens-wrapped arrow still works (regression — leading paren, not dot)", () => {
+    test("parens-wrapped arrow still works (regression: leading paren, not dot)", () => {
       expect(transpile("const x = p ..> ((r) => r.json());").trim()).toBe("const x = p.then(((r) => r.json()));");
     });
 
     test("..& deliberately doesn't get the sugar (no implicit receiver)", () => {
-      // `.finally` callbacks receive no value — the leading-dot sugar would
+      // `.finally` callbacks receive no value: the leading-dot sugar would
       // bind to nothing. Leave the handler as-is so the downstream parser
       // surfaces the leading-dot as the syntax error it is.
       const out = transpile("const x = p ..& .hide();").trim();
-      // The handler text is left alone — no `__pcv` arrow synthesized for ..&.
+      // The handler text is left alone: no `__pcv` arrow synthesized for ..&.
       expect(out).toContain(".finally(.hide())");
       expect(out).not.toContain("__pcv");
     });

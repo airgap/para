@@ -11,8 +11,8 @@
 //
 // This script reads LSP_ALLOWLIST_TOKENS from the catalog, formats
 // them as TypeScript string-literal entries inside the marker block,
-// and writes the file back. Everything OUTSIDE the marker block — the
-// hand-curated JS/Web/Bun globals (window, fetch, Bun, …) — is
+// and writes the file back. Everything OUTSIDE the marker block, the
+// hand-curated JS/Web/Bun globals (window, fetch, Bun, …), is
 // preserved exactly.
 //
 // CI gate scripts/codegen/check-clean.ts (TODO) re-runs this and
@@ -41,7 +41,7 @@ function regenerate(content: string, tokens: string[]): string {
   }
   // Compose the replacement block. Every line inside the Set body is
   // 2-space indented to match the surrounding member indentation. The
-  // marker constants don't carry the indent — that's added when
+  // marker constants don't carry the indent. That's added when
   // composing the replacement so the marker strings themselves can be
   // searched for at arbitrary indentation levels in future variants.
   const lines = [
@@ -49,14 +49,14 @@ function regenerate(content: string, tokens: string[]): string {
     "// AUTO-GENERATED from src/language-surface.ts. Run `bun scripts/generate-lsp-allowlist.ts`",
     "// to regenerate. The CI gate at scripts/codegen/check-clean.ts fails",
     "// if the committed contents drift from the catalog. Do not hand-edit",
-    "// — add new Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts",
+    "// Add new Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts",
     "// instead.",
     ...tokens.map(t => `${JSON.stringify(t)},`),
     END_MARKER,
   ];
   // 2-space indent matches the Set-member indentation in the source
   // file. Lines that already happen to start with whitespace (none of
-  // ours do) would compound — keep the body strings flush-left.
+  // ours do) would compound. Keep the body strings flush-left.
   const replacement = lines
     .map(l => "  " + l)
     .join("\n")

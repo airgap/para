@@ -9,7 +9,7 @@ const cursorSchema = {
       : { tag: "Err", error: "not a Cursor" },
 };
 
-describe("presence — ephemeral peer state (§13.4)", () => {
+describe("presence: ephemeral peer state (§13.4)", () => {
   test("two peers see each other; last-write-wins per peer", () => {
     const t = new InProcessTransport();
     const A = presence("room:1", cursorSchema, { transport: t, peerId: "A" });

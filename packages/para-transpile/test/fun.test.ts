@@ -3,7 +3,7 @@ import { transpile } from "../src/index";
 
 // `fun` → `function`. Mirrors the Zig lexer (js_lexer.zig: `fun`
 // identifier == `function` keyword in parabun files). NOT
-// length-preserving — `fun ` (4) → `function ` (9).
+// length-preserving: `fun ` (4) → `function ` (9).
 
 describe("fun keyword", () => {
   test("fun NAME(...) declaration", () => {
@@ -47,7 +47,7 @@ describe("fun keyword", () => {
 
   test("keyword rewrite is independent of body contents", () => {
     // Operator lowering inside blocks is a separate @lyku/para-transpile
-    // concern — transformFun only owns the keyword itself.
+    // concern: transformFun only owns the keyword itself.
     expect(transpile("fun run() { return data; }")).toBe("function run() { return data; }");
   });
 });

@@ -213,7 +213,7 @@ describe("fromStream", () => {
       pull(controller) {
         return new Promise(resolve => {
           setTimeout(() => {
-            // Stream may already have been cancelled — don't enqueue
+            // Stream may already have been cancelled: don't enqueue
             // through a closed controller.
             if (!closed) {
               try {

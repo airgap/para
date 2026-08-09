@@ -2,13 +2,13 @@
 // byte-for-byte so weights loaded from a GGUF file decode correctly
 // without extra transforms.
 //
-// These are CPU dequantizers — they hydrate a packed block into a
+// These are CPU dequantizers. They hydrate a packed block into a
 // Float32Array the regular f32 matVec / matVecAsync kernels can
 // consume. A WebGPU kernel that operates on the packed blocks directly
 // (dequantize-on-the-fly inside the compute shader) is future work;
 // see the README "Roadmap to in-browser LLM inference" section.
 //
-// All block formats below are from ggml-common.h — super-block size
+// All block formats below are from ggml-common.h: super-block size
 // QK_K = 256.
 
 export const QK_K = 256;
@@ -39,8 +39,8 @@ export function fp16ToFp32(h) {
 // Block layout (144 bytes, 256 elements):
 //   0..1     d     (fp16)
 //   2..3     dmin  (fp16)
-//   4..15    scales[12]   — 6-bit scales + 6-bit mins for 8 sub-blocks
-//   16..143  qs[128]      — 4-bit quants, 2 per byte
+//   4..15    scales[12]   : 6-bit scales + 6-bit mins for 8 sub-blocks
+//   16..143  qs[128]      : 4-bit quants, 2 per byte
 //
 // 8 sub-blocks × 32 elements each. Sub-blocks 0..3 use the low nibble
 // of qs[0..31]/[32..63]/... and scales[0..3]/mins scales[4..7].
@@ -97,9 +97,9 @@ export function dequantizeQ4KBlock(bytes, byteOffset, out, outOffset) {
 // ── Q6_K ────────────────────────────────────────────────────────────────
 
 // Block layout (210 bytes, 256 elements):
-//   0..127    ql[128]  — 4 lower bits of each 6-bit quant, 2 per byte
-//   128..191  qh[64]   — 2 upper bits of each 6-bit quant, 4 per byte
-//   192..207  scales[16] (int8 — signed scales for 16 sub-blocks of 16)
+//   0..127    ql[128]  : 4 lower bits of each 6-bit quant, 2 per byte
+//   128..191  qh[64]   : 2 upper bits of each 6-bit quant, 4 per byte
+//   192..207  scales[16] (int8, signed scales for 16 sub-blocks of 16)
 //   208..209  d (fp16)
 export const Q6_K_BLOCK_SIZE = 210;
 

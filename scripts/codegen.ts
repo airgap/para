@@ -5,7 +5,7 @@
 //   bun scripts/codegen.ts           # regenerate everything
 //   bun scripts/codegen.ts --check   # exit non-zero if anything is dirty
 //
-// The CI flow is `bun scripts/codegen.ts --check` — passes when the
+// The CI flow is `bun scripts/codegen.ts --check`: passes when the
 // committed grammars / LSP allowlist match what the catalog would
 // produce. Local devs run `bun scripts/codegen.ts` (no flag) after
 // editing the catalog to refresh the auxiliary files.
@@ -14,7 +14,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-// Repo-root relative — works in any checkout location (dev box at
+// Repo-root relative: works in any checkout location (dev box at
 // /raid/parabun, CI docker workspace at /raid/jenkins-workspaces/…).
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -30,7 +30,7 @@ const GENERATORS: Generator[] = [
     description: "TextMate grammars (inject + site main grammars)",
     script: "scripts/generate-grammars.ts",
     outputs: [
-      // Inject grammars (editor + site) — applied via injectTo on top
+      // Inject grammars (editor + site), applied via injectTo on top
       // of base TS/JS scopes.
       path.join(REPO_ROOT, "editors/vscode/parabun/syntaxes/parabun-inject.tmLanguage.json"),
       "/raid/para-site/src/grammars/parabun-inject.tmLanguage.json",
@@ -64,7 +64,7 @@ function snapshot(paths: string[]): Map<string, string> {
   for (const p of paths) {
     // Files outside the present checkout (e.g. /raid/para-site/* on a
     // CI agent that only has the parabun repo) are omitted from the
-    // snapshot — they're handled by the individual generators which
+    // snapshot: they're handled by the individual generators which
     // skip absent directories. The diff in --check mode then only
     // compares files we actually have.
     if (fs.existsSync(p)) m.set(p, fs.readFileSync(p, "utf8"));
@@ -109,11 +109,11 @@ function main(): void {
   const after = snapshot(allOutputs);
   const dirty = diffSnapshots(before, after);
   if (dirty.length === 0) {
-    console.log("\n✓ codegen check passed — all generated files in sync with src/language-surface.ts");
+    console.log("\n✓ codegen check passed: all generated files in sync with src/language-surface.ts");
     return;
   }
 
-  console.error("\n✗ codegen check failed — these files are out of sync with src/language-surface.ts:");
+  console.error("\n✗ codegen check failed: these files are out of sync with src/language-surface.ts:");
   for (const p of dirty) console.error(`  ${p}`);
   console.error("\nRun `bun scripts/codegen.ts` locally, commit the changes, and re-push.");
   process.exit(1);

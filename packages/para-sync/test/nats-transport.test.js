@@ -31,7 +31,7 @@ class FakeNats {
   }
 }
 
-// JSON-over-bytes codec — proves encode/decode are actually exercised (payloads
+// JSON-over-bytes codec: proves encode/decode are actually exercised (payloads
 // on the bus are Uint8Array, handlers receive decoded objects). Production
 // injects BON/msgpackr; test envelopes use plain numbers so JSON is fine.
 const jsonCodec = {
@@ -41,7 +41,7 @@ const jsonCodec = {
 
 const env = (sequence, value, schema_version = "1.0") => ({ value, schema_version, sequence });
 
-describe("NatsTransport — SyncTransport contract over a bus", () => {
+describe("NatsTransport: SyncTransport contract over a bus", () => {
   test("publish → subscriber receives the codec-roundtripped envelope", () => {
     const nc = new FakeNats();
     const t = new NatsTransport({ connection: nc, codec: jsonCodec });
@@ -82,7 +82,7 @@ describe("NatsTransport — SyncTransport contract over a bus", () => {
     const b = [];
     t.subscribe("k", (e) => a.push(e.sequence));
     t.subscribe("k", (e) => b.push(e.sequence));
-    expect(nc.subscribeCalls).toBe(1); // not 2 — one bus sub, local fanout
+    expect(nc.subscribeCalls).toBe(1); // not 2: one bus sub, local fanout
     t.publish("k", env(1, {}));
     expect(a).toEqual([1]);
     expect(b).toEqual([1]);

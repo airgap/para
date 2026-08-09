@@ -22,7 +22,7 @@ function memStream() {
   };
 }
 
-describe("syncedOne — scalar query sync (§13.7)", () => {
+describe("syncedOne: scalar query sync (§13.7)", () => {
   test("requires a schema with parse()", () => {
     expect(() => syncedOne(undefined, {})).toThrow("`schema` (with parse) is required");
   });
@@ -77,7 +77,7 @@ describe("syncedOne — scalar query sync (§13.7)", () => {
     one.dispose();
   });
 
-  test("membership removal transitions to undefined — a deleted row is never retained", () => {
+  test("membership removal transitions to undefined: a deleted row is never retained", () => {
     const t = new InProcessTransport();
     const mem = memStream();
     const one = syncedOne(userSchema, {
@@ -113,7 +113,7 @@ describe("syncedOne — scalar query sync (§13.7)", () => {
       transport: t,
       seed: { keys: ["user:1"], seeds: { "user:1": env(1, { junk: true }) } },
     });
-    expect(one.peek()).toBeUndefined(); // gated out — malformed row is recovery, not data
+    expect(one.peek()).toBeUndefined(); // gated out: malformed row is recovery, not data
     one.dispose();
   });
 

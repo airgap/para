@@ -9,7 +9,7 @@ describe("decoration", () => {
 		const s = fromSchema({ type: "object", properties: { a: { type: "string" } }, required: ["a"] });
 		expect(s.type).toBe("object");
 		expect(s.required).toEqual(["a"]);
-		// A spread must yield a plain JSON Schema again — never drag `parse` into
+		// A spread must yield a plain JSON Schema again. Never drag `parse` into
 		// a schema literal that embeds this one.
 		expect(Object.keys({ ...s }).sort()).toEqual(["properties", "required", "type"]);
 		expect(typeof s.parse).toBe("function");
@@ -108,7 +108,7 @@ describe("numbers, booleans, dates", () => {
 		expect(err(s.parse(0))).toBe("expected boolean");
 	});
 
-	// The arm ParaBun's validator is missing entirely — `date` is what lockstep
+	// The arm ParaBun's validator is missing entirely: `date` is what lockstep
 	// emits for every temporal column, so without this a timestamp field is
 	// unchecked.
 	test("date accepts a Date or an ISO string, rejects junk", () => {
@@ -138,7 +138,7 @@ describe("objects", () => {
 		required: ["id"],
 	});
 
-	// A lockstep record model has no `type: 'object'` — "has properties" implies it.
+	// A lockstep record model has no `type: 'object'`: "has properties" implies it.
 	test("a lockstep record model (no explicit type) validates as an object", () => {
 		expect(ok(s.parse({ id: 1n }))).toBe(true);
 		expect(err(s.parse("x"))).toBe("expected object");

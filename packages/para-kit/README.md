@@ -1,6 +1,6 @@
 # @lyku/para-kit
 
-The **P9 fullstack projection** for Para sync — the build + runtime glue that
+The **P9 fullstack projection** for Para sync: the build + runtime glue that
 turns `.pui` sync declarations (spec ch. 08 §13.7–§13.8) into a running app:
 escape-analyzed server artifacts, a host that runs them, and SyncEnvelopes
 over SSE. SvelteKit-shaped; built on web standards, so host-agnostic in fact.
@@ -20,7 +20,7 @@ over SSE. SvelteKit-shaped; built on web standards, so host-agnostic in fact.
           createSseTransport({ url, eventSource: (u) => new EventSource(u) })
                               │  the para-sync dumb-pipe subscribe contract
                               ▼
-          the .pui client binding — stock Tier-1 synced(subKey(declId, params), Schema)
+          the .pui client binding: stock Tier-1 synced(subKey(declId, params), Schema)
 ```
 
 ## Setup
@@ -46,13 +46,13 @@ pass the envelope as the binding's `seed`.
 
 ## Contracts worth knowing
 
-- The generated endpoint route is written **once** and never regenerated —
+- The generated endpoint route is written **once** and never regenerated:
   ejected by construction. Artifacts + manifest are regenerated boundary
   files: don't hand-edit, re-run `emit`.
 - Client subscription keys equal host keys by construction: both sides derive
-  `subKey(declId, params)` from the same `moduleId` — pass the same paths to
+  `subKey(declId, params)` from the same `moduleId`: pass the same paths to
   `emit` that the preprocessor sees as `filename`.
 - `SseTransport.publish` throws: the read path is one-directional; writes
   cross as POST intents (§13.1) via the endpoint's `onIntent`.
-- Late joiners on an already-open key are replayed the last envelope —
+- Late joiners on an already-open key are replayed the last envelope:
   idempotent, since envelopes carry `(schema_version, sequence)`.

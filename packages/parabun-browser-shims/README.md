@@ -1,6 +1,6 @@
 # parabun-browser-shims
 
-> **Deprecated.** The cross-runtime Lib modules (`signals`, `parallel`, `simd`, `arena`, `arrow`, `csv`, `mcp`, `pipeline`, `rtp`) now ship as individual `@lyku/para-*` npm packages — install those directly. This package now only carries the few specifiers that don't have a Lib equivalent yet. Slated for removal in 0.4.x once those migrate or get retired.
+> **Deprecated.** The cross-runtime Lib modules (`signals`, `parallel`, `simd`, `arena`, `arrow`, `csv`, `mcp`, `pipeline`, `rtp`) now ship as individual `@lyku/para-*` npm packages. Install those directly. This package now only carries the few specifiers that don't have a Lib equivalent yet. Slated for removal in 0.4.x once those migrate or get retired.
 
 What's still in here:
 

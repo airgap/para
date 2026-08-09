@@ -1,16 +1,16 @@
-// Persistent Worker pool for `@lyku/para-parallel` — `pmap` / `preduce` /
+// Persistent Worker pool for `@lyku/para-parallel`: `pmap` / `preduce` /
 // `run`, with a transparent sequential fallback when Worker + `new
 // Function` aren't available (CSP-restricted contexts, non-browser
 // hosts that lack Worker).
 //
-// The contract requires user functions to be **pure** — they're shipped
+// The contract requires user functions to be **pure**. They're shipped
 // across the worker boundary via `fn.toString()` and rehydrated with
 // `new Function(...)`, so closures over outer scope are not supported.
 // That matches the constraint native Parabun enforces.
 //
 // Inputs cross via structured clone by default. For TypedArray inputs,
 // the chunker passes ownership of each chunk's buffer using the
-// transfer list — a 100MB Float32Array splits into N transferred
+// transfer list: a 100MB Float32Array splits into N transferred
 // chunks rather than N copies. Callers can supply additional
 // `Transferable`s via the `transfer` option for non-typed-array data.
 
@@ -142,7 +142,7 @@ class Pool {
   #completedTotal = 0;
   #config;
   #seq = false; // sequential-fallback mode
-  // Lifetime signal — true from createPool() until dispose(). Lets
+  // Lifetime signal: true from createPool() until dispose(). Lets
   // consumers observe pool health reactively instead of polling
   // .stats(). Tied to a private `effect`-bound list (`#boundEffects`)
   // so `pool.use(fn)` auto-tears-down on dispose.
@@ -171,7 +171,7 @@ class Pool {
   /**
    * Run an effect bound to this pool's lifetime. Behaves like
    * `signals.effect(fn)` but is automatically disposed when the pool
-   * is disposed — no defensive `pool.alive.get()` guards needed.
+   * is disposed: no defensive `pool.alive.get()` guards needed.
    */
   use(fn) {
     const stop = makeEffect(fn);
@@ -312,7 +312,7 @@ class Pool {
   #abortTask(task, error) {
     const slot = task.slot;
     if (!slot || slot.currentTask !== task) {
-      // Already completed — nothing to abort.
+      // Already completed. Nothing to abort.
       return;
     }
     this.#cleanupTaskHandlers(task);
@@ -348,7 +348,7 @@ class Pool {
     }
   }
 
-  // Resolve once a slot becomes idle — and atomically pre-claim it
+  // Resolve once a slot becomes idle, and atomically pre-claim it
   // (slot.busy = true) so a racing #onSlotIdle pass can't hand it to
   // someone else. Caller is responsible for issuing work via
   // #runOnSlot (which is idempotent re: slot.busy = true).
@@ -398,7 +398,7 @@ class Pool {
 
   // ── ensureFn: cached init per worker ───────────────────────────────
   //
-  // Init runs INSIDE an already-claimed slot's lifetime — the slot is
+  // Init runs INSIDE an already-claimed slot's lifetime. The slot is
   // already `busy:true` from `#waitForSlot`. Init must NOT go through
   // the user-task release path (which would free the slot mid-flow,
   // leaving a window where another caller could grab it). So we use a
@@ -759,7 +759,7 @@ function _resetHeuristic() {
 // prefer the real native module: SAB-backed pmap/preduce, parallel radix
 // `psort`, atomic Mutex/Semaphore. We resolve through the native-only
 // `para:parallel` alias (LYK-805) which maps to the builtin and never to
-// this package — so there's no self-recursion. Off-runtime the require
+// this package, so there's no self-recursion. Off-runtime the require
 // throws and we use the shim implementations below. Same posture as
 // @lyku/para-gpu → parabun:gpu.
 let _native;
@@ -774,7 +774,7 @@ function nativeMod() {
       if (mod && typeof mod.psort === "function") _native = mod;
     }
   } catch {
-    /* off-runtime: no native builtin — fall back to the shim */
+    /* off-runtime: no native builtin, fall back to the shim */
   }
   return _native;
 }
@@ -794,7 +794,7 @@ async function psort(array, comparator, options) {
       );
     }
     const c = array.slice();
-    c.sort(); // numeric for TypedArrays — matches the native radix ordering (NaN last)
+    c.sort(); // numeric for TypedArrays, matches the native radix ordering (NaN last)
     return c;
   }
   if (Array.isArray(array)) {

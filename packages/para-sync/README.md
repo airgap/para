@@ -1,15 +1,15 @@
 # @lyku/para-sync
 
-`synced<T>` distributed object sync for the para:\* suite — server-authoritative
+`synced<T>` distributed object sync for the para:\* suite: server-authoritative
 records with live, version-reconciled client replicas over the existing
 single-WS-per-browser objectfeed.
 
 > **Pre-release (0.0.1-pre).** API will change before 0.1.0. The client runtime
 > for the whole authority model (spec/08) now ships here:
 >
-> - **Tier 1 — read/reconcile:** `SyncTransport` (`InProcessTransport` /
+> - **Tier 1, read/reconcile:** `SyncTransport` (`InProcessTransport` /
 >   `NatsTransport`), `createClientReplica`, `synced`, `visibility`.
-> - **Tier 2 — writes (§13.1):** `createIntent` (optimistic apply → op-id
+> - **Tier 2, writes (§13.1):** `createIntent` (optimistic apply → op-id
 >   correlation → confirm/reject/rollback → echo dedupe/stale-suppression).
 > - **Offline (§13.5):** `createQueuedIntent` + durable stores (`durable.js`) and
 >   read-side durability (the reconciler `persist` seam).
@@ -55,20 +55,20 @@ off(); // idempotent unsubscribe
 The transport is a **dumb pipe**: it does not retain the latest value, does not
 validate the envelope (`parse` gating is the consumer's job at the apply
 boundary), and does not dedupe by sequence. A subscriber receives only publishes
-that happen **after** it subscribes — initial state arrives via the SSR seed.
+that happen **after** it subscribes. Initial state arrives via the SSR seed.
 
 ### Implementations
 
-- **`InProcessTransport`** (here) — monolith / edge / IoT / all-in-one, where the
+- **`InProcessTransport`** (here): monolith / edge / IoT / all-in-one, where the
   write handler and listen handlers share a process and there is no inter-service
   bus. A keyed `Map<key, Set<handler>>` emitter; delivery is a synchronous call.
   Empty key entries are GC'd when their last subscriber leaves (`keyCount()` is a
   leak-check diagnostic).
-- **`NatsTransport`** — multi-service deployments; the change crosses services
+- **`NatsTransport`**: multi-service deployments; the change crosses services
   over NATS, matching Lyku's existing full-object-over-NATS convention. Inject a
   `connection` (callback-adapted: `publish(subject, bytes)` /
   `subscribe(subject, onMessage) → unsub`), a wire `codec` (BON/msgpackr in
-  production — bigint IDs rule out JSON), and an optional `subjectOf(key)`.
+  production, bigint IDs rule out JSON), and an optional `subjectOf(key)`.
   N local subscribers to one key share a single bus subscription (local fanout),
   torn down when the last leaves.
 
@@ -102,11 +102,11 @@ Reconcile rules (Tier 1):
 
 - **parse gate** on every inbound value (SSR seed, receipt, refetch). `Err` →
   status `skew`, the cell is **not** poisoned, and a `refetch` recovers a
-  known-good snapshot. Gates branch on `.tag` — they never throw (that is why
+  known-good snapshot. Gates branch on `.tag`. They never throw (that is why
   `::`, which throws on `Err`, is reserved for the server-write gate only).
-- **baseline (re)seed** — hydration, a recovery refetch, or the first value ever
+- **baseline (re)seed**: hydration, a recovery refetch, or the first value ever
   seen is accepted unconditionally as the authoritative base.
-- **steady-state receipt** — apply iff `sequence === current + 1`; `<= current`
+- **steady-state receipt**: apply iff `sequence === current + 1`; `<= current`
   is ignored (stale/duplicate/out-of-order); `> current + 1` is a gap → refetch
   + resync.
 
@@ -114,7 +114,7 @@ Reconcile rules (Tier 1):
 `parseErrors`, `refetches`); `replica.whenIdle()` resolves when no recovery
 refetch is in flight (a test/await aid).
 
-## `synced` — the reactive primitive
+## `synced`: the reactive primitive
 
 `createClientReplica` is the engine; `synced` is the ergonomic front. It composes
 the reconciler with a **default in-process transport**, a **change-stream
@@ -128,12 +128,12 @@ import { synced } from "@lyku/para-sync";
 const user = synced("user:123", {
   schema: User,                       // parse(v) => {tag:'Ok',value} | {tag:'Err',error}
   schemaVersion: "1.0",               // optional: MAJOR mismatch ⇒ breaking skew
-  stream: () => api.streamCurrentUser(), // { listen(cb), close?() } — the receipt source
+  stream: () => api.streamCurrentUser(), // { listen(cb), close?() }: the receipt source
   seed: ssrEnvelope,                  // optional SSR baseline
   refetch: () => fetchSnapshot("user:123") // optional Err/skew/gap recovery
 });
 
-user.value;   // current value, TRACKED — read it in a .pui template / derived / effect and it reacts
+user.value;   // current value, TRACKED: read it in a .pui template / derived / effect and it reacts
 user.status;  // 'ok' | 'stale' | 'skew' | 'refetching', tracked
 user.dispose(); // closes the stream + disposes the replica (idempotent)
 ```
@@ -142,21 +142,21 @@ The default cell is a para signal, so `user.value` is a tracked read in any para
 reactive context (no manual effect). Inject `cell` to back the value with a
 different reactive store (e.g. a Svelte-fork cell, or a host `SvelteMap`); inject
 `transport` (and omit `stream`) when delivery is owned elsewhere. `synced` is
-read-only — Tier 1 replication; writes are the server-write gate's job.
+read-only: Tier 1 replication; writes are the server-write gate's job.
 
 ### Inferred delivery: `synced(key, schema)`
 
 Configure delivery **once** at client init and call sites shrink to a key + a
-schema — no per-call `stream`/`transport`:
+schema, no per-call `stream`/`transport`:
 
 ```js
 import { configureSynced, synced } from "@lyku/para-sync";
 
-// once, at app init — choose ONE:
+// once, at app init. Choose ONE:
 configureSynced({ transport: objectfeed });                 // shared keyed WS (the end-state)
 configureSynced({ resolveStream: (key) => api.streamFor(key) }); // per-object endpoints (today)
 
-// anywhere — schema is positional; delivery is inferred from the key:
+// anywhere. Schema is positional; delivery is inferred from the key:
 const user = synced("user:123", User);
 const user = synced("user:123", User, { cell, seed }); // + overrides
 ```
@@ -172,7 +172,7 @@ In a `.pui`, the `synced` keyword wraps the call for you, so the minimal form is
 synced user = `user:${userId}`, User;
 ```
 
-## Tier 2 — optimistic writes (`createIntent`, §13.1)
+## Tier 2: optimistic writes (`createIntent`, §13.1)
 
 The write-side mirror of the reconciler: the mechanical state machine is baked;
 the `optimistic` / `rollback` arms are your typed deltas. Monotonic
@@ -197,7 +197,7 @@ like.onEcho({ opId, v }); // 'dedupe' (own, apply) | 'suppress' (stale, drop) | 
 `onEcho` is the Class-A flicker kill: an own echo whose intent version is behind
 a newer local flip is suppressed, so Like→Unlike never flickers back.
 
-## Offline — queued mutations + read durability (§13.5)
+## Offline: queued mutations + read durability (§13.5)
 
 `createQueuedIntent` is `createIntent` with a **durable log**: every `apply` is
 persisted, and `replay()` re-folds the pending log onto the reconciler's fresh
@@ -236,7 +236,7 @@ import { syncedQuery } from "@lyku/para-sync";
 
 const feed = syncedQuery(Post, {
   transport, // per-row value deltas, keyed by row key
-  membership, // { listen(cb), close?() } — ordered keys (+ optional seeds)
+  membership, // { listen(cb), close?() }: ordered keys (+ optional seeds)
   seed: { keys: ["post:1"], seeds: { "post:1": env1 } },
 });
 feed.get(); // reactive Post[]
@@ -246,7 +246,7 @@ feed.row("post:1"); // the row replica (target a per-row §13.5 mutation)
 ## Presence (`presence`, §13.4)
 
 Ephemeral peer state: a parse-gated, last-write-wins-per-peer, disconnect-GC'd
-reactive map. Deliberately **not** a synced entity — no seed, no sequence, no
+reactive map. Deliberately **not** a synced entity: no seed, no sequence, no
 reconcile machine (nothing to `mutate`/confirm against).
 
 ```js
@@ -276,7 +276,7 @@ const authority = defineAuthority({
 ```
 
 Class-B (`@merge`) is the only way concurrent multi-writer merge becomes
-reachable, and it is a named pure function — never ambient (the anti-Meteor
+reachable, and it is a named pure function, never ambient (the anti-Meteor
 boundary, §7.2).
 
 ## Transactions (`createTransaction`, §13.6)

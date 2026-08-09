@@ -6,18 +6,18 @@
 //   - File framing: PAR1 magic at start + end, length-prefixed Thrift
 //     FileMetaData footer, multiple row groups, multiple column chunks.
 //   - Physical types: BOOLEAN, INT32, INT64, FLOAT, DOUBLE, BYTE_ARRAY
-//     (treated as utf8 by default — coerced to string).
+//     (treated as utf8 by default, coerced to string).
 //   - Encodings: PLAIN, PLAIN_DICTIONARY (deprecated alias for
 //     RLE_DICTIONARY), RLE_DICTIONARY, RLE (for definition / repetition
 //     levels and bit-packed booleans), BIT_PACKED (deprecated, sometimes
 //     emitted by older writers).
-//   - Compression: UNCOMPRESSED, SNAPPY (handed-rolled inflate — Bun
+//   - Compression: UNCOMPRESSED, SNAPPY (handed-rolled inflate: Bun
 //     doesn't ship a Snappy decoder), GZIP (via Bun.gunzipSync).
 //   - Page formats: V1 data pages (def levels + rep levels + values),
 //     dictionary pages.
 //   - Schemas: flat, top-level columns. Required and optional. Nested
 //     types (List / Map / Struct) read into list-of-structs would need
-//     definition / repetition level reconstruction — out of scope for v1.
+//     definition / repetition level reconstruction, out of scope for v1.
 //
 // Hand-rolled Thrift compact protocol decoder; no npm dep on
 // `parquetjs` / `thrift`. The schema list is hard-coded against the
@@ -297,7 +297,7 @@ const PQ_ENC_DELTA_BYTE_ARRAY = 7;
 const PQ_ENC_RLE_DICTIONARY = 8;
 
 interface SchemaElement {
-  type: number | undefined; // physical type — undefined for group nodes
+  type: number | undefined; // physical type, undefined for group nodes
   typeLength: number | undefined;
   repetitionType: number; // defaults to required at the root
   name: string;
@@ -424,7 +424,7 @@ function parseColumnChunk(r: ThriftReader): ColumnChunk {
     }
     return false;
   });
-  if (!metaData) throw new Error("parquet: ColumnChunk has no inline meta_data — file_path indirection not supported");
+  if (!metaData) throw new Error("parquet: ColumnChunk has no inline meta_data: file_path indirection not supported");
   return { fileOffset, metaData };
 }
 
@@ -705,7 +705,7 @@ function decodeHybridRleBitPack(
         }
       }
       // We may have over-counted bytes if count < 8 * numGroups; that's
-      // fine — the writer rounds up to whole groups.
+      // fine. The writer rounds up to whole groups.
       void bytesNeeded;
     }
   }
@@ -836,7 +836,7 @@ function arrowKindForPhysical(type: number, convertedType: number | undefined): 
       return "float64";
     case PQ_TYPE_BYTE_ARRAY:
       // BYTE_ARRAY is utf8 when explicitly tagged. We treat it as utf8 by
-      // default — pyarrow rarely emits raw byte columns from JS-friendly
+      // default: pyarrow rarely emits raw byte columns from JS-friendly
       // sources.
       void convertedType;
       return "utf8";
@@ -894,7 +894,7 @@ function decodeColumnChunk(
     let dpos = 0;
     const numValues = dataPage.numValues;
 
-    // Repetition levels (only present if this column has repeated nesting —
+    // Repetition levels (only present if this column has repeated nesting,
     // not the case for flat schemas, so we expect rep = 0 throughout).
     // The block is omitted when max_rep_level is 0; we don't currently
     // know max_rep_level explicitly, but for flat schemas it's always 0.
@@ -1042,7 +1042,7 @@ export function fromParquet(bytes: Uint8Array): TableLike {
 // ─── Writer ───────────────────────────────────────────────────────────────
 // toParquet emits a single row group, PLAIN-encoded, with optional SNAPPY
 // or GZIP compression. Output is bit-for-bit readable by pyarrow / arrow-rs
-// / duckdb on the basic types — narrow but correct.
+// / duckdb on the basic types, narrow but correct.
 //
 // The writer doesn't dictionary-encode strings or bit-pack low-cardinality
 // columns yet; for a tiny.en-style toy fixture both pyarrow and Parabun

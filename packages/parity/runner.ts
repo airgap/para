@@ -1,9 +1,9 @@
-// Parity test runner — feeds each fixture through both transpilers
+// Parity test runner: feeds each fixture through both transpilers
 // (canonical Parabun via subprocess + our standalone in-process), then
 // compares the normalized output. Prints a diff for any mismatch.
 //
 // The canonical binary comes from @lyku/parabun-bin (the pinned-release
-// resolver — the P2 boundary mechanism). Local runs: set PARABUN_BIN to
+// resolver: the P2 boundary mechanism). Local runs: set PARABUN_BIN to
 // an absolute path to a parabun binary (the documented escape hatch).
 //
 // Exit code 0 if every fixture matches after normalization, 1 otherwise.
@@ -66,7 +66,7 @@ function diffLines(a: string, b: string): string {
   return out.join("\n");
 }
 
-// Known divergences — fixtures we can't byte-match because the canonical
+// Known divergences: fixtures we can't byte-match because the canonical
 // Zig parser does work the standalone deliberately delegates to the host.
 // The behavior is equivalent at runtime; we just don't reproduce the
 // canonical's lowering shape.
@@ -90,7 +90,7 @@ const failures: { fixture: string; canonical: string; standalone: string }[] = [
 
 for (const f of fixtures) {
   if (KNOWN_DIVERGENCES[f]) {
-    console.log(`◇ ${f} (known divergence — see KNOWN_DIVERGENCES)`);
+    console.log(`◇ ${f} (known divergence: see KNOWN_DIVERGENCES)`);
     skipped++;
     continue;
   }
@@ -120,7 +120,7 @@ console.log(`\n${passed} passed, ${failed} failed, ${skipped} skipped (${fixture
 
 // Canary mode (nightly CI, PARABUN_BIN pointed at the LATEST parabun
 // release, not the pinned one): report drift, never fail. Early warning
-// for "stale-but-green" — a parser change landed in parabun but the
+// for "stale-but-green": a parser change landed in parabun but the
 // para pin has not been bumped yet. The blocking gate stays the
 // default-mode run against the PINNED binary; this only informs.
 const CANARY = process.argv.includes("--canary") || process.env.PARABUN_PARITY_CANARY === "1";
@@ -134,11 +134,11 @@ if (failures.length > 0) {
     console.log(
       `\n⚠ CANARY DRIFT (non-blocking): ${failures.length} fixture(s) diverge ` +
         `against the LATEST parabun. The mirror likely needs updating before ` +
-        `the next pin bump — file/track it; do NOT fail CI on this.`,
+        `the next pin bump: file/track it; do NOT fail CI on this.`,
     );
     process.exit(0);
   }
   process.exit(1);
 }
 
-if (CANARY) console.log(`\n✓ canary: mirror still matches the latest parabun — no pending drift.`);
+if (CANARY) console.log(`\n✓ canary: mirror still matches the latest parabun. No pending drift.`);

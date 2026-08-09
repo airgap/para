@@ -1,32 +1,32 @@
-// @lyku/para-sort — typed-array sort with automatic tier dispatch.
+// @lyku/para-sort: typed-array sort with automatic tier dispatch.
 //
 // Tiers:
-//   1. serial   — LSD radix (this file). Synchronous, deterministic,
+//   1. serial   : LSD radix (this file). Synchronous, deterministic,
 //                 beats TypedArray.prototype.sort() from a few thousand
 //                 elements up. Always available, on every runtime.
-//   2. parallel — native @lyku/para-parallel `psort`: tuned SAB-backed
+//   2. parallel : native @lyku/para-parallel `psort`: tuned SAB-backed
 //                 histogram+scatter radix across a worker pool. Only
 //                 resolvable on the ParaBun runtime (the npm shim has no
 //                 `psort`). Worker pools can't be synchronous, so the
 //                 parallel tier is the **async** API (`*.f32Async`).
-//   3. gpu      — Phase 2. `available()` is false; `backend:"gpu"` errors.
+//   3. gpu      : Phase 2. `available()` is false; `backend:"gpu"` errors.
 //
 // Why the split sync/async surface: the brief's `const out = sort.f32(arr)`
 // is synchronous, but a worker pool fundamentally cannot be. Rather than
 // make the whole API async (and force every caller to await even the tiny
-// serial case), the sync `sort.f32` covers serial/small/already-sorted —
-// the common case — and `sort.f32Async` adds the native parallel tier.
+// serial case), the sync `sort.f32` covers serial/small/already-sorted,
+// the common case, and `sort.f32Async` adds the native parallel tier.
 // `describe()` reports parallel as an async-only tier honestly.
 //
 // Numeric correctness: radix needs an unsigned, order-preserving key.
-//   u32 — value as-is.
-//   i32 — flip the sign bit (x ^ 0x80000000): negatives < positives.
-//   f32 — total-ordering bit trick: positives flip the sign bit, negatives
+//   u32: value as-is.
+//   i32: flip the sign bit (x ^ 0x80000000): negatives < positives.
+//   f32: total-ordering bit trick: positives flip the sign bit, negatives
 //         flip all bits. NaN ends up at the high end (matches
 //         TypedArray.prototype.sort putting NaN last); -0 sorts just below
-//         +0 (IEEE totalOrder) — don't assert their relative order.
+//         +0 (IEEE totalOrder). Don't assert their relative order.
 
-// Native @lyku/para-parallel: runtime-shadowed specifier — native module on
+// Native @lyku/para-parallel: runtime-shadowed specifier, native module on
 // ParaBun, npm shim (no `psort`) elsewhere. Same access pattern as
 // @lyku/para-pipeline.
 let _np: any = null;
@@ -118,7 +118,7 @@ function fromKeys(keys: Uint32Array, kind: Kind, n: number): U32Like {
 
 // ── LSD radix core (4 × 8-bit passes, stable, ping-pong) ──────────────────
 //
-// When `idx` is supplied it rides along with the keys — that's the argsort
+// When `idx` is supplied it rides along with the keys. That's the argsort
 // path (scatter indices, not values). Returns the buffer pair that ended up
 // holding the sorted data (always after an even pass count, so `keys`/`idx`).
 
@@ -231,7 +231,7 @@ function syncSort(src: U32Like, kind: Kind, o?: SortOptions): U32Like {
   rejectGpu(o);
   if (o?.backend === "parallel") {
     throw new Error(
-      "@lyku/para-sort: backend 'parallel' requires the async API — use sort." +
+      "@lyku/para-sort: backend 'parallel' requires the async API: use sort." +
         kind +
         "Async(arr, { backend: 'parallel' }). Worker pools cannot run synchronously.",
     );
@@ -247,7 +247,7 @@ async function asyncSort(src: U32Like, kind: Kind, o?: SortOptions): Promise<U32
   if (o?.backend === "parallel") {
     if (!np) {
       throw new Error(
-        "@lyku/para-sort: backend 'parallel' unavailable — native @lyku/para-parallel `psort` is not present (running off the ParaBun runtime).",
+        "@lyku/para-sort: backend 'parallel' unavailable. Native @lyku/para-parallel `psort` is not present (running off the ParaBun runtime).",
       );
     }
     const Ctor = src.constructor as { new (n: number): U32Like };
@@ -288,7 +288,7 @@ function describe(arr?: U32Like): Record<string, unknown> {
     reason = `n=${n}, below small-n threshold (TypedArray.sort)`;
   } else if (ascending(arr, n) || descending(arr, n)) {
     recommended = "serial";
-    reason = `n=${n}, already sorted/reverse — O(n) fast path`;
+    reason = `n=${n}, already sorted/reverse, O(n) fast path`;
   } else if (n >= DEFAULT_MIN_PARALLEL && np) {
     recommended = "parallel";
     reason = `n=${n}, ≥ minParallel and native psort available`;

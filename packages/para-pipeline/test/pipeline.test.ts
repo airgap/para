@@ -322,7 +322,7 @@ describe("topK / argTopK / mergeTopK", () => {
     expect(await p.topK<number>(3, undefined, { by: "min" })(a)).toEqual([0, 1, 2]);
   });
 
-  test("keyFn — top rows by score (the real case)", async () => {
+  test("keyFn: top rows by score (the real case)", async () => {
     const rows = [
       { id: "a", score: 12 },
       { id: "b", score: 99 },
@@ -346,7 +346,7 @@ describe("topK / argTopK / mergeTopK", () => {
     expect(await p.topK<number>(99)([3, 1, 2])).toEqual([3, 2, 1]); // full sort fallback
   });
 
-  test("async source, large stream — matches reference, O(k) selection", async () => {
+  test("async source, large stream: matches reference, O(k) selection", async () => {
     const n = 100_000;
     const a = new Array(n);
     let s = 12345;
@@ -360,7 +360,7 @@ describe("topK / argTopK / mergeTopK", () => {
 
   test("mergeTopK is the monoid combine: per-shard then merge == global", async () => {
     const n = 5000;
-    // Distinct values (i*7919 mod 5000 is a bijection — 7919 prime, coprime
+    // Distinct values (i*7919 mod 5000 is a bijection: 7919 prime, coprime
     // to 5000) so the monoid equality is unambiguous: with ties, per-shard
     // top-k then merge may legitimately keep different equal elements.
     const a = Array.from({ length: n }, (_, i) => (i * 7919) % n);
@@ -382,7 +382,7 @@ describe("topK / argTopK / mergeTopK", () => {
 });
 
 describe("fromColumn / fromColumns (columnar projection sources)", () => {
-  // Plain columnar batches — exactly the shape @lyku/para-csv parseBatches
+  // Plain columnar batches, exactly the shape @lyku/para-csv parseBatches
   // yields: { name: ArrayLike }, row count = any column's .length, final
   // batch tight-fit (shorter than the others).
   const plainBatches = [

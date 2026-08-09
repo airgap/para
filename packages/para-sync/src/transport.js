@@ -1,4 +1,4 @@
-// @lyku/para-sync — distributed object sync for the para:* suite.
+// @lyku/para-sync: distributed object sync for the para:* suite.
 //
 // This module currently provides the TRANSPORT layer: the server-internal
 // mechanism that carries a synced object's change envelope from the write
@@ -6,10 +6,10 @@
 // three `parse` gates build on top of this.
 //
 // Transport is a PLUGGABLE interface with (initially) two implementations:
-//   - InProcessTransport — monolith / edge / IoT / all-in-one, where the write
+//   - InProcessTransport: monolith / edge / IoT / all-in-one, where the write
 //     handler and the listen handlers share a process and there is no
 //     inter-service bus to stand up. (This file.)
-//   - NatsTransport — multi-service deployments, where the change crosses
+//   - NatsTransport: multi-service deployments, where the change crosses
 //     from the writer's service to listeners' services over NATS. (Later.)
 //
 // The CLIENT side is identical across both: WS receive → parse → version-check
@@ -23,7 +23,7 @@
  *
  * @typedef {object} SyncEnvelope
  * @property {unknown} value          The full changed object. NOT validated by
- *                                    the transport — `parse` gating is the
+ *                                    the transport: `parse` gating is the
  *                                    consumer's job at the apply boundary.
  * @property {string} schema_version  Reconcile key, part 1: the model's schema
  *                                    version (e.g. "3.1"). Distinguishes a
@@ -49,7 +49,7 @@
 
 /**
  * The pluggable transport contract. `synced<T>` depends ONLY on this shape, not
- * on any concrete transport — that decoupling is what lets the same primitive
+ * on any concrete transport. That decoupling is what lets the same primitive
  * run on a single box (InProcessTransport) or across services (NatsTransport).
  *
  * Contract notes that every implementation must honor:
@@ -57,7 +57,7 @@
  *     `key`. Publishing to a key with no subscribers is a no-op (never throws).
  *   - The transport is a dumb pipe: it does NOT retain the latest value, does
  *     NOT validate the envelope, and does NOT dedupe by sequence. A subscriber
- *     receives only publishes that happen AFTER it subscribes — initial state
+ *     receives only publishes that happen AFTER it subscribes. Initial state
  *     arrives via the SSR seed, not the transport.
  *   - subscribe(key, handler) returns an idempotent Unsub.
  *
@@ -68,7 +68,7 @@
 
 /**
  * In-process implementation of {@link SyncTransport}. A keyed pub/sub emitter:
- * `Map<key, Set<handler>>`. No bus, no network, no serialization — the write
+ * `Map<key, Set<handler>>`. No bus, no network, no serialization. The write
  * and the listen happen in the same process, so delivery is a synchronous call.
  *
  * Why a plain emitter and not a para-signal per key: the transport contract is
@@ -100,7 +100,7 @@ export class InProcessTransport {
     const handlers = this._subs.get(key);
     if (handlers === undefined) return;
     // Snapshot: a handler may subscribe/unsubscribe during delivery. Iterating
-    // a copy gives well-defined semantics — handlers live at publish time each
+    // a copy gives well-defined semantics. Handlers live at publish time each
     // receive this envelope; a handler added mid-delivery does not.
     for (const handler of Array.from(handlers)) handler(envelope);
   }
@@ -145,7 +145,7 @@ export class InProcessTransport {
 
 /**
  * A NATS connection, callback-adapted. NatsTransport expects delivery as a
- * callback + an unsubscribe, NOT nats.js's raw async-iterable subscription —
+ * callback + an unsubscribe, NOT nats.js's raw async-iterable subscription:
  * the iterable→callback adaptation is a 3-line caller concern that Lyku already
  * does (`const sub = nc.subscribe(subj); (async () => { for await (const m of
  * sub) onMessage(m.data); })(); return () => sub.unsubscribe();`). Keeping that
@@ -161,7 +161,7 @@ export class InProcessTransport {
 /**
  * Wire codec: envelope ⇄ bytes. NATS payloads are `Uint8Array`. In production
  * inject a BON or msgpackr codec (envelopes carry bigint IDs, which JSON cannot
- * represent — BON is the SSR/wire serializer for exactly this reason). Defaults
+ * represent. BON is the SSR/wire serializer for exactly this reason). Defaults
  * to identity (object passthrough), which works for in-memory fakes/tests but
  * NOT a real NATS connection.
  *
@@ -201,7 +201,7 @@ export class NatsTransport {
     this._codec = codec ?? IDENTITY_CODEC;
     this._subjectOf = subjectOf ?? ((key) => `synced.${key}`);
     /**
-     * key → { natsUnsub, handlers } — present iff the key has ≥1 local
+     * key → { natsUnsub, handlers }: present iff the key has ≥1 local
      * subscriber (and therefore one live bus subscription).
      * @type {Map<string, { natsUnsub: () => void, handlers: Set<SyncHandler> }>}
      */

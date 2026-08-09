@@ -1,6 +1,6 @@
 # Para
 
-The Para language ecosystem — packages, LSP, and UI tooling that consume
+The Para language ecosystem: packages, LSP, and UI tooling that consume
 the **ParaBun** runtime.
 
 ## Why this repo exists
@@ -8,11 +8,11 @@ the **ParaBun** runtime.
 ParaBun (the Bun fork) provides *native* Para language support: the
 in-place parser/lexer deltas (`fun`, `|>`, `..!`, `..&`, `..>`, `pure`,
 `.pts`/`.pjs`) compiled into the `parabun` binary. That stays in the
-fork — it *is* the fork — kept minimal and guarded so the fork remains
+fork (it *is* the fork), kept minimal and guarded so the fork remains
 rebaseable against upstream Bun.
 
-Everything else — the `@lyku/para-*` / `@lyku/para-*` packages, the LSP /
-`pui-transform`, the Para-UI Svelte fork, the codemod — does **not**
+Everything else (the `@lyku/para-*` / `@lyku/para-*` packages, the LSP /
+`pui-transform`, the Para-UI Svelte fork, the codemod) does **not**
 need to live in the Bun fork; it merely accreted there. This repo is
 that ecosystem, with its own nx workspace, release, and (private) design
 docs, so the fork stays lean and this stays clean.

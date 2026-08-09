@@ -1,6 +1,6 @@
 // Compiles src/simd.wat → src/simd.wasm using the `wabt` npm package.
 // Run via `bun run build:wasm` in this package. The wasm binary is
-// committed so shim consumers don't need wabt at install time — this
+// committed so shim consumers don't need wabt at install time: this
 // script only runs for maintainers editing the WAT source.
 
 import { readFileSync, writeFileSync } from "node:fs";

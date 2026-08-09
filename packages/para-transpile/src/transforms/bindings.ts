@@ -3,15 +3,15 @@
 //   A ~> B    →  require("@lyku/para-signals").effect(() => { B = A; })
 //   A -> fn   →  require("@lyku/para-signals").effect(() => { fn(A); })
 //
-// `~>` is an assignment binding — B is the sink, A is the source. Both
+// `~>` is an assignment binding: B is the sink, A is the source. Both
 // can be arbitrary expressions. The desugar wraps the assignment in an
 // effect so any signal reads inside A are tracked and the binding re-fires
 // on dep change.
 //
-// `->` is a call binding — fn is invoked with A as the argument. fn must
+// `->` is a call binding: fn is invoked with A as the argument. fn must
 // be a callable target (identifier, property access, or index access);
 // arrow functions and bare calls are rejected by the canonical Zig parser.
-// We don't enforce that here — the JS runtime will throw if fn isn't
+// We don't enforce that here: the JS runtime will throw if fn isn't
 // callable, which surfaces the error at first dep change.
 //
 // Both operators bind at "assign" precedence (looser than ||, &&, etc.,
@@ -22,7 +22,7 @@
 import { scanRegions } from "../lex";
 
 export function transformBindings(src: string): string {
-  // Operate on the full source — LHS / RHS can span template literals,
+  // Operate on the full source: LHS / RHS can span template literals,
   // and per-region scanning would treat those as opaque (e.g.
   // `\`count=${count}\` -> writer` would split at the backticks and
   // give the binding an empty LHS). Spans are still used to (a) reject
@@ -113,7 +113,7 @@ function findNextTopLevelOp(
 function scanBindLhsStart(src: string, opPos: number, inCode: (pos: number) => boolean, findSpan: SpanLookup): number {
   let depth = 0;
   let i = opPos - 1;
-  // Skip whitespace immediately before the op (only spaces/tabs — newline
+  // Skip whitespace immediately before the op (only spaces/tabs, newline
   // is a statement boundary so the LHS would already end there).
   while (i >= 0 && /[ \t]/.test(src[i]!)) i--;
   while (i >= 0) {

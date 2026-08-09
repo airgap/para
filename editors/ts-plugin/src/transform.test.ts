@@ -28,7 +28,7 @@ describe("Parabun → TS plugin transform", () => {
   describe("desugars", () => {
     test("`::` validation marker → plain `:` annotation (position-preserving)", () => {
       const out = transformParabunToTS(`function f(req:: User) { return req.id }`);
-      // Second `:` becomes a space — keeps column alignment.
+      // Second `:` becomes a space. Keeps column alignment.
       expect(out).toMatch(/function f\(req:\s+User\)/);
       expect(out).not.toContain("::");
     });
@@ -115,7 +115,7 @@ export schema User = {
 
     // schema X declarations also emit a `type X = (typeof X)["schema"]`
     // so users can write `satisfies Foo<X>` without `typeof X` AND get
-    // the unwrapped schema body — which is 1.5-2.2x faster for heavy
+    // the unwrapped schema body, which is 1.5-2.2x faster for heavy
     // generics like `PostgresTableModel<S>` because tsc doesn't have to
     // walk the `{...} & S` intersection that the full helper return
     // type carries.

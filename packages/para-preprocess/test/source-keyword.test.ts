@@ -36,7 +36,7 @@ onMount(() => { n = 1; });
   expect(imp).not.toBeNull();
   const names = imp![1]!.split(",").map(s => s.trim());
   expect(names.filter(x => x === "onDestroy")).toHaveLength(1);
-  // onMount is a plain call now (mount keyword retired) — auto-imported.
+  // onMount is a plain call now (mount keyword retired). Auto-imported.
   expect(names).toContain("onMount");
   expect(out).toContain(`const __src_cam = camera.open(dev);`);
   expect(out).toContain(`onDestroy(() => __src_cam.dispose?.());`);
@@ -49,7 +49,7 @@ test("source NAME is read-only: assignments are NOT rewritten", () => {
 source s = sensor();
 s = somethingElse;
 </script>`);
-  // unlike signal, no __src_s.set() rewrite — plain passthrough
+  // unlike signal, no __src_s.set() rewrite: plain passthrough
   expect(out).toContain(`s = somethingElse;`);
   expect(out).not.toContain(`__src_s.set(`);
 });

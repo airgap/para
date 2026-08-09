@@ -5,10 +5,10 @@ import { injectUsingHelpers } from "../src/transforms/inject-helpers";
 // transformUsingPolyfill walks the AST and rewrites `using` /
 // `await using` declarations into TS-style try/catch/finally blocks
 // that call __addDisposableResource and __disposeResources. Helpers are
-// injected separately by injectUsingHelpers — the transform itself just
+// injected separately by injectUsingHelpers: the transform itself just
 // emits the calls.
 
-describe("using polyfill — sync", () => {
+describe("using polyfill: sync", () => {
   test("single `using` decl is wrapped in try/catch/finally", () => {
     const out = transformUsingPolyfill(`{
   using x = make();
@@ -44,7 +44,7 @@ describe("using polyfill — sync", () => {
   });
 });
 
-describe("using polyfill — await using", () => {
+describe("using polyfill: await using", () => {
   test("await using decl marks env async", () => {
     const out = transformUsingPolyfill(`async function f() {
   await using x = open();
@@ -68,7 +68,7 @@ describe("using polyfill — await using", () => {
   });
 });
 
-describe("using polyfill — non-matches", () => {
+describe("using polyfill: non-matches", () => {
   test("source without `using` is returned verbatim", () => {
     const src = `const x = 1;\nconst y = make();\nuse(x, y);\n`;
     expect(transformUsingPolyfill(src)).toBe(src);
@@ -76,7 +76,7 @@ describe("using polyfill — non-matches", () => {
 
   test("source with `using` keyword inside a string is untouched", () => {
     // Pre-flight regex `\busing\s` matches inside the string but the parse
-    // pass sees no real `using` decls — falls through with the AST emit
+    // pass sees no real `using` decls: falls through with the AST emit
     // (which may reformat whitespace). We only assert that the polyfill
     // didn't emit any helper calls.
     const out = transformUsingPolyfill(`const s = "using foo = make()";`);

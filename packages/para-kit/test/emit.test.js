@@ -9,7 +9,7 @@ sync stats :: Stats from server db.total(orgId) on "stats:bump";
 </script>
 <p>{stats?.total}</p>`;
 
-describe("emitServerArtifacts — the P9 pure emitter", () => {
+describe("emitServerArtifacts: the P9 pure emitter", () => {
   test("artifact path convention", () => {
     expect(artifactPathFor("src/routes/stats/+page.pui")).toBe(
       "src/routes/stats/+page.server-sources.pts"

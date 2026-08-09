@@ -12,10 +12,10 @@
 //   }
 //
 //   for await (const row of parseCsv(blob, { headers: false })) {
-//     // row is ["v1", "v2", ...] — raw strings
+//     // row is ["v1", "v2", ...], raw strings
 //   }
 //
-//   // Parallel mode — uses @lyku/para-parallel's worker pool. Materializes the
+//   // Parallel mode: uses @lyku/para-parallel's worker pool. Materializes the
 //   // whole input first (loses streaming) and falls back to serial if the
 //   // input contains any quote characters (we'd need a pre-pass to find
 //   // safe chunk boundaries, which v1 doesn't do):
@@ -36,7 +36,7 @@ type CsvSource = string | Uint8Array | Blob | ReadableStream<Uint8Array> | Async
 type DialectOptions = {
   /**
    * Field delimiter. Default `,`. Use `\t` for TSV, `|` for pipe-separated.
-   * Pass `""` to auto-detect from the first non-comment line — the
+   * Pass `""` to auto-detect from the first non-comment line. The
    * lexer counts occurrences of `,`, `\t`, `;`, `|` (in that
    * preference order on ties) outside quoted regions and picks the
    * winner. Detection peeks at one line of the stream; the rest
@@ -73,7 +73,7 @@ type DialectOptions = {
 /**
  * Optional row-level transforms shared by every entry point.
  * `transformHeader` runs once per header cell; `transform` runs per
- * data cell (parseCsv only — columnar paths write straight into
+ * data cell (parseCsv only, columnar paths write straight into
  * TypedArrays where a string→string mapping doesn't fit).
  */
 type TransformOptions = {
@@ -124,7 +124,7 @@ type ParseOptions = DialectOptions &
      * caveats:
      *   1. Input is materialized to a single string first (no streaming).
      *   2. Falls back to serial if any quote character appears in the
-     *      input — finding safe chunk boundaries inside quoted regions
+     *      input: finding safe chunk boundaries inside quoted regions
      *      needs a pre-pass that v1 doesn't do.
      * If both apply, the heuristic is "use parallel for big files of
      * machine-generated data, serial for everything else."
@@ -194,7 +194,7 @@ async function* decodeSourceRaw(source: CsvSource): AsyncIterable<string> {
     }
     return;
   }
-  // Generic AsyncIterable — bytes or strings.
+  // Generic AsyncIterable: bytes or strings.
   const dec = new TextDecoder("utf-8");
   let sawBytes = false;
   for await (const chunk of source as AsyncIterable<Uint8Array | string>) {
@@ -216,14 +216,14 @@ async function* decodeSourceRaw(source: CsvSource): AsyncIterable<string> {
 // in-field-unquoted, in-field-quoted, after-quote (waiting for delimiter,
 // newline, or doubled-quote). `\r\n` and `\n` are both valid record
 // terminators; a `\r` not followed by `\n` is treated as a record terminator
-// too (legacy Mac line endings — rare but cheap to handle).
+// too (legacy Mac line endings, rare but cheap to handle).
 //
 // The parser is intentionally allocation-light on the hot path: a single
 // growing string buffer for the current field, a single array for the
 // current row, both reset (not reallocated) per row.
 
 const enum State {
-  FieldStart, // about to read a field — could be quoted or unquoted
+  FieldStart, // about to read a field, could be quoted or unquoted
   Unquoted, // inside an unquoted field
   Quoted, // inside a quoted field
   AfterQuote, // just saw a closing quote inside a quoted field
@@ -357,7 +357,7 @@ async function* tokenize(source: CsvSource, dialect: DialectOptions = {}): Async
       if (pendingCR) {
         pendingCR = false;
         if (ch === "\n") {
-          // CRLF — already terminated the row; just consume the LF.
+          // CRLF: already terminated the row; just consume the LF.
           continue;
         }
         // Lone CR was already a row terminator; fall through to process this char.
@@ -385,7 +385,7 @@ async function* tokenize(source: CsvSource, dialect: DialectOptions = {}): Async
             row.push(finishField("", false));
             // stay in FieldStart for the next field
           } else if (ch === "\n") {
-            // empty trailing field — flush the row.
+            // empty trailing field: flush the row.
             if (row.length > 0 || field.length > 0) {
               row.push(finishField(field, false));
               if (!SKIP_EMPTY || !rowIsBlank(row)) yield row;
@@ -503,7 +503,7 @@ function inferCell(s: string): string | number | boolean | null {
   if (s === "") return null;
   if (s === "true") return true;
   if (s === "false") return false;
-  // Strict numeric — must round-trip through Number without surprises. We
+  // Strict numeric: must round-trip through Number without surprises. We
   // use the regex test first to avoid e.g. "  3 " or "0x10" being treated
   // as numbers, since Number() accepts both but they're rarely intended as
   // numerics in CSV land.
@@ -555,17 +555,17 @@ const PARALLEL_MIN_BYTES = 64 * 1024;
 
 // ─── Parallel chunk parser (no-quote fast path) ────────────────────────────
 // This runs INSIDE a worker via @lyku/para-parallel.pmap. It must be a pure
-// function — no closures, no outside references — because pmap stringifies
+// function (no closures, no outside references) because pmap stringifies
 // it and re-evals on the worker side.
 //
 // The caller has already verified the input contains zero quote characters,
 // so a quoted-field state machine isn't needed. Plain split-on-delimiter
 // per line is correct.
 //
-// Input: { chunk, delimiter } — chunk is a substring split at line
+// Input: { chunk, delimiter }, chunk is a substring split at line
 // boundaries (each chunk starts at line N, ends at line M, delimiter is
 // the same throughout the input).
-// Output: string[][] — one entry per non-empty line in the chunk.
+// Output: string[][], one entry per non-empty line in the chunk.
 function parseCsvChunkPure(input: { chunk: string; delimiter: string }): string[][] {
   const chunk = input.chunk;
   const d = input.delimiter;
@@ -583,7 +583,7 @@ function parseCsvChunkPure(input: { chunk: string; delimiter: string }): string[
 }
 
 // Split the input into approximately equal chunks at line boundaries.
-// Returns chunks that, concatenated, give back the input verbatim — every
+// Returns chunks that, concatenated, give back the input verbatim. Every
 // `\n` ends up in the chunk it terminates.
 function splitAtLineBoundaries(input: string, n: number): string[] {
   if (n <= 1 || input.length === 0) return [input];
@@ -594,7 +594,7 @@ function splitAtLineBoundaries(input: string, n: number): string[] {
     const target = (k + 1) * targetSize;
     const split = input.indexOf("\n", target);
     if (split === -1) {
-      // No more newlines after the next target — push the rest as one
+      // No more newlines after the next target. Push the rest as one
       // chunk and stop. Caller may end up with fewer than `n` chunks;
       // that's fine.
       chunks.push(input.substring(start));
@@ -609,7 +609,7 @@ function splitAtLineBoundaries(input: string, n: number): string[] {
 
 function defaultConcurrency(): number {
   // navigator.hardwareConcurrency is available in Bun. Cap at 8 for
-  // typical CSV workloads — beyond that, contention on the input string
+  // typical CSV workloads. Beyond that, contention on the input string
   // (it's structured-cloned to each worker) eats the speedup.
   // @ts-ignore navigator is available in Bun
   const hc = typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 0;
@@ -751,7 +751,7 @@ async function* parseCsvImpl(
 // ── Columnar / typed-array parsing ───────────────────────────────────
 //
 // parseColumns() streams a CSV directly into per-column typed-array
-// buffers — no per-row object allocation, no per-cell value boxing.
+// buffers: no per-row object allocation, no per-cell value boxing.
 // For numeric-heavy CSVs this is O(N) memory in the actual data, vs
 // the row-objects path which spends a JS Object header (~56 bytes)
 // + boxed Number per cell.
@@ -765,7 +765,7 @@ async function* parseCsvImpl(
 // Allocation strategy: each column starts at INITIAL_CAPACITY rows and
 // doubles when full (amortized O(N) inserts). At end-of-stream each
 // numeric buffer is sliced down to the actual row count via subarray
-// — same backing buffer, no copy. String columns are plain Array<string>
+// Same backing buffer, no copy. String columns are plain Array<string>
 // since strings can't share storage in TypedArrays.
 
 type ColumnType = "f32" | "f64" | "i8" | "u8" | "i16" | "u16" | "i32" | "u32" | "string";
@@ -796,8 +796,8 @@ type ParseColumnsOptions<S extends Schema> = DialectOptions &
   TransformOptions & {
     schema: S;
     /**
-     * `true` (default) — first row is the header row, schema keys are
-     * matched against header cells. `false` — schema keys are taken in
+     * `true` (default): first row is the header row, schema keys are
+     * matched against header cells. `false`: schema keys are taken in
      * declaration order against column indices 0, 1, 2, …. Or pass an
      * explicit array of header names.
      */
@@ -898,7 +898,7 @@ async function parseColumnsImpl<S extends Schema>(
         (buffers[i] as Float64Array)[length] = n;
       } else {
         // Integer columns: parseInt with base 10. Empty / non-numeric
-        // cells become 0 — caller should validate inputs if 0 is a
+        // cells become 0. Caller should validate inputs if 0 is a
         // meaningful sentinel.
         const n = cell === undefined || cell === "" ? 0 : parseInt(cell, 10) | 0;
         (buffers[i] as Int32Array)[length] = n;
@@ -935,7 +935,7 @@ async function parseColumnsImpl<S extends Schema>(
 // parseBatches() yields fixed-size columnar chunks as the parser
 // reads rows. Lets a caller process arbitrarily large CSVs in O(N)
 // time and O(batchSize) memory without ever materializing the full
-// column buffers — the key thing the load-then-compute path can't do.
+// column buffers, the key thing the load-then-compute path can't do.
 //
 // reduceColumns() is the same pattern with the loop fused: per-column
 // running aggregates (sum / min / max / mean / variance / count)
@@ -946,7 +946,7 @@ async function parseColumnsImpl<S extends Schema>(
 type BatchResult<S extends Schema> = ColumnsResult<S>;
 
 type ParseBatchesOptions<S extends Schema> = ParseColumnsOptions<S> & {
-  /** Rows per emitted batch. Default 8192 — fits comfortably in L2 on
+  /** Rows per emitted batch. Default 8192, fits comfortably in L2 on
    *  most consumer CPUs after columnwise expansion. */
   batchSize?: number;
 };
@@ -1000,7 +1000,7 @@ async function* parseBatchesImpl<S extends Schema>(
       }
       headersResolved = true;
       // If headers came from the first row of the source, that row
-      // isn't data — skip writing it.
+      // isn't data. Skip writing it.
       if (headersOpt !== false && !Array.isArray(headersOpt)) continue;
     }
 
@@ -1172,7 +1172,7 @@ async function reduceColumnsImpl<S extends Schema, R extends ReduceSpec<S>>(
           break;
         case "variance":
           // Sample variance (n-1 divisor). For population variance
-          // divide by s.count instead — most stats consumers want
+          // divide by s.count instead. Most stats consumers want
           // sample variance, so that's the default.
           out.variance = s.count > 1 ? s.m2 / (s.count - 1) : NaN;
           break;
@@ -1214,13 +1214,13 @@ type StringifyOptions = {
   /** Line terminator between rows. Default `"\r\n"` for Excel-friendliness. */
   newline?: string;
   /**
-   * `true` (default) — emit a header row.
+   * `true` (default): emit a header row.
    *   - With object rows: header cells come from explicit `headers`
    *     or the union of keys across input rows.
    *   - With array rows: header row is omitted unless `headers` is
    *     explicitly provided.
-   * `false` — never emit a header row.
-   * `string[]` — explicit header row; for object rows, also fixes the
+   * `false`: never emit a header row.
+   * `string[]`: explicit header row; for object rows, also fixes the
    * column order.
    */
   headers?: boolean | string[];
@@ -1339,7 +1339,7 @@ function stringifyImpl(rows: Iterable<StringifyRow>, options: StringifyOptions =
 // the native module yet, the require throws synchronously and we
 // keep the JS path. No user-visible API change either way.
 //
-// See: https://para.script.dev/docs/architecture/ — csv row.
+// See: https://para.script.dev/docs/architecture/ (csv row).
 
 type CsvApi = {
   parseCsv: typeof parseCsvImpl;

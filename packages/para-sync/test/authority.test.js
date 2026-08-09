@@ -29,7 +29,7 @@ describe("defineAuthority / writableFields", () => {
   });
 });
 
-describe("guardOptimistic — the write gate (§13.2)", () => {
+describe("guardOptimistic: the write gate (§13.2)", () => {
   const authority = defineAuthority({ views: "server", title: "lww", tags: unionTags });
 
   test("resets a @server field a client tried to write; keeps A/B writes", () => {
@@ -46,7 +46,7 @@ describe("guardOptimistic — the write gate (§13.2)", () => {
   });
 });
 
-describe("mergeFields — Class-B reconcile (§13.2)", () => {
+describe("mergeFields: Class-B reconcile (§13.2)", () => {
   const authority = defineAuthority({ views: "server", title: "lww", tags: unionTags });
 
   test("@merge field resolves via its fn; @server/@lww take theirs", () => {

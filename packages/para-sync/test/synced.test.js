@@ -37,7 +37,7 @@ function fakeStream() {
   };
 }
 
-describe("synced — stream bridge + reactive handle", () => {
+describe("synced: stream bridge + reactive handle", () => {
   test("seed hydrates the handle through to .peek()/.value", () => {
     const s = synced("user:1", { schema: userSchema, seed: env(1, { name: "ada" }) });
     expect(s.peek()).toEqual({ name: "ada" });
@@ -61,7 +61,7 @@ describe("synced — stream bridge + reactive handle", () => {
     s.dispose();
   });
 
-  test(".value is a tracked read — a para effect re-runs on apply", () => {
+  test(".value is a tracked read, a para effect re-runs on apply", () => {
     const stream = fakeStream();
     const s = synced("user:1", { schema: userSchema, stream: stream.factory });
 
@@ -94,7 +94,7 @@ describe("synced — stream bridge + reactive handle", () => {
     // status moves skew → refetching synchronously (recovery in flight).
     stream.emit(env(2, { name: "v2" }, "2.0"));
     expect(s.status).toBe("refetching");
-    expect(s.peek()).toEqual({ name: "ada" }); // unchanged — skew did not poison
+    expect(s.peek()).toEqual({ name: "ada" }); // unchanged: skew did not poison
 
     await s.whenIdle();
     expect(s.peek()).toEqual({ name: "snapshot" }); // recovered
@@ -116,7 +116,7 @@ describe("synced — stream bridge + reactive handle", () => {
     stream.emit(env(2, { name: "grace" }));
     expect(s.peek()).toEqual({ name: "ada" });
 
-    s.dispose(); // idempotent — no throw
+    s.dispose(); // idempotent: no throw
   });
 
   test("injected transport: receipts arrive via transport.publish, stream omitted", () => {
@@ -165,7 +165,7 @@ describe("synced — stream bridge + reactive handle", () => {
 
     unsub();
     stream.emit(env(3, { name: "linus" }));
-    expect(got).toEqual([null, "ada", "grace"]); // unsubscribed — no more
+    expect(got).toEqual([null, "ada", "grace"]); // unsubscribed: no more
 
     s.dispose();
   });
@@ -271,12 +271,12 @@ describe("synced — stream bridge + reactive handle", () => {
   describe("argument validation", () => {
     test("throws on a missing/empty key", () => {
       expect(() => synced("", { schema: userSchema })).toThrow(/non-empty string/);
-      // @ts-expect-error — exercising the runtime guard
+      // @ts-expect-error: exercising the runtime guard
       expect(() => synced(undefined, { schema: userSchema })).toThrow(/non-empty string/);
     });
 
     test("throws when a PRESENT schema is malformed (no parse)", () => {
-      // @ts-expect-error — exercising the runtime guard
+      // @ts-expect-error: exercising the runtime guard
       expect(() => synced("k", { schema: {} })).toThrow(/parse/);
     });
   });

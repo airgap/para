@@ -1,4 +1,4 @@
-// Bare-read sugar — the scope-aware transform.
+// Bare-read sugar: the scope-aware transform.
 //
 // After the structural transforms run, source like:
 //   signal count = 0;
@@ -8,7 +8,7 @@
 //   const count = require("@lyku/para-signals").signal(0);
 //   require("@lyku/para-signals").effect(() => { console.log(count); });
 //   count++;
-// — but the `count` references are still bare. The canonical Zig parser
+// But the `count` references are still bare. The canonical Zig parser
 // rewrites EVERY reference of a signal binding (not just inside tracked
 // contexts):
 //   - `count` (read)             → `count.get()`
@@ -16,7 +16,7 @@
 //   - `count++` / `count--`      → `count.set(count.get() ± 1)`
 //   - `count += X` (compound)    → `count.set(count.get() + X)`
 // Tracked contexts (effect / derived / when bodies) are about WHAT
-// re-fires, not whether to insert `.get()` — the rewrite is unconditional.
+// re-fires, not whether to insert `.get()`. The rewrite is unconditional.
 //
 // Auto-promotion: a signal initializer that reads other signals is
 // converted from `signals.signal(EXPR)` to `signals.derived(() => EXPR)`,
@@ -101,7 +101,7 @@ export function transformBareRead(src: string): string {
   traverse(ast, {
     Identifier(path) {
       if (!path.isReferencedIdentifier()) return;
-      // Skip update-expression arguments — handled by UpdateExpression below.
+      // Skip update-expression arguments, handled by UpdateExpression below.
       if (
         path.parentPath?.isUpdateExpression() &&
         (path.parentPath.node as t.UpdateExpression).argument === path.node

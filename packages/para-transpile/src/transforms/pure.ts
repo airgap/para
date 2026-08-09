@@ -1,4 +1,4 @@
-// `pure` is a parse-time purity marker — at runtime it has no effect.
+// `pure` is a parse-time purity marker. At runtime it has no effect.
 // The Zig parser uses the flag to gate identifier-purity checks during
 // parsing. The transpiler doesn't enforce purity (that's a static-analysis
 // concern users would run separately); it just strips the keyword so the
@@ -6,7 +6,7 @@
 //
 // Position-preserving rewrite: `pure ` becomes 5 spaces (4 for `pure` + the
 // trailing space). This keeps column positions in source maps aligned with
-// the original — important if the transpiler later emits source maps.
+// the original, important if the transpiler later emits source maps.
 
 import { rewriteCodeRegions } from "../lex";
 

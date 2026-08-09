@@ -13,7 +13,7 @@ const userSchema = {
 
 const env = (sequence, value, schema_version = "1.0") => ({ value, schema_version, sequence });
 
-describe("createClientReplica — Tier 1 reconciler", () => {
+describe("createClientReplica: Tier 1 reconciler", () => {
   test("SSR seed hydrates the replica (hydration parse gate, Ok)", () => {
     const t = new InProcessTransport();
     const r = createClientReplica({

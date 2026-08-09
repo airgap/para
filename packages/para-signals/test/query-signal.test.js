@@ -3,7 +3,7 @@ import { querySignal } from "../src/index.js";
 
 const tick = () => new Promise(r => setTimeout(r, 0));
 
-// A toy schema whose parse doubles the value — proves the cell stores
+// A toy schema whose parse doubles the value: proves the cell stores
 // the PARSED value, not the raw settle.
 const Doubler = { parse: v => ({ tag: "Ok", value: v * 2 }) };
 const RejectAll = { parse: () => ({ tag: "Err", error: "expected nothing" }) };

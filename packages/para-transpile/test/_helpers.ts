@@ -12,7 +12,7 @@ export function stripWrapImport(out: string): string {
   return out.replace(/^import\s*\{[^}]*\}\s*from\s*["']bun:wrap["'];?\n?/, "");
 }
 
-/** transpile() composed with stripWrapImport — the common test shape. */
+/** transpile() composed with stripWrapImport: the common test shape. */
 export function transpileBare(src: string): string {
   return stripWrapImport(transpileFull(src));
 }

@@ -8,14 +8,14 @@
 //
 //   const conn = await mcp.connect("stdio", "home-assistant-mcp", { args, env });
 //   const conn = await mcp.connect("ws", "ws://hub.local:8080/mcp");
-//   conn.tools;                   // ToolDescriptor[] — name, description, inputSchema
+//   conn.tools;                   // ToolDescriptor[]: name, description, inputSchema
 //   await conn.call(name, args);  // dispatch to the server, returns result
 //   await conn.close();           // releases transport; idempotent
 //
 // Out of scope for v1 (deferred):
 //   - Server hosting (separate proposal).
 //   - HTTP / SSE transport.
-//   - Auth wrapper (OAuth, etc.) — pass credentials through env / args.
+//   - Auth wrapper (OAuth, etc.): pass credentials through env / args.
 //   - Resources / prompts surfaces (only tools/* covered).
 
 const childProcess = require("node:child_process");
@@ -134,7 +134,7 @@ class MCPConnection {
   // Notification subscribers keyed by method name. Server notifications
   // (no `id`, no response expected) fan out to every listener.
   #notificationListeners = new Map<string, Set<NotificationListener>>();
-  // Lifetime signal — true from connect()/construction until close()
+  // Lifetime signal: true from connect()/construction until close()
   // OR transport-close. Lets consumers react to disconnect without
   // polling. Effects bound via use() auto-tear-down on close.
   #alive = makeSignal(true);
@@ -155,7 +155,7 @@ class MCPConnection {
     transport.onClose(err => this.#onTransportClose(err));
   }
 
-  /** Lifetime signal — true while the connection is open. */
+  /** Lifetime signal: true while the connection is open. */
   get alive() {
     return this.#alive;
   }
@@ -163,7 +163,7 @@ class MCPConnection {
   /**
    * Run an effect bound to this connection's lifetime. Behaves like
    * `signals.effect(fn)` but is automatically disposed when the
-   * connection closes — no defensive `if (alive.get())` guards needed.
+   * connection closes: no defensive `if (alive.get())` guards needed.
    */
   use(fn: () => void | (() => void)): () => void {
     const stop = makeEffect(fn);
@@ -332,7 +332,7 @@ class MCPConnection {
 
   /**
    * Read a resource by URI. Returns the server's `ReadResourceResult`
-   * — `{ contents: [{ uri, text? | blob?, mimeType? }, …] }`.
+   * (`{ contents: [{ uri, text? | blob?, mimeType? }, …] }`).
    */
   async readResource(uri: string): Promise<ReadResourceResult> {
     if (typeof uri !== "string" || !uri) {
@@ -364,7 +364,7 @@ class MCPConnection {
 
   /**
    * Render a prompt by name with arguments. Returns the server's
-   * `GetPromptResult` shape — `{ description?, messages: PromptMessage[] }`.
+   * `GetPromptResult` shape: `{ description?, messages: PromptMessage[] }`.
    */
   async getPrompt(name: string, args: Record<string, string> = {}): Promise<GetPromptResult> {
     if (typeof name !== "string" || !name) {
@@ -587,7 +587,7 @@ async function connect(
 //   }));
 //   await server.listen("stdio"); // resolves when the transport closes.
 //
-// The server is JSON-RPC literal — handlers throw `MCPError` (or any
+// The server is JSON-RPC literal: handlers throw `MCPError` (or any
 // Error; non-MCPError gets wrapped as code -32603) to surface a JSON-RPC
 // error to the caller.
 
@@ -612,7 +612,7 @@ class MCPServer {
   #closed = false;
   #closedPromise: Promise<void> | null = null;
   #closedResolve: (() => void) | null = null;
-  // Lifetime signal — true from serve() construction until listen()
+  // Lifetime signal: true from serve() construction until listen()
   // resolves OR close() is called. Effects bound via use() auto-tear-
   // down when the server stops.
   #alive = makeSignal(true);
@@ -625,14 +625,14 @@ class MCPServer {
     this.#opts = { name: opts.name, version: opts.version ?? "0.1.0", protocolVersion: opts.protocolVersion };
   }
 
-  /** Lifetime signal — true while the server is serving requests. */
+  /** Lifetime signal: true while the server is serving requests. */
   get alive() {
     return this.#alive;
   }
 
   /**
    * Run an effect bound to this server's lifetime. Auto-disposed when
-   * the server stops — no defensive `if (alive.get())` guards needed.
+   * the server stops: no defensive `if (alive.get())` guards needed.
    */
   use(fn: () => void | (() => void)): () => void {
     const stop = makeEffect(fn);

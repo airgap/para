@@ -24,12 +24,12 @@
 //
 // `await using` flips the `false` to `true` in the helper call and the
 // finally block becomes `await __disposeResources(...)`. The enclosing
-// function must already be async — Babel's parser rejects `await using`
+// function must already be async: Babel's parser rejects `await using`
 // outside async context, so we don't have to validate.
 //
 // Helper definitions (__addDisposableResource, __disposeResources) get
 // inlined at the top of every file that uses `using`, by inject-helpers.ts
-// — keeps the standalone output self-contained without coupling to a
+//: keeps the standalone output self-contained without coupling to a
 // specific shim package export. Roughly 30 lines per file, but only
 // emitted when needed.
 
@@ -43,7 +43,7 @@ const generate = ((generateModule as any).default ?? generateModule) as typeof i
 
 export function transformUsingPolyfill(src: string): string {
   // Pre-flight: skip the parse if no `using` declarations are present.
-  // `using ` (with trailing space) is unique enough — JS doesn't have
+  // `using ` (with trailing space) is unique enough: JS doesn't have
   // `using` as a regular identifier in expression position commonly
   // enough to false-positive.
   if (!/\busing\s/.test(src)) return src;
@@ -136,7 +136,7 @@ export function transformUsingPolyfill(src: string): string {
         ]),
       );
 
-      // finally clause: __disposeResources(env) — awaited if any decl was await using.
+      // finally clause: __disposeResources(env), awaited if any decl was await using.
       const disposeCall = t.callExpression(t.identifier("__disposeResources"), [t.identifier(envName)]);
       const finallyBody = t.blockStatement([
         t.expressionStatement(isAsync ? t.awaitExpression(disposeCall) : disposeCall),

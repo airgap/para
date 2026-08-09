@@ -1,26 +1,26 @@
-// @lyku/para-sync — the opaque server-source host (§13.8, plan step 4).
+// @lyku/para-sync: the opaque server-source host (§13.8, plan step 4).
 //
-// `sync stats :: Stats from server db.slowAggregate(orgId) every 30s` — the
+// `sync stats :: Stats from server db.slowAggregate(orgId) every 30s`: the
 // L-server tier. The expression is OPAQUE hand-written server code, so nobody
 // can know its read-set and liveness cannot be automatic: the refresh contract
 // is DECLARED, never faked. This host runs the extracted server expression
 // (`run`) under exactly one of the three policies and publishes SyncEnvelopes
 // on the subscription key, so the CLIENT side is just shipped Tier-1
-// (`synced(key, Schema)`) — no new client machinery at all.
+// (`synced(key, Schema)`): no new client machinery at all.
 //
 //   every: N     one shared timer per key; fan-out to N clients rides the
 //                transport (never per-connection timers).
-//   on: KEY      re-run when anything publishes on the invalidation key —
+//   on: KEY      re-run when anything publishes on the invalidation key,
 //                the author-declared read-set. Pair with `invalidate()`.
 //   once         seed only. A VISIBLE never-refreshes choice, not a
 //                forgotten default.
 //
 // Shared discipline with the query authority (both-ends gating, §13.8):
 // every run's result crosses the schema parse gate BEFORE publish (a server
-// bug surfaces once, at the boundary, via onError — clients keep their last
+// bug surfaces once, at the boundary, via onError: clients keep their last
 // good value); sequences bump by EXACTLY one per real change (the
 // reconciler's exact-successor rule) with a deep-equal short-circuit; runs
-// are serialized (a slow run never overlaps or clobbers a later trigger —
+// are serialized (a slow run never overlaps or clobbers a later trigger:
 // triggers arriving mid-run coalesce into ONE trailing re-run).
 
 /** @typedef {import('./transport.js').SyncTransport} SyncTransport */
@@ -47,7 +47,7 @@ function deepEqual(a, b) {
 /**
  * One-line author-declared invalidation: `invalidate(transport, "users:changed")`
  * re-runs every server source whose policy is `on: "users:changed"`. The
- * payload is a bare bump — invalidation keys carry no value.
+ * payload is a bare bump: invalidation keys carry no value.
  * @param {SyncTransport} transport
  * @param {string} key
  */
@@ -111,7 +111,7 @@ export function createServerSource({
   const declared = [every !== undefined, on !== undefined, Boolean(once)].filter(Boolean).length;
   if (declared !== 1) {
     throw new Error(
-      "createServerSource: declare exactly one refresh policy — `every` (ms), `on` (invalidation key), or `once`"
+      "createServerSource: declare exactly one refresh policy, `every` (ms), `on` (invalidation key), or `once`"
     );
   }
 
@@ -154,7 +154,7 @@ export function createServerSource({
       }
       if (!r || r.tag !== "Ok") {
         onError?.(r && r.tag === "Err" ? r.error : new Error("non-Result parse"), { phase: "parse" });
-        return; // gated — clients keep their last good value
+        return; // gated: clients keep their last good value
       }
       if (sequence > 0 && deepEqual(last, r.value)) return; // no real change
       sequence += 1;

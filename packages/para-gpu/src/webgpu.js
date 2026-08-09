@@ -4,11 +4,11 @@
 // async surface and only reaches it when native parabun:gpu is unavailable.
 // Two layers:
 //
-//   1. **Sync CPU path** for `matVec` / `matmul` / `dot` / `simdMap` —
+//   1. **Sync CPU path** for `matVec` / `matmul` / `dot` / `simdMap`:
 //      scalar / WASM kernels via @lyku/para-simd. Always available.
 //
 //   2. **WebGPU backend** for the async variants (`matVecAsync`,
-//      `matmulAsync`, `dotAsync`) — real compute shaders with
+//      `matmulAsync`, `dotAsync`): real compute shaders with
 //      workgroup reduction / tiled matmul. Opt-in via
 //      `await initWebGPU()`.
 //
@@ -23,12 +23,12 @@
 //     workgroup; main-thread sums the workgroup outputs.
 //
 // The WGSL is intentionally portable (avoids subgroup ops, fp16 storage,
-// etc.) so it runs on any WebGPU implementation — Chromium, Firefox
+// etc.) so it runs on any WebGPU implementation: Chromium, Firefox
 // Nightly, Safari 17.4+.
 
 import simd from "@lyku/para-simd";
 
-// ── Sync CPU path — always available ────────────────────────────────────
+// ── Sync CPU path, always available ────────────────────────────────────
 
 function dot(a, b) {
   return simd.dot(a, b);
@@ -167,7 +167,7 @@ fn main(
 // 2D valid-mode convolution. Output[y, x] = sum_{ky, kx} input[y+ky, x+kx]
 // * kernel[ky, kx]. Output dims (iH-kH+1) × (iW-kW+1). One thread per
 // output pixel, 16×16 workgroups; nested loops over the kernel. Direct
-// global loads — no shared-memory tile for v1 (worth optimizing later
+// global loads, no shared-memory tile for v1 (worth optimizing later
 // for kernels >= 7×7 where input reuse pays for staging cost).
 const CONV2D_WGSL = /* wgsl */ `
 struct Dims { iW: u32, iH: u32, kW: u32, kH: u32 };
@@ -480,7 +480,7 @@ export async function dotAsync(a, b) {
 
 // ── conv2D / conv2DAsync ────────────────────────────────────────────────
 // Valid-mode 2D convolution. Output dims (iH-kH+1) × (iW-kW+1). The sync
-// path is a naive loop — fine for small kernels and small images. Use
+// path is a naive loop, fine for small kernels and small images. Use
 // conv2DAsync when WebGPU is live for any meaningful workload.
 
 function conv2D(input, kernel, iW, iH, kW, kH) {
@@ -551,7 +551,7 @@ function hold(buf) {
   }
   return { kind: "cpu", buf };
 }
-// Q4_K / Q6_K dequant holds were dropped from this vendored engine — they
+// Q4_K / Q6_K dequant holds were dropped from this vendored engine. They
 // pulled the parabun-browser-shims quant tables and @lyku/para-gpu's surface
 // doesn't expose quantized weights. Quantized matVec stays native-only.
 function release(held) {

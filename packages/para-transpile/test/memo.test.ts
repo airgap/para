@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { transpileBare as transpile } from "./_helpers";
 
 describe("memo declaration form", () => {
-  test("memo NAME(arg) { body } — single arg", () => {
+  test("memo NAME(arg) { body }: single arg", () => {
     expect(transpile("memo fib(n) { return n < 2 ? n : fib(n - 1) + fib(n - 2); }")).toBe(
       "const fib = __parabunMemo(function (n) { return n < 2 ? n : fib(n - 1) + fib(n - 2); }, 1)",
     );
   });
 
-  test("memo NAME(a, b) { body } — multi arg", () => {
+  test("memo NAME(a, b) { body }: multi arg", () => {
     expect(transpile("memo add(a, b) { return a + b; }")).toBe(
       "const add = __parabunMemo(function (a, b) { return a + b; }, 2)",
     );
@@ -42,7 +42,7 @@ describe("memo arrow form", () => {
     expect(transpile("const sum = memo (a, b) => a + b;")).toBe("const sum = __parabunMemo((a, b) => a + b, 2);");
   });
 
-  test("const x = memo arg => body — single-arg shorthand", () => {
+  test("const x = memo arg => body: single-arg shorthand", () => {
     expect(transpile("const dbl = memo x => x * 2;")).toBe("const dbl = __parabunMemo(x => x * 2, 1);");
   });
 
@@ -52,15 +52,15 @@ describe("memo arrow form", () => {
 });
 
 describe("memo non-matches", () => {
-  test("memo(5) — call expression — left alone", () => {
+  test("memo(5): call expression, left alone", () => {
     expect(transpile("const x = memo(5);")).toBe("const x = memo(5);");
   });
 
-  test("memo.foo — property access — left alone", () => {
+  test("memo.foo: property access, left alone", () => {
     expect(transpile("const x = memo.foo;")).toBe("const x = memo.foo;");
   });
 
-  test("memo = 1 — assignment to ident — left alone", () => {
+  test("memo = 1: assignment to ident, left alone", () => {
     expect(transpile("memo = 1;")).toBe("memo = 1;");
   });
 

@@ -1,6 +1,6 @@
 # @lyku/para-signals
 
-Reactive primitives — `signal`, `derived`, `effect`, `batch`, `untrack` — plus resource-tied signals, async-source adapters, and rate-limit operators that the rest of the Para ecosystem relies on. Pure JS, no runtime deps, runs on any JS host (Node, Bun, Deno, browsers, Cloudflare Workers).
+Reactive primitives (`signal`, `derived`, `effect`, `batch`, `untrack`) plus resource-tied signals, async-source adapters, and rate-limit operators that the rest of the Para ecosystem relies on. Pure JS, no runtime deps, runs on any JS host (Node, Bun, Deno, browsers, Cloudflare Workers).
 
 This is the runtime side of Para's reactive system. The `.pts` syntax sugar (`signal x = 0`, `effect { … }`, `~>`, `->`) compiles to imports from this package. Other modules in the `para:*` suite (`para:audio`, `para:gpio`, `parabun:llm`, etc.) expose their state through this package's primitives so reactive composition is uniform across the suite.
 
@@ -28,7 +28,7 @@ count.update(n => n + 1); // logs: 2, 4
 
 Effects are drained synchronously via a re-entrant guard, so `signal.set()` inside an effect appends to the queue rather than recursing.
 
-## Resource-tied signals — what only Para does
+## Resource-tied signals: what only Para does
 
 Hardware modules emit signals whose lifecycle is bound to a real underlying resource (mic, camera, file watcher, websocket). When the resource closes, those signals should become inert and observers should unwind cleanly. `resource()` is the primitive that makes that explicit:
 
@@ -44,7 +44,7 @@ const mic = resource(({ signal: sig, onDispose }) => {
 });
 
 mic.peak.get();         // current peak level
-mic.alive.get();        // boolean signal — true until dispose
+mic.alive.get();        // boolean signal: true until dispose
 mic.use(() => console.log(mic.peak.get())); // effect bound to resource lifetime
 mic.dispose();          // close mic, run cleanups, alive flips to false,
                         // bound effects auto-tear-down
@@ -60,7 +60,7 @@ The handle layers `alive` / `dispose` / `[Symbol.dispose]` / `[Symbol.asyncDispo
 
 ## Async-source adapters
 
-Hardware emits streams (audio frames, sensor data, video frames). These adapters lift them into resource-tied signals — no manual pump loop in user code:
+Hardware emits streams (audio frames, sensor data, video frames). These adapters lift them into resource-tied signals, no manual pump loop in user code:
 
 | | |
 | --- | --- |
@@ -93,8 +93,8 @@ effect(() => render(peakSlow.value.get()));
 
 ## Why not `@preact/signals-core`?
 
-Two reasons. **Supply-chain hygiene** — keeping the leaf primitive self-contained means every Para package depends on code we read and own, not a transitive trust chain we don't control. **Differentiation** — the resource / stream-adapter / rate-limit surface above is the part Preact doesn't have, and it only composes cleanly because we own the core. Future direction: a `store({...})` primitive for proxy-based fine-grained reactivity on plain objects, with TypedArray-backed derivations fused via `@lyku/para-simd`.
+Two reasons. **Supply-chain hygiene**: keeping the leaf primitive self-contained means every Para package depends on code we read and own, not a transitive trust chain we don't control. **Differentiation**: the resource / stream-adapter / rate-limit surface above is the part Preact doesn't have, and it only composes cleanly because we own the core. Future direction: a `store({...})` primitive for proxy-based fine-grained reactivity on plain objects, with TypedArray-backed derivations fused via `@lyku/para-simd`.
 
 ## Status
 
-`private:true / 0.0.0-dev` — pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.
+`private:true / 0.0.0-dev`: pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.

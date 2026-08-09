@@ -1,5 +1,5 @@
 // Minimal MCP server used by the @lyku/para-mcp test suite. Registers one
-// tool, one resource, and one prompt — exercising every surface end-to-end.
+// tool, one resource, and one prompt, exercising every surface end-to-end.
 
 import mcp from "../../src/index";
 

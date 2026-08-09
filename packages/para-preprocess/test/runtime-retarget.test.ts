@@ -12,7 +12,7 @@ const callScript = async (
 ) => {
   const pp = parabunPreprocess(opts);
   const script = (pp as { script?: (a: unknown) => unknown }).script!;
-  // Svelte's preprocess passes a typed payload — minimal stub here is fine.
+  // Svelte's preprocess passes a typed payload. Minimal stub here is fine.
   const res = await script({
     content: source,
     attributes: {},
@@ -22,7 +22,7 @@ const callScript = async (
   return res as { code?: string } | undefined;
 };
 
-// A .pui script that uses `using` — triggers onDestroy injection, which
+// A .pui script that uses `using`: triggers onDestroy injection, which
 // hits the runtime-import emission path.
 const PUI_SCRIPT = `
 using sub = subscribe();
@@ -55,7 +55,7 @@ import { onDestroy } from "@lyku/para-ui";
 ${PUI_SCRIPT}
 `;
     const out = await callScript(withExisting, { runtime: "svelte" });
-    // We asked for svelte runtime but onDestroy already came from @lyku/para-ui —
+    // We asked for svelte runtime but onDestroy already came from @lyku/para-ui:
     // dedup should suppress the duplicate.
     const occurrences = (out?.code ?? "").split('from "svelte"').length - 1;
     expect(occurrences).toBe(0);

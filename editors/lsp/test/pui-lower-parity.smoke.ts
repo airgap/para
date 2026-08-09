@@ -5,26 +5,26 @@
 // `lowerPuiReactivity(src,'@lyku/para-ui',true)`.
 //
 // This is the gate pui-transform.ts's header has long *asserted* exists
-// but never actually had — which is exactly how the magic-string port
+// but never actually had, which is exactly how the magic-string port
 // silently drifted (e.g. single-statement `effect EXPR;` emitting a
 // stray trailing `;` the runtime path doesn't).
 //
-// SCOPE — deliberately reactivity-only. Two LSP↔canonical deltas are
+// SCOPE: deliberately reactivity-only. Two LSP↔canonical deltas are
 // INTENTIONAL (see pui-transform.ts header) and are NOT in this corpus,
 // because comparing them would be falsely-red, not drift:
 //   1. operator desugars (pure / |> / ..! / fun / is / ranges / decimal
-//      / match) — LSP-only by design (Zig parser does them at build).
+//      / match): LSP-only by design (Zig parser does them at build).
 //   2. auto-injected imports (provide / inject / using / source /
-//      lifecycle / nav) — LSP places them inside `<script>` for
+//      lifecycle / nav). LSP places them inside `<script>` for
 //      sourcemap line-preservation; canonical emits them before the tag.
 //   3. an UNTERMINATED trailing single-statement `effect EXPR` (no `;`,
-//      last thing in the script): same root cause as (2) — the LSP's
+//      last thing in the script): same root cause as (2). The LSP's
 //      position-preservation invariant keeps the source newline inside
 //      the arrow; canonical `.trim()`s it for clean runtime emit. The
 //      emitted AST is identical; only insignificant whitespace differs,
 //      and only on this degenerate edge. (Investigating it DID surface +
 //      fix a real canonical build bug: derivedInitEnd swallowing
-//      `</script>` — see expandEffectSingle's `</script>` clamp.)
+//      `</script>`. See expandEffectSingle's `</script>` clamp.)
 //      Terminated `effect EXPR;` IS in the corpus and byte-identical.
 // Keep this corpus free of all three so a failure here is REAL drift.
 
@@ -64,7 +64,7 @@ const cases: Record<string, string> = {
 \teffect console.log(count);
 </script>`,
   // NOTE: unterminated trailing `effect EXPR` (no `;`) is intentional
-  // delta #3 (see header) — excluded by design, not omitted to go green.
+  // delta #3 (see header): excluded by design, not omitted to go green.
   "prop: typed + default": `<script lang="pts">
 \tprop label: string = 'hi';
 </script>`,
@@ -96,7 +96,7 @@ for (const [name, raw] of Object.entries(cases)) {
     continue;
   }
   failed++;
-  console.log(`FAIL  ${name}  — LSP lowering drifted from canonical`);
+  console.log(`FAIL  ${name}: LSP lowering drifted from canonical`);
   // Minimal first-divergence report.
   const a = lsp.split("\n");
   const b = canon.split("\n");
@@ -112,7 +112,7 @@ for (const [name, raw] of Object.entries(cases)) {
 
 if (failed > 0) {
   console.log(
-    `\npui-lower-parity: ${failed} case(s) DRIFTED — the LSP \`.pui\` reactivity lowering no longer matches @lyku/para-preprocess. Reconcile pui-transform.ts to canonical (canonical is authoritative).`,
+    `\npui-lower-parity: ${failed} case(s) DRIFTED. The LSP \`.pui\` reactivity lowering no longer matches @lyku/para-preprocess. Reconcile pui-transform.ts to canonical (canonical is authoritative).`,
   );
   process.exit(1);
 }

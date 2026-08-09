@@ -9,13 +9,13 @@ import { lowerPuiReactivity } from "../../para-preprocess/src/index.ts";
 // convention, so `source NAME = m.busy` already binds a native status
 // signal into component reactivity. These tests lock that as a
 // guaranteed contract (not an accident) so `source` stays the single
-// keyword for "bind any native reactive thing — handle OR bare signal".
+// keyword for "bind any native reactive thing: handle OR bare signal".
 
 test("a para Signal satisfies the source convention structurally", () => {
   const s = signal(0);
   expect(typeof s.peek).toBe("function");
   expect(typeof s.subscribe).toBe("function");
-  // no .dispose — the lowering's `onDestroy(() => __src.dispose?.())`
+  // no .dispose, the lowering's `onDestroy(() => __src.dispose?.())`
   // is optional-chained, so a signal source tears down as a no-op.
   expect((s as { dispose?: unknown }).dispose).toBeUndefined();
 });

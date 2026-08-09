@@ -1,7 +1,7 @@
 {
   "name": "parabun-ts-plugin",
   "version": "0.2.1",
-  "description": "TypeScript language service plugin — desugars Parabun syntax + resolves .pui imports with real component types (pui2tsx)",
+  "description": "TypeScript language service plugin: desugars Parabun syntax + resolves .pui imports with real component types (pui2tsx)",
   "main": "out/index.js",
   "scripts": {
     "build": "node esbuild.mjs",

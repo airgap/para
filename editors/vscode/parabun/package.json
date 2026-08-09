@@ -1,7 +1,7 @@
 {
   "name": "parabun",
   "displayName": "Parabun",
-  "description": "Language support for Parabun (.pts/.pjs) — Bun fork with pure functions, error chaining, pipelines, models, pattern matching, and runtime validation",
+  "description": "Language support for Parabun (.pts/.pjs): Bun fork with pure functions, error chaining, pipelines, models, pattern matching, and runtime validation",
   "version": "0.11.32",
   "publisher": "parabun",
   "license": "MIT",

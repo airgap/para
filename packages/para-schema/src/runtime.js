@@ -1,10 +1,10 @@
 /**
- * Portable `fromSchema` — the Para schema runtime for consumers that are NOT
+ * Portable `fromSchema`: the Para schema runtime for consumers that are NOT
  * running on ParaBun.
  *
  * ParaBun lowers `schema NAME = <body>` to `__paraSchemaDecl(...)`, whose
  * validator lives in the Bun fork (`parabun/src/runtime.bun.js`). Off that
- * runtime, ParaBun's own browser fallback is `__paraFromSchema = (s) => s` —
+ * runtime, ParaBun's own browser fallback is `__paraFromSchema = (s) => s`:
  * the IDENTITY function. A schema shipped to a browser or a Cloudflare Worker
  * therefore validates nothing at all.
  *
@@ -15,7 +15,7 @@
  * Two deliberate divergences from the Bun validator, both cases where it is
  * permissive by omission rather than by contract:
  *   - `type: "date"` is validated here. The Bun arm list has `timestamptz` but
- *     no `date`, so it falls through to "unknown type → permissive" — and
+ *     no `date`, so it falls through to "unknown type → permissive", and
  *     `date` is exactly what lockstep's TSON conversion emits for every
  *     temporal column.
  *   - `additionalProperties: false` is enforced here. Bun ignores the keyword;
@@ -28,7 +28,7 @@
  *     bits (`$cyclic` / `$depth`) and the escape-node check. Composition here
  *     is by EMBEDDING: a sub-schema that is itself a wrapped schema (has
  *     `.parse`) is delegated to. That covers nested models without a global
- *     registry, and it cannot express a cycle — which is the point.
+ *     registry, and it cannot express a cycle, which is the point.
  *   - the MessagePack codec (`encode`/`decode`).
  * A body carrying a string `$ref` throws rather than silently passing: a
  * reference that resolves to nothing must never read as "valid".
@@ -47,7 +47,7 @@ const FORMATS = {
 const hide = (obj, key, value) =>
 	Object.defineProperty(obj, key, { value, enumerable: false, writable: false, configurable: false });
 
-/** A wrapped schema — anything carrying its own `parse`. */
+/** A wrapped schema: anything carrying its own `parse`. */
 const isWrapped = (s) => s != null && typeof s === "object" && typeof s.parse === "function";
 
 /**
@@ -60,7 +60,7 @@ function validate(s, v) {
 
 	if (typeof s.$ref === "string") {
 		throw new Error(
-			`fromSchema: unresolved $ref "${s.$ref}" — the portable runtime has no module registry. ` +
+			`fromSchema: unresolved $ref "${s.$ref}". The portable runtime has no module registry. ` +
 				`Embed the referenced schema value directly instead of referencing it by name.`,
 		);
 	}
@@ -121,7 +121,7 @@ function validate(s, v) {
 
 	// `date` is what lockstep's TSON conversion emits for every temporal column
 	// (date / timestamp / timestamptz). ParaBun's validator has no `date` arm, so
-	// it falls through to permissive — a real hole for anything DB-derived.
+	// it falls through to permissive: a real hole for anything DB-derived.
 	if (t === "date" || t === "timestamp" || t === "timestamptz") {
 		if (v instanceof Date) return Number.isNaN(v.getTime()) ? "expected timestamp" : null;
 		if (typeof v === "string") return Number.isNaN(Date.parse(v)) ? "expected timestamp" : null;
@@ -140,7 +140,7 @@ function validate(s, v) {
 		return null;
 	}
 
-	// `type` is optional when `properties` is present — lockstep record models
+	// `type` is optional when `properties` is present: lockstep record models
 	// omit it, and the dialect treats "has properties" as implicitly an object.
 	if (t === "object" || (t == null && s.properties)) {
 		if (typeof v !== "object" || v === null || Array.isArray(v)) return "expected object";

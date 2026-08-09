@@ -1,7 +1,7 @@
 // Bundle pui-transform into one self-contained CJS file the LSP requires.
 // svelte2tsx + svelte (compiler) + @lyku/para-preprocess +
 // @jridgewell/trace-mapping inlined; nothing external. copy-assets copies
-// the single out file into server/ — no recursive svelte node_modules ship.
+// the single out file into server/: no recursive svelte node_modules ship.
 import { build } from "esbuild";
 import { rmSync } from "node:fs";
 

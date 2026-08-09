@@ -6,7 +6,7 @@
 //   const out = await (source |> map(double) |> filter(even) |> take(10) |> collect);
 //
 // Every combinator returns an async generator that consumes any iterable or
-// async iterable and yields lazily — nothing runs until a terminal (collect,
+// async iterable and yields lazily. Nothing runs until a terminal (collect,
 // reduce, forEach, toArray) pulls. Pure functions are the intended input but
 // not enforced at runtime.
 //
@@ -32,7 +32,7 @@ function simd(): any {
 //
 // The specifier is built from a string concat so static-analysis bundlers
 // (Vite, esbuild, webpack) don't try to resolve `parabun:gpu` at build
-// time — it only exists in the ParaBun runtime. Outside ParaBun the
+// time. It only exists in the ParaBun runtime. Outside ParaBun the
 // require throws and getGpu() returns null; the pipeline falls back to
 // the @lyku/para-simd path transparently.
 let gpuMod: any = null;
@@ -120,11 +120,11 @@ function composeAffineChain(ops: FusedMap[]): { K: number; C: number } | null {
   return { K, C };
 }
 
-// Tier 3 — GPU dispatch for f32 affine chains. When the fused chain
+// Tier 3: GPU dispatch for f32 affine chains. When the fused chain
 // collapses to a single `x*K + C` and the backend beats @lyku/para-simd at this
 // size, route the single affine pass to the GPU (one kernel launch vs
 // two SIMD passes: mulScalar + addScalar). Non-affine chains and f64
-// stay on @lyku/para-simd — neither Metal nor CUDA ship a kernel for them yet.
+// stay on @lyku/para-simd. Neither Metal nor CUDA ship a kernel for them yet.
 function affineGpuF32(source: Float32Array, K: number, C: number): Float32Array | null {
   const gpu = getGpu();
   if (gpu === null) return null;
@@ -305,7 +305,7 @@ function tap<T>(fn: (x: T, i: number) => unknown): Transform<T, T> {
   };
 }
 
-// Terminals — these consume a source and return a Promise of a value.
+// Terminals: these consume a source and return a Promise of a value.
 
 async function collect<T>(source: Source<T> | FArray | FusedChain): Promise<T[]> {
   if (isFusedChain(source)) {
@@ -505,7 +505,7 @@ function catchError<T>(handler: (err: unknown) => Source<T> | T | void): Transfo
   };
 }
 
-// Retries `times` times — each retry restarts the source iterator from
+// Retries `times` times. Each retry restarts the source iterator from
 // scratch, so the source must be a sync iterable or a factory the
 // caller wraps. Stateful AsyncGenerators consumed once won't replay.
 function retry<T>(times: number = 1): Transform<T, T> {
@@ -550,7 +550,7 @@ function debounce<T>(ms: number): Transform<T, T> {
 
     while (true) {
       if (!pending) {
-        // Wait for a value to arrive — there's nothing to race yet.
+        // Wait for a value to arrive. There's nothing to race yet.
         const r = await nextPromise;
         if (r.done) return;
         last = r.value;
@@ -573,7 +573,7 @@ function debounce<T>(ms: number): Transform<T, T> {
         }
         last = winner.r.value;
         nextPromise = it.next();
-        // pending stays true — fresh silence window starts now.
+        // pending stays true. Fresh silence window starts now.
       }
     }
   };
@@ -658,16 +658,16 @@ function max<T>(keyFn?: (x: T) => number) {
 
 // ── Bounded top-K (streaming selection) ───────────────────────────────────
 //
-// `source |> sort() |> take(k)` is NOT a sort — it's selection. topK keeps a
+// `source |> sort() |> take(k)` is NOT a sort. It's selection. topK keeps a
 // size-k binary heap and makes a single streaming pass: O(n log k) time,
 // O(k) memory, never materializing or sorting the dataset. Ties break on
-// arrival order (stable — equal keys keep the earliest k seen).
+// arrival order (stable: equal keys keep the earliest k seen).
 // `by:"max"` (default) keeps the k largest; "min" the k smallest. Result is
 // ordered best→worst.
 //
 // topK is a monoid: mergeTopK([topK(A), topK(B)], k) === topK(A ∪ B). That's
-// what makes the multi-file / multi-shard case trivial — local top-k per
-// file, then merge — O(shards·k) memory regardless of total rows.
+// what makes the multi-file / multi-shard case trivial: local top-k per
+// file, then merge: O(shards·k) memory regardless of total rows.
 
 type _TKEntry = { key: number; idx: number; val: any };
 
@@ -748,7 +748,7 @@ function topK<T>(k: number, keyFn?: (x: T, i: number) => number, opts?: { by?: "
 
 /**
  * Terminal: indices (into the source's iteration order) of the k best
- * elements, ordered best→worst. The "give me the top rows" form — keep keys
+ * elements, ordered best→worst. The "give me the top rows" form: keep keys
  * here, gather the rows/columns yourself (pairs with @lyku/para-arrow columns).
  */
 function argTopK<T>(k: number, keyFn?: (x: T, i: number) => number, opts?: { by?: "max" | "min" }) {
@@ -766,7 +766,7 @@ function argTopK<T>(k: number, keyFn?: (x: T, i: number) => number, opts?: { by?
 
 /**
  * Monoid combine: fold several already-local top-k results into the global
- * top-k. `lists` need not be sorted. O(Σ|lists|·log k) / O(k) memory — the
+ * top-k. `lists` need not be sorted. O(Σ|lists|·log k) / O(k) memory: the
  * merge step for multi-file / multi-shard top-k. Synchronous (inputs are in
  * memory by construction).
  */
@@ -859,14 +859,14 @@ function from<T>(source: Source<T>): Source<T> {
 // ── Columnar projection sources ───────────────────────────────────────────
 //
 // Stream a column-batch source as per-row value(s) WITHOUT materializing
-// whole rows — pull only the field(s) you need. Paired with topK/argTopK
+// whole rows. Pull only the field(s) you need. Paired with topK/argTopK
 // this is the "top rows by score over an arbitrarily large CSV" path at
 // O(batchSize + k) memory: the parser only ever holds one batch, the heap
 // only k. Batch shape is duck-typed, so this works with both:
 //   • @lyku/para-csv parseBatches  → plain columnar object { name: ArrayLike }
 //     (row count = any column's .length; final batch is tight-fit)
 //   • @lyku/para-arrow RecordBatch → has .column(name).get(i) + .numRows
-// Structural by design — para-pipeline takes no dep on csv/arrow.
+// Structural by design: para-pipeline takes no dep on csv/arrow.
 
 function _isArrowBatch(b: any): boolean {
   return b != null && typeof b.column === "function" && typeof b.numRows === "number";
@@ -995,7 +995,7 @@ async function* repeat<T>(source: Source<T>, n: number = Infinity): Stream<T> {
   }
 }
 
-// `range(stop)` / `range(start, stop[, step])` — a lazy integer source.
+// `range(stop)` / `range(start, stop[, step])`: a lazy integer source.
 function* range(a: number, b?: number, step: number = 1): Iterable<number> {
   const start = b === undefined ? 0 : a;
   const stop = b === undefined ? a : b;
@@ -1007,7 +1007,7 @@ function* range(a: number, b?: number, step: number = 1): Iterable<number> {
   }
 }
 
-// `pipe(source, ...transforms)` — eager application for users who prefer a
+// `pipe(source, ...transforms)`: eager application for users who prefer a
 // call-style API over `|>`.
 function pipe<T>(source: Source<T>, ...transforms: Array<(s: any) => any>): any {
   let out: any = source;
@@ -1016,7 +1016,7 @@ function pipe<T>(source: Source<T>, ...transforms: Array<(s: any) => any>): any 
 }
 
 // ---------------------------------------------------------------------------
-// pipeParallel — parallel pipeline execution via @lyku/para-parallel
+// pipeParallel: parallel pipeline execution via @lyku/para-parallel
 //
 // Inspects tagged stages to identify parallelizable segments:
 // - Consecutive `map` stages are composed into a single function and

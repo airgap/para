@@ -1,4 +1,4 @@
-// @lyku/para-sync — offline / queued mutations with deterministic replay (§13.5).
+// @lyku/para-sync: offline / queued mutations with deterministic replay (§13.5).
 //
 // A queued mutation IS a §13.1 optimistic mutation with a DURABLE log: every
 // apply is persisted (op-id, intent version v, key, input) before it is
@@ -6,7 +6,7 @@
 // is replayed DETERMINISTICALLY against the current server baseline:
 //
 //   1. the reconciler has (re)established the confirmed baseline (seed / reconnect
-//      refetch) — its last commit;
+//      refetch), its last commit;
 //   2. clear the stale in-memory pending (it was against the old baseline);
 //   3. fold each durable optimistic arm onto the fresh baseline, in op-id order,
 //      re-sent under its ORIGINAL op-id (server-idempotent) with a FRESH v.
@@ -73,7 +73,7 @@ export function createQueuedIntent({ replica, key, store, optimistic, rollback, 
 
   function onEcho(echo) {
     const r = intent.onEcho(echo);
-    // A resolved own-echo (dedupe or suppress) is durably done — drop its record.
+    // A resolved own-echo (dedupe or suppress) is durably done. Drop its record.
     if ((r === "dedupe" || r === "suppress") && echo && echo.opId != null) {
       track(store.remove(echo.opId));
     }

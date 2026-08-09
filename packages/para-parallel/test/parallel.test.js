@@ -220,7 +220,7 @@ describe("transfer list", () => {
       buf[0] = 7;
       const out = await pool.run(u8 => u8[0] * 2, [buf], { transfer: [buf.buffer] });
       expect(out).toBe(14);
-      // Buffer was transferred — its byteLength should be 0 here.
+      // Buffer was transferred. Its byteLength should be 0 here.
       expect(buf.byteLength).toBe(0);
     } finally {
       await pool.dispose();
@@ -302,7 +302,7 @@ describe("pool lifecycle (alive + use)", () => {
     await pool.dispose();
     expect(pool.alive.get()).toBe(false);
     const before = runs;
-    // Bound effect was disposed — no further runs even if signals change.
+    // Bound effect was disposed: no further runs even if signals change.
     await new Promise(r => setTimeout(r, 20));
     expect(runs).toBe(before);
   });

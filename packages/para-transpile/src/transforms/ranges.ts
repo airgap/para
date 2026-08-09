@@ -5,7 +5,7 @@
 // helpers are emitted as references to the runtime bundle (parabun-browser-
 // shims provides them under the same names).
 //
-// Lexer note: `1..2` is the obscure-idiom break — baseline JS would
+// Lexer note: `1..2` is the obscure-idiom break: baseline JS would
 // tokenize `1.` as a numeric literal then `.2` as a property/number, but
 // Para-aware tokenization treats `..` as the range operator. The
 // canonical Zig parser handles this in js_lexer.zig; this text-level

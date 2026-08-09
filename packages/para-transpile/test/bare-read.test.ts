@@ -27,7 +27,7 @@ describe("bare-read inside effect block", () => {
 
   test("post-increment (++) lowers to set + value-recovery comma expression", () => {
     // Post-inc: `n++` evaluates to the OLD value. Canonical emits
-    // `(n.set(n.get() + 1), n.get() - 1)` — the right side recovers the
+    // `(n.set(n.get() + 1), n.get() - 1)`: the right side recovers the
     // pre-increment value. We match.
     const out = transpile(`signal n = 0;\neffect { n++; }`);
     expect(out).toContain("n.set(n.get() + 1)");
@@ -47,7 +47,7 @@ describe("bare-read inside effect block", () => {
     expect(out).toMatch(/n\.set\(n\.get\(\) \+ 1\), n\.get\(\)\)/);
   });
 
-  test("multi-signal expression — each gets .get()", () => {
+  test("multi-signal expression: each gets .get()", () => {
     const out = transpile(`signal a = 1;\nsignal b = 2;\neffect { console.log(a + b); }`);
     expect(out).toContain("a.get()");
     expect(out).toContain("b.get()");
@@ -60,7 +60,7 @@ describe("bare-read inside when predicate and body", () => {
     expect(out).toContain("ready.get()");
   });
 
-  test("predicate with logical ops — both signals tracked", () => {
+  test("predicate with logical ops: both signals tracked", () => {
     const out = transpile(`signal a = false;\nsignal b = false;\nwhen a && b { both(); }`);
     expect(out).toContain("a.get()");
     expect(out).toContain("b.get()");
@@ -95,7 +95,7 @@ describe("auto-promotion: signal initializer that reads other signals", () => {
     // The auto-promotion scan excludes the binding currently being
     // declared, so `signal x = x;` doesn't get .signal() → .derived()
     // promotion. (The bare-read pass DOES still rewrite the inner `x`
-    // to `x.get()` per canonical's universal rule — TDZ-erroring at
+    // to `x.get()` per canonical's universal rule: TDZ-erroring at
     // runtime, same as base JS, but transpile is consistent.)
     const out = transpile(`signal x = x;`);
     expect(out).not.toContain("derived");
@@ -107,11 +107,11 @@ describe("bare-read scope rules", () => {
   test("non-signal binding is not rewritten", () => {
     const out = transpile(`const plain = 5;\nsignal s = 0;\neffect { console.log(plain, s); }`);
     expect(out).toContain("s.get()");
-    // `plain` is just a const, not a signal — no .get() call should be inserted.
+    // `plain` is just a const, not a signal: no .get() call should be inserted.
     expect(out).not.toMatch(/plain\.get\(\)/);
   });
 
-  test("shadowing — inner non-signal hides outer signal", () => {
+  test("shadowing: inner non-signal hides outer signal", () => {
     const out = transpile(`signal x = 0;\nfunction f() { const x = 5; return x; }\neffect { console.log(x); }`);
     // Outer x in effect → `.get()`. Inner x in f → bare reference.
     expect(out).toContain("x.get()");

@@ -1,4 +1,4 @@
-// para-extract — extractor plan steps 1–3 acceptance (para-ts-extractor-plan.md §4,
+// para-extract: extractor plan steps 1–3 acceptance (para-ts-extractor-plan.md §4,
 // recursion plan §7.4 subset).
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
@@ -106,7 +106,7 @@ describe("recursion → registry $refs", () => {
     expect(schema.properties.replies.items).toEqual({ $ref: "#Note" });
   });
 
-  test("mutual recursion links through siblings — never re-derived", () => {
+  test("mutual recursion links through siblings, never re-derived", () => {
     expect(extract("Post", { siblings: { Thread: "Thread" } })).toEqual({
       type: "object",
       properties: {

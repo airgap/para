@@ -79,7 +79,7 @@ test("REAL: a deterministic component round-trips with render parity", async () 
   const { lowerPuiReactivity } = await import("../../para-preprocess/src/index.ts");
   const { safeMigrate } = await import("../src/index.ts");
 
-  // Resolve the para-svelte fork relative to this test file — never a
+  // Resolve the para-svelte fork relative to this test file, never a
   // hardcoded absolute (it broke when the tree was extracted from the
   // parabun monorepo to airgap/para).
   const cwd = new URL("../../para-svelte", import.meta.url).pathname;

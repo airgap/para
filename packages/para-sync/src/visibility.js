@@ -1,8 +1,8 @@
-// @lyku/para-sync — field-visibility projection (domain-FREE).
+// @lyku/para-sync: field-visibility projection (domain-FREE).
 //
 // The framework knows that a field can carry an opaque "visibility tag" and that
 // a tag maps to an allow/deny decision for a (viewer, owner) pair. It does NOT
-// know what any tag MEANS — "friends", "followers", "subscribers" are the app's
+// know what any tag MEANS: "friends", "followers", "subscribers" are the app's
 // vocabulary, supplied via defineVisibility. Adding a brand-new relationship type
 // touches zero framework code; it's one resolver entry in the app.
 //
@@ -20,7 +20,7 @@
 /**
  * Tag → resolver registry. The framework owns the MECHANISM (this map + the
  * gate); the app owns the MEANING (the entries). An unregistered tag denies
- * (fail-safe) — a typo or a not-yet-defined tag never leaks.
+ * (fail-safe). A typo or a not-yet-defined tag never leaks.
  * @type {Record<string, VisibilityResolver>}
  */
 const resolvers = {};
@@ -46,7 +46,7 @@ const SELF_CLASS = "self";
 /**
  * The viewer's VISIBILITY CLASS for an object: the canonical (sorted, '+'-joined)
  * set of registered tags whose resolver allows this (viewer, owner). This is the
- * cache-sharding key — two viewers who satisfy the SAME tag set get the IDENTICAL
+ * cache-sharding key. Two viewers who satisfy the SAME tag set get the IDENTICAL
  * projection, so they share one cache entry. Bounded by the realized tag
  * combinations (a handful), NOT by the number of viewers. The owner is `self`.
  *
@@ -74,7 +74,7 @@ export async function classKeyOf(viewer, owner) {
 }
 
 /**
- * Project a record for a given class key — a PURE function (no resolver calls):
+ * Project a record for a given class key, a PURE function (no resolver calls):
  * keep a gated field iff its tag is in the class's satisfied set; always strip
  * the visibility-setting keys. `self` returns the value untouched.
  *
@@ -96,7 +96,7 @@ export function projectByClass(value, fields, classKey) {
 }
 
 /**
- * Build a {@link SyncedModel} `authorize` from a per-field visibility spec — the
+ * Build a {@link SyncedModel} `authorize` from a per-field visibility spec, the
  * generic gate that replaces a hand-written one. Owner → full; everyone else →
  * a per-field projection driven by their visibility class. Domain-free.
  *
@@ -124,22 +124,22 @@ export function visibilityGate({ fields, ownerOf } = {}) {
 }
 
 /**
- * Per-class, version-stamped projection cache — the scalable serve path.
+ * Per-class, version-stamped projection cache, the scalable serve path.
  *
  * Cache key = `${keyPrefix}${objectKey}:${classKey}:${version}`. This keying is
  * what makes granular access control scale:
  *   - VERSION-STAMPED: a data change bumps `version`, producing NEW keys; stale
- *     entries simply LRU-evict — no invalidation messaging, no fan-out.
+ *     entries simply LRU-evict: no invalidation messaging, no fan-out.
  *   - CLASS-keyed (not viewer-keyed): cardinality is objects × realized-classes
  *     (a handful), not objects × viewers. Hot objects are cached once per class
  *     and shared by every viewer in that class; cold ones evict.
  *   - RELATIONSHIP CHURN IS FREE: an unfriend/unfollow never invalidates a
- *     projection — the viewer just resolves to a different classKey next read and
+ *     projection. The viewer just resolves to a different classKey next read and
  *     hits a different (already-warm) entry. The expensive cache only changes on
  *     actual DATA change. (Relationship caching is the app's resolvers' job.)
  *
  * Backend is injected (domain- AND store-agnostic): any `{ get, set }` over
- * bytes — a Valkey/Redis adapter in production, a Map in tests.
+ * bytes: a Valkey/Redis adapter in production, a Map in tests.
  *
  * @param {object} opts
  * @param {{ get(key: string): Promise<any>, set(key: string, value: any, ttlSeconds?: number): Promise<any> }} opts.backend
@@ -156,7 +156,7 @@ export function createVisibilityCache({ backend, ttlSeconds = 300, codec, keyPre
 
     /**
      * The cached per-class projection of `value` for `viewer`. Owner gets the
-     * full value (uncached — it's their own one-off view).
+     * full value (uncached: it's their own one-off view).
      *
      * @param {object} req
      * @param {string} req.key       object key (e.g. "user:123")

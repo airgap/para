@@ -5,7 +5,7 @@
   "injectionSelector": "L:source.pts -string -comment, L:source.ptsx -string -comment, L:source.pjs -string -comment, L:source.pjsx -string -comment, L:source.pui source.ts -string -comment, L:source.pui source.js -string -comment",
   "patterns": [
     {
-      "comment": "async { … } — Para async block expression (async immediately before a brace)",
+      "comment": "async { … }: Para async block expression (async immediately before a brace)",
       "match": "\\b(async)\\b(?=\\s*\\{)",
       "captures": {
         "1": {
@@ -14,7 +14,7 @@
       }
     },
     {
-      "comment": "fun NAME(...) — shorthand alias for function declarations / expressions",
+      "comment": "fun NAME(...): shorthand alias for function declarations / expressions",
       "match": "\\b(fun)\\b(?=\\s*[a-zA-Z_$*(<])",
       "captures": {
         "1": {
@@ -83,7 +83,7 @@
       }
     },
     {
-      "comment": "pure async arrow — pure async (x) => ... / pure async x => ...",
+      "comment": "pure async arrow: pure async (x) => ... / pure async x => ...",
       "match": "\\b(pure)\\s+(async)\\b(?=\\s*(?:\\(|\\w+\\s*=>))",
       "captures": {
         "1": {
@@ -95,7 +95,7 @@
       }
     },
     {
-      "comment": "pure arrow — pure (x) => ... / pure x => ...",
+      "comment": "pure arrow: pure (x) => ... / pure x => ...",
       "match": "\\b(pure)\\b(?=\\s*(?:\\(|\\w+\\s*=>))",
       "captures": {
         "1": {
@@ -104,7 +104,7 @@
       }
     },
     {
-      "comment": "signal NAME = ... — reactive cell declaration",
+      "comment": "signal NAME = ...: reactive cell declaration",
       "match": "\\b(signal)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*[=,;:!])",
       "captures": {
         "1": {
@@ -113,7 +113,7 @@
       }
     },
     {
-      "comment": "source NAME = ... — native-handle reactive view, auto-disposed on unmount (.pui)",
+      "comment": "source NAME = ...: native-handle reactive view, auto-disposed on unmount (.pui)",
       "match": "\\b(source)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*[=:])",
       "captures": {
         "1": {
@@ -122,7 +122,7 @@
       }
     },
     {
-      "comment": "sync NAME :: SCHEMA from KEY | sync NAME : TYPE from KEY — server-authoritative replica, parse-gated (::) or trusted (:) (.pui)",
+      "comment": "sync NAME :: SCHEMA from KEY | sync NAME : TYPE from KEY: server-authoritative replica, parse-gated (::) or trusted (:) (.pui)",
       "match": "\\b(sync)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*::?)",
       "captures": {
         "1": {
@@ -131,7 +131,7 @@
       }
     },
     {
-      "comment": "synced NAME = ARGS — full-control synced(key, opts) replica binding (.pui)",
+      "comment": "synced NAME = ARGS: full-control synced(key, opts) replica binding (.pui)",
       "match": "\\b(synced)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*[=:])",
       "captures": {
         "1": {
@@ -140,7 +140,7 @@
       }
     },
     {
-      "comment": "mutate NAME of ENTITY { optimistic(p){…} [rollback(p){…}] [confirm(p){…}] } — Tier-2 optimistic write intent (.pui, §13.1)",
+      "comment": "mutate NAME of ENTITY { optimistic(p){…} [rollback(p){…}] [confirm(p){…}] }: Tier-2 optimistic write intent (.pui, §13.1)",
       "match": "\\b(mutate)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s+of\\b)",
       "captures": {
         "1": {
@@ -149,7 +149,7 @@
       }
     },
     {
-      "comment": "sync NAME :: SCHEMA from server EXPR every/on/once — opaque server-source sync: the visible runtime-boundary marker + declared refresh policy (.pui, §13.8)",
+      "comment": "sync NAME :: SCHEMA from server EXPR every/on/once: opaque server-source sync: the visible runtime-boundary marker + declared refresh policy (.pui, §13.8)",
       "match": "(?<=\\bfrom)\\s+(server)\\b",
       "captures": {
         "1": {
@@ -158,7 +158,7 @@
       }
     },
     {
-      "comment": "`every MS_EXPR` postfix on a signal declaration — drives the cell from an interval",
+      "comment": "`every MS_EXPR` postfix on a signal declaration: drives the cell from an interval",
       "match": "(?<=[\\)\\d\\w$])\\s+(every)\\s+(?=\\d|[A-Za-z_$\\(])",
       "captures": {
         "1": {
@@ -167,7 +167,7 @@
       }
     },
     {
-      "comment": "derived NAME = EXPR / derived NAME { … } — read-only computed cell ($derived / $derived.by); derived NAME :: SCHEMA = EXPR — query-derived cell: tracked re-run, latest-wins, parse-gated settle (querySignal, .pui)",
+      "comment": "derived NAME = EXPR / derived NAME { … }: read-only computed cell ($derived / $derived.by); derived NAME :: SCHEMA = EXPR: query-derived cell: tracked re-run, latest-wins, parse-gated settle (querySignal, .pui)",
       "match": "\\b(derived)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*[=,;:!{])",
       "captures": {
         "1": {
@@ -176,7 +176,7 @@
       }
     },
     {
-      "comment": "effect { ... } block, or effect EXPR; single-statement — signals.effect() / $effect",
+      "comment": "effect { ... } block, or effect EXPR; single-statement: signals.effect() / $effect",
       "match": "\\b(effect)\\b(?=\\s*\\{|\\s+[A-Za-z_$])",
       "captures": {
         "1": {
@@ -185,7 +185,7 @@
       }
     },
     {
-      "comment": "when not EXPR { ... } — fires on the negated edge",
+      "comment": "when not EXPR { ... }: fires on the negated edge",
       "match": "\\b(when)\\s+(not)\\b",
       "captures": {
         "1": {
@@ -197,7 +197,7 @@
       }
     },
     {
-      "comment": "when EXPR { ... } — fires on the rising edge",
+      "comment": "when EXPR { ... }: fires on the rising edge",
       "match": "\\b(when)\\b(?=\\s+[!A-Za-z_$])",
       "captures": {
         "1": {
@@ -206,7 +206,7 @@
       }
     },
     {
-      "comment": "trailing `start` modifier — initial-truthy + edge",
+      "comment": "trailing `start` modifier: initial-truthy + edge",
       "match": "\\b(start)\\b(?=\\s*\\{)",
       "captures": {
         "1": {
@@ -215,7 +215,7 @@
       }
     },
     {
-      "comment": "paired `when stop { }` arm — fires on falling edge of preceding when",
+      "comment": "paired `when stop { }` arm: fires on falling edge of preceding when",
       "match": "\\b(when)\\s+(stop)\\b(?=\\s*\\{)",
       "captures": {
         "1": {
@@ -227,7 +227,7 @@
       }
     },
     {
-      "comment": "arena { ... } — DeferGC scope",
+      "comment": "arena { ... }: DeferGC scope",
       "match": "\\b(arena)\\b(?=\\s*\\{)",
       "captures": {
         "1": {
@@ -236,7 +236,7 @@
       }
     },
     {
-      "comment": "memo async NAME( — statement-form async memoized fn",
+      "comment": "memo async NAME(: statement-form async memoized fn",
       "match": "\\b(memo)\\s+(async)\\s+(?=[A-Za-z_$][\\w$]*\\s*(?:<|\\())",
       "captures": {
         "1": {
@@ -248,7 +248,7 @@
       }
     },
     {
-      "comment": "memo NAME( — statement-form memoized fn (sync)",
+      "comment": "memo NAME(: statement-form memoized fn (sync)",
       "match": "\\b(memo)\\s+(?!async\\b)(?=[A-Za-z_$][\\w$]*\\s*(?:<|\\())",
       "captures": {
         "1": {
@@ -257,7 +257,7 @@
       }
     },
     {
-      "comment": "memo async (...) / memo async NAME => — async arrow form",
+      "comment": "memo async (...) / memo async NAME =>: async arrow form",
       "match": "\\b(memo)\\s+(async)\\s+(?=\\(|[A-Za-z_$][\\w$]*\\s*=>)",
       "captures": {
         "1": {
@@ -269,7 +269,7 @@
       }
     },
     {
-      "comment": "memo (...) / memo <T>(...) / memo NAME => — sync arrow form",
+      "comment": "memo (...) / memo <T>(...) / memo NAME =>: sync arrow form",
       "match": "\\b(memo)\\s+(?=\\(|<[\\w\\s,=]+>\\s*\\(|[A-Za-z_$][\\w$]*\\s*=>)",
       "captures": {
         "1": {
@@ -278,7 +278,7 @@
       }
     },
     {
-      "comment": "defer EXPR / defer await EXPR — block-exit hook (LIFO)",
+      "comment": "defer EXPR / defer await EXPR: block-exit hook (LIFO)",
       "match": "\\b(defer)\\b(?=\\s+[A-Za-z_$])",
       "captures": {
         "1": {
@@ -287,7 +287,7 @@
       }
     },
     {
-      "comment": "~> reactive-binding operator — `src ~> dst` wraps in signals.effect(() => { dst = src })",
+      "comment": "~> reactive-binding operator: `src ~> dst` wraps in signals.effect(() => { dst = src })",
       "match": "~>",
       "name": "keyword.operator.rbind.parabun"
     },
@@ -297,7 +297,7 @@
       "name": "keyword.operator.callbind.parabun"
     },
     {
-      "comment": "cyclic [(n)] schema — cycle-capability modifier on a schema declaration. Only a keyword when `schema` follows; `cyclic(1)` alone stays a plain call.",
+      "comment": "cyclic [(n)] schema: cycle-capability modifier on a schema declaration. Only a keyword when `schema` follows; `cyclic(1)` alone stays a plain call.",
       "match": "\\b(cyclic)\\s*(?:\\(\\s*(\\d+)\\s*\\))?(?=\\s*schema\\b)",
       "captures": {
         "1": {
@@ -309,7 +309,7 @@
       }
     },
     {
-      "comment": "schema(depth: 8) NAME — declaration with config list. `schema(` followed by a paren group and then an identifier is a declaration; without the trailing identifier it remains a plain call (see schema-bare skip).",
+      "comment": "schema(depth: 8) NAME: declaration with config list. `schema(` followed by a paren group and then an identifier is a declaration; without the trailing identifier it remains a plain call (see schema-bare skip).",
       "match": "\\b(schema)\\s*\\(([^()]*)\\)\\s*([A-Za-z_$][\\w$]*)\\b",
       "captures": {
         "1": {
@@ -321,7 +321,7 @@
       }
     },
     {
-      "comment": "export schema NAME from <expr> — exported JSON Schema ingestion",
+      "comment": "export schema NAME from <expr>: exported JSON Schema ingestion",
       "match": "\\b(export)\\s+(schema)\\s+([A-Za-z_$][\\w$]*)\\s+(from)\\b",
       "captures": {
         "1": {
@@ -339,7 +339,7 @@
       }
     },
     {
-      "comment": "schema NAME from <expr> — ingest existing JSON Schema (file / fetch / inline literal)",
+      "comment": "schema NAME from <expr>: ingest existing JSON Schema (file / fetch / inline literal)",
       "match": "\\b(schema)\\s+([A-Za-z_$][\\w$]*)\\s+(from)\\b",
       "captures": {
         "1": {
@@ -354,7 +354,7 @@
       }
     },
     {
-      "comment": "export schema NAME { ... } / NAME = ... — exported declaration",
+      "comment": "export schema NAME { ... } / NAME = ...: exported declaration",
       "match": "\\b(export)\\s+(schema)\\s+([A-Za-z_$][\\w$]*)\\b",
       "captures": {
         "1": {
@@ -369,7 +369,7 @@
       }
     },
     {
-      "comment": "schema NAME { ... } / NAME = ... / NAME from ... — declaration",
+      "comment": "schema NAME { ... } / NAME = ... / NAME from ...: declaration",
       "match": "\\b(schema)\\s+([A-Za-z_$][\\w$]*)\\b",
       "captures": {
         "1": {
@@ -381,7 +381,7 @@
       }
     },
     {
-      "comment": "schema { ... } — inline expression literal (no name binding)",
+      "comment": "schema { ... }: inline expression literal (no name binding)",
       "match": "\\b(schema)\\b(?=\\s*\\{)",
       "captures": {
         "1": {
@@ -390,7 +390,7 @@
       }
     },
     {
-      "comment": "ts<import('./x').T> — TS-extraction directive at schema-body position (para-ts-extractor-plan.md §0). Closed form only: ts, <, import('specifier'), ., TypeName, >. Substituted with the extracted JSON body by para-extract; unsubstituted sites throw at runtime with instructions.",
+      "comment": "ts<import('./x').T>: TS-extraction directive at schema-body position (para-ts-extractor-plan.md §0). Closed form only: ts, <, import('specifier'), ., TypeName, >. Substituted with the extracted JSON body by para-extract; unsubstituted sites throw at runtime with instructions.",
       "match": "\\b(ts)\\s*(<)\\s*(import)\\s*\\(\\s*(['\"][^'\"]*['\"])\\s*\\)\\s*(\\.)\\s*([A-Za-z_$][\\w$]*)\\s*(>)",
       "captures": {
         "1": {
@@ -408,7 +408,7 @@
       }
     },
     {
-      "comment": "Bare `schema` keyword fallback — highlights as soon as typed; skipped when followed by =/(/./: (used as identifier or object key)",
+      "comment": "Bare `schema` keyword fallback: highlights as soon as typed; skipped when followed by =/(/./: (used as identifier or object key)",
       "match": "\\b(schema)\\b(?![\\s]*[=.(:])",
       "captures": {
         "1": {
@@ -417,7 +417,7 @@
       }
     },
     {
-      "comment": "match EXPR { ... } — pattern matching expression",
+      "comment": "match EXPR { ... }: pattern matching expression",
       "match": "\\b(match)\\b(?=\\s+[A-Za-z_$(])",
       "captures": {
         "1": {
@@ -426,12 +426,12 @@
       }
     },
     {
-      "comment": ":: per-arg runtime validation marker — `fn(req:: User) {...}` injects User.parse(req) at entry",
+      "comment": ":: per-arg runtime validation marker: `fn(req:: User) {...}` injects User.parse(req) at entry",
       "match": "::",
       "name": "keyword.operator.validate.parabun"
     },
     {
-      "comment": "Ok / Err / Some — Result/Option tagged-union constructors (in call position)",
+      "comment": "Ok / Err / Some: Result/Option tagged-union constructors (in call position)",
       "match": "\\b(Ok|Err|Some)\\b(?=\\s*\\()",
       "captures": {
         "1": {
@@ -440,7 +440,7 @@
       }
     },
     {
-      "comment": "None — bare Option constant",
+      "comment": "None: bare Option constant",
       "match": "\\b(None)\\b(?!\\s*[\\.\\[\\(])",
       "captures": {
         "1": {
@@ -449,7 +449,7 @@
       }
     },
     {
-      "comment": "Capitalized refinement / format types — Email / UUID / Url / Date / DateTime / IpV4 / IpV6 / Slug",
+      "comment": "Capitalized refinement / format types: Email / UUID / Url / Date / DateTime / IpV4 / IpV6 / Slug",
       "match": "(:|::)(\\s+)(Email|UUID|Url|Date|DateTime|IpV4|IpV6|Slug)\\b",
       "captures": {
         "1": {
@@ -461,7 +461,7 @@
       }
     },
     {
-      "comment": "Lowercase primitive types — int / str / string / bool / boolean / float / num / number (in `: Type` position)",
+      "comment": "Lowercase primitive types: int / str / string / bool / boolean / float / num / number (in `: Type` position)",
       "match": "(:)(\\s+)(int|str|string|bool|boolean|float|num|number)\\b",
       "captures": {
         "1": {
@@ -473,7 +473,7 @@
       }
     },
     {
-      "comment": "`expr is not Type` — runtime negated type-guard, lowers to Type.parse(expr).tag !== \"Ok\"",
+      "comment": "`expr is not Type`: runtime negated type-guard, lowers to Type.parse(expr).tag !== \"Ok\"",
       "match": "\\b(is)\\s+(not)\\b(?=\\s+[A-Z])",
       "captures": {
         "1": {
@@ -485,7 +485,7 @@
       }
     },
     {
-      "comment": "`expr is Type` — runtime type-guard, lowers to Type.parse(expr).tag === \"Ok\"",
+      "comment": "`expr is Type`: runtime type-guard, lowers to Type.parse(expr).tag === \"Ok\"",
       "match": "\\b(is)\\b(?=\\s+[A-Z])",
       "captures": {
         "1": {
@@ -494,7 +494,7 @@
       }
     },
     {
-      "comment": "parallel/para let|const NAME = ..., ... — fan-out promise composition (statement form)",
+      "comment": "parallel/para let|const NAME = ..., ...: fan-out promise composition (statement form)",
       "match": "\\b(parallel|para)\\s+(let|const)\\b",
       "captures": {
         "1": {
@@ -506,7 +506,7 @@
       }
     },
     {
-      "comment": "parallel/para { ... } — fan-out promise composition (expression form)",
+      "comment": "parallel/para { ... }: fan-out promise composition (expression form)",
       "match": "\\b(parallel|para)\\b(?=\\s*\\{)",
       "captures": {
         "1": {
@@ -515,37 +515,37 @@
       }
     },
     {
-      "comment": "..= inclusive range — `a..=b` lowers to iterator over [a, b]",
+      "comment": "..= inclusive range: `a..=b` lowers to iterator over [a, b]",
       "match": "\\.\\.=",
       "name": "keyword.operator.range-inclusive.parabun"
     },
     {
-      "comment": "..! error-chain operator — `p ..! handler` lowers to `p.catch(handler)`",
+      "comment": "..! error-chain operator: `p ..! handler` lowers to `p.catch(handler)`",
       "match": "\\.\\.!",
       "name": "keyword.operator.catch.parabun"
     },
     {
-      "comment": "..& finally operator — `p ..& cleanup` lowers to `p.finally(cleanup)`",
+      "comment": "..& finally operator: `p ..& cleanup` lowers to `p.finally(cleanup)`",
       "match": "\\.\\.&",
       "name": "keyword.operator.finally.parabun"
     },
     {
-      "comment": "..> then operator — `p ..> next` lowers to `p.then(next)`",
+      "comment": "..> then operator: `p ..> next` lowers to `p.then(next)`",
       "match": "\\.\\.>",
       "name": "keyword.operator.then.parabun"
     },
     {
-      "comment": ".. exclusive range — `a..b` lowers to iterator over [a, b)",
+      "comment": ".. exclusive range: `a..b` lowers to iterator over [a, b)",
       "match": "\\.\\.(?!\\.)",
       "name": "keyword.operator.range.parabun"
     },
     {
-      "comment": "|> pipeline operator — threads LHS as first arg of RHS call",
+      "comment": "|> pipeline operator: threads LHS as first arg of RHS call",
       "match": "\\|>",
       "name": "keyword.operator.pipeline.parabun"
     },
     {
-      "comment": "Nd decimal literal — `0.0825d` / `42d` route arithmetic through .add / .mul methods (exact, no FP drift)",
+      "comment": "Nd decimal literal: `0.0825d` / `42d` route arithmetic through .add / .mul methods (exact, no FP drift)",
       "match": "(?<![\\w$.])((?:\\.\\d+|\\d+(?:\\.\\d*)?)(?:[eE][+-]?\\d+)?)(d)(?![\\w$])",
       "captures": {
         "1": {

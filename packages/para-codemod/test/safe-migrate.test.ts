@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import { safeMigrate } from "../src/index.ts";
 
-// Deterministic invariant test with injected compile/lower stubs — does
+// Deterministic invariant test with injected compile/lower stubs: does
 // NOT depend on a specific real codemod bug staying a bug.
 
 const okCompile = (s: string) => {

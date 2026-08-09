@@ -3,7 +3,7 @@
 // Philosophy: `.pui` is a Svelte superset, so anything we do NOT transform
 // stays valid. We therefore only rewrite patterns that are *unambiguously*
 // mechanical; anything uncertain is left as raw Svelte (still valid .pui).
-// Correctness over coverage — never produce a wrong transform.
+// Correctness over coverage. Never produce a wrong transform.
 //
 // Rules (the LYK-901 set, verified against NotificationsPage):
 //  1  let x = $state(v)            → signal x = v          (typed: signal x: T = v)
@@ -13,7 +13,7 @@
 //     const x = $derived.by(()=>{B}) → derived x { B }
 //  4  const x = $derived($store)   → source x = fromStore(store)  (+import)
 //  5  $effect(() => { B })         → effect { B }
-//     onMount(…) is left VERBATIM — the `mount` keyword was retired
+//     onMount(…) is left VERBATIM. The `mount` keyword was retired
 //     2026-05-17 (it mapped to onMount(), a library call, not a Para
 //     primitive). lowerPuiReactivity auto-imports onMount, so the
 //     codemod also strips it from the explicit `… from 'svelte'`.
@@ -44,7 +44,7 @@ function findMatch(s: string, open: number, oc: string, cc: string): number {
 function transformScript(body: string, notes: string[]): { code: string; needsFromStore: boolean } {
   let needsFromStore = false;
 
-  // ── Rule 5: $effect → effect (sync only — async effects are a footgun,
+  // ── Rule 5: $effect → effect (sync only: async effects are a footgun,
   // leave `$effect(async…)` raw). onMount is deliberately NOT converted:
   // the `mount` keyword was retired (it's a library call, not a Para
   // primitive), so onMount(…) stays verbatim and lowering auto-imports it.
@@ -59,7 +59,7 @@ function transformScript(body: string, notes: string[]): { code: string; needsFr
     // ── Rules 3 + 4: unified `const NAME = $derived…` scan ──
     // Paren/brace-matched so single-line, multi-line, object-literal and
     // `.by` forms are all handled; bare `$store` arg → rule 4.
-    // `let` accepted too — `$derived` is read-only, both → `derived x`.
+    // `let` accepted too: `$derived` is read-only, both → `derived x`.
     let m = line.match(/^(\s*)(?:const|let)\s+(\w+)\s*=\s*\$derived(\.by)?\s*\(/);
     if (m) {
       const indent = m[1]!;
@@ -144,12 +144,12 @@ function transformScript(body: string, notes: string[]): { code: string; needsFr
   }
   body = out.join("\n");
 
-  // Drop `onMount` from a `import … from 'svelte'` unconditionally — the
+  // Drop `onMount` from a `import … from 'svelte'` unconditionally. The
   // `mount` keyword was retired, so lowerPuiReactivity auto-imports
   // onMount whenever it's called (PUI_RUNTIME_LIFECYCLE). Carrying the
   // explicit import too is merely redundant (the lowering dedups it), but
   // canonical .pui omits lifecycle-import boilerplate, so the codemod
-  // emits canonical output. Keep untrack/tick etc. — by-design residual.
+  // emits canonical output. Keep untrack/tick etc., by-design residual.
   {
     body = body.replace(/(import\s*\{)([^}]*)\}(\s*from\s*['"]svelte['"])/, (full, a, names, c) => {
       const kept = names
@@ -231,7 +231,7 @@ export function svelteToPui(source: string): CodemodResult {
     }
     return full.replace(bodyRaw, b);
   });
-  if (notes.length === 0) notes.push("no transformable patterns found — file left as-is (still valid .pui)");
+  if (notes.length === 0) notes.push("no transformable patterns found. File left as-is (still valid .pui)");
   void needsFromStoreAny;
   return { code, notes };
 }
@@ -251,14 +251,14 @@ export interface SafeMigrateResult {
  * migrated output does NOT, the transform is rejected and the original
  * is returned untouched. This makes auto-migration regression-free by
  * construction: a file is either correctly migrated or left exactly as
- * it was — never silently broken. (The raw `svelteToPui` is the
+ * it was, never silently broken. (The raw `svelteToPui` is the
  * unverified transform; always prefer this for real migration.)
  *
  * Caller injects the fork `compile` (svelte/compiler) and
  * `lowerPuiReactivity` (@lyku/para-preprocess) so this module stays
  * dependency-free.
  *
- * @param compile (src, opts) — throws on compile error
+ * @param compile (src, opts): throws on compile error
  * @param lower   lowerPuiReactivity
  */
 export function safeMigrate(
@@ -303,7 +303,7 @@ export function safeMigrate(
       code: source,
       migrated: false,
       notes: out.notes,
-      skippedReason: `migration would regress (orig compiles, migrated fails: ${why}) — left unchanged`,
+      skippedReason: `migration would regress (orig compiles, migrated fails: ${why}), left unchanged`,
     };
   }
   return { code: out.code, migrated: true, notes: out.notes };

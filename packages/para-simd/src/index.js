@@ -2,17 +2,17 @@
 // src/simd.wasm; falls back to scalar JS loops when
 // WebAssembly SIMD isn't available or the module can't be instantiated
 // (older browsers, restrictive CSP). The API surface matches upstream
-// `@lyku/para-simd` — callers don't need to know which path is live.
+// `@lyku/para-simd`: callers don't need to know which path is live.
 //
 // Performance notes:
 //   - Small inputs (N < SCALAR_THRESHOLD) use scalar loops unconditionally
-//     — the WASM call + copy-in/out overhead dominates below ~256 elements.
+//     : the WASM call + copy-in/out overhead dominates below ~256 elements.
 //   - Medium/large inputs copy into the WASM linear memory, run the
 //     v128 kernel, copy out. Typical speedup vs. scalar JS is ~3–6×
 //     for N = 10k, ~5–20× for N = 1M.
 //   - `alloc(n, "f32")` returns a Float32Array view backed directly by
 //     the WASM linear memory. Calls on such arrays skip the copy-in
-//     step — this is the zero-copy path the upstream native surface
+//     step: this is the zero-copy path the upstream native surface
 //     also advertises.
 
 const SCALAR_THRESHOLD = 256;
@@ -31,12 +31,12 @@ async function _loadWasm() {
       if (!res.ok) return null;
       bytes = new Uint8Array(await res.arrayBuffer());
     } else {
-      // Node/Bun or file:// URL — read from disk.
+      // Node/Bun or file:// URL: read from disk.
       const { readFile } = await import("node:fs/promises");
       bytes = await readFile(url);
     }
     // If the browser lacks WASM SIMD support, `instantiate` throws on
-    // the v128 opcodes — that's our feature detection.
+    // the v128 opcodes: that's our feature detection.
     const { instance } = await WebAssembly.instantiate(bytes, {});
     const mem = instance.exports.mem;
     return {
@@ -60,7 +60,7 @@ export async function _initWasm() {
   return _wasmInitPromise;
 }
 
-// Try to instantiate on module load — non-blocking; sync calls that
+// Try to instantiate on module load: non-blocking; sync calls that
 // land before this settles use the scalar path.
 _initWasm();
 
@@ -141,7 +141,7 @@ function _dotJS(a, b) {
 // ── Public kernels ──────────────────────────────────────────────────────
 
 // `@lyku/para-simd` is f32-first. Float64Array inputs go straight to the
-// scalar path — the WASM module is f32-only, Float64 falls back.
+// scalar path: the WASM module is f32-only, Float64 falls back.
 function _isF32(a) {
   return a instanceof Float32Array;
 }
@@ -262,7 +262,7 @@ function dot(a, b) {
 // ── Kernels without WASM backing yet ────────────────────────────────────
 
 function matVec(mat, vec, M, K) {
-  // Straight scalar for now — a v128 matVec with workgroup-style
+  // Straight scalar for now: a v128 matVec with workgroup-style
   // per-row reduction is a future upgrade. WebGPU path in parabun:gpu
   // covers the large-matrix case.
   const out = new vec.constructor(M);

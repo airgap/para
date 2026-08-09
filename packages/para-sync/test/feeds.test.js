@@ -24,7 +24,7 @@ function memStream() {
   };
 }
 
-describe("syncedQuery — typed collections (§13.3)", () => {
+describe("syncedQuery: typed collections (§13.3)", () => {
   test("seed membership hydrates ordered rows; the array reflects row values", () => {
     const t = new InProcessTransport();
     const feed = syncedQuery(postSchema, {
@@ -55,7 +55,7 @@ describe("syncedQuery — typed collections (§13.3)", () => {
     stop();
   });
 
-  test("membership insert (seeded), reorder, and remove — without re-parsing rows", () => {
+  test("membership insert (seeded), reorder, and remove, without re-parsing rows", () => {
     const t = new InProcessTransport();
     const mem = memStream();
     const feed = syncedQuery(postSchema, {

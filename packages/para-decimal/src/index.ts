@@ -1,7 +1,7 @@
-// @lyku/para-decimal — self-contained exact-decimal arithmetic.
+// @lyku/para-decimal: self-contained exact-decimal arithmetic.
 //
 // Backs the Para `0.1d` numeric-literal suffix. Each `Nd` literal lowers to
-// `__paraDec("N")` (string form of the source — never the parsed JS Number,
+// `__paraDec("N")` (string form of the source, never the parsed JS Number,
 // since the whole point is to skip the float roundtrip). Subsequent
 // arithmetic uses explicit method calls because JS doesn't allow operator
 // overloading: `0.1d.plus(0.2d).eq(0.3d)` is `true`.
@@ -9,14 +9,14 @@
 // Internal representation: `{ coef: bigint, exp: number }` where the value
 // equals `coef * 10^exp`. So `0.1` is `{ coef: 1n, exp: -1 }`, `0.0825` is
 // `{ coef: 825n, exp: -4 }`, and `100` is `{ coef: 100n, exp: 0 }` (we
-// don't auto-renormalize trailing zeros — that's only done in toString).
+// don't auto-renormalize trailing zeros: that's only done in toString).
 //
 // NaN / Infinity are deliberately NOT supported. Decimal arithmetic is
 // supposed to be deterministic: division by zero throws, period. Users
 // who want NaN have Number.
 
 export type RoundingMode =
-  | "HALF_EVEN" // banker's rounding — round to nearest even on .5 (default)
+  | "HALF_EVEN" // banker's rounding: round to nearest even on .5 (default)
   | "HALF_UP" // round away from zero on .5
   | "HALF_DOWN" // round toward zero on .5
   | "UP" // always away from zero
@@ -38,7 +38,7 @@ const ONE = 1n;
 const TEN = 10n;
 const NEG_ONE = -1n;
 
-/** Cached `10n ** BigInt(n)` — common in scale alignment. */
+/** Cached `10n ** BigInt(n)`, common in scale alignment. */
 const POW10_CACHE: bigint[] = [];
 function pow10(n: number): bigint {
   if (n < 0) throw new RangeError(`pow10: n must be non-negative, got ${n}`);
@@ -142,7 +142,7 @@ function fromNumber(n: number): { coef: bigint; exp: number } {
     throw new RangeError(`Decimal: NaN / Infinity not supported (got ${n})`);
   }
   // Number.prototype.toString gives the shortest round-trippable form for
-  // most finite values — good enough for our purposes. (Users who need
+  // most finite values, good enough for our purposes. (Users who need
   // exact decimal control should pass a string.)
   return parseString(n.toString());
 }
@@ -178,11 +178,11 @@ function roundCoef(coef: bigint, drop: number, mode: RoundingMode, sign: -1 | 0 
       else roundUp = false;
       break;
     case "FLOOR":
-      // Toward -∞ — for positive sign that's truncate, for negative round away.
+      // Toward -∞: for positive sign that's truncate, for negative round away.
       roundUp = sign < 0;
       break;
     case "CEILING":
-      // Toward +∞ — for positive sign round away, for negative truncate.
+      // Toward +∞: for positive sign round away, for negative truncate.
       roundUp = sign > 0;
       break;
     default: {
@@ -196,13 +196,13 @@ function roundCoef(coef: bigint, drop: number, mode: RoundingMode, sign: -1 | 0 
 export class Decimal {
   // Hidden brand so cross-realm Decimal-shaped objects can still be detected.
   static readonly #brand: unique symbol = Symbol("para.decimal");
-  // The actual brand value carried by every instance — referenced via
+  // The actual brand value carried by every instance, referenced via
   // hasOwnProperty in `Decimal.isDecimal` for fast cross-realm checks.
   readonly #isDecimal = true;
   readonly coef: bigint;
   readonly exp: number;
 
-  // Direct construction is private — clients call `Decimal.from(…)`. We
+  // Direct construction is private. Clients call `Decimal.from(…)`. We
   // can't use a `private constructor` (TS-only) at runtime so we accept
   // the args but rely on convention.
   constructor(coef: bigint, exp: number) {
@@ -300,10 +300,10 @@ export class Decimal {
       q = scaled / b;
     }
     // q now has at least targetDigits. If MORE, drop the surplus by
-    // rounding (HALF_EVEN — the precision-1-digits we keep are exact;
+    // rounding (HALF_EVEN: the precision-1-digits we keep are exact;
     // any surplus came from the long-division remainder being 0).
     while (digitCount(q) > targetDigits) {
-      // Surplus digits — happens when our k overshot. Round down by
+      // Surplus digits: happens when our k overshot. Round down by
       // dropping (digits - targetDigits) least-significant digits using
       // the requested rounding mode, since we may be discarding nonzero
       // tail bits.
@@ -315,14 +315,14 @@ export class Decimal {
     // and we multiplied `this.coef` by `10^k` and divided once more by 10
     // (the rounding step), so the final exponent shift is `-(k - 1)`.
     // After the rounding step we lost one digit of magnitude, so net `k - 1`
-    // factors of 10 went into the integer quotient — subtract that to get
+    // factors of 10 went into the integer quotient. Subtract that to get
     // the true result exponent.
     let resultExp = this.exp - o.exp - (k - 1);
     // Strip trailing zeros from q: when the division terminates exactly
     // (e.g. 1/4 = 0.25), the long-division loop pads the rest of the
     // precision with zeros that we don't want in the canonical
     // representation. Cap the strip at exp = 0 so we don't turn 1.50 into
-    // 1.5 by mistake — wait, we DO want that for divisions, but not for
+    // 1.5 by mistake. Wait, we DO want that for divisions, but not for
     // explicit `Decimal.from("1.50")`. In division the precision is an
     // implementation detail and trailing zeros are noise; in user-supplied
     // inputs they're significant. So it's correct to strip here all the
@@ -409,7 +409,7 @@ export class Decimal {
       // Append exp zeros: 12 with exp=3 → "12000".
       return (negative ? "-" : "") + digits + "0".repeat(this.exp);
     }
-    // exp < 0 — insert decimal point.
+    // exp < 0: insert decimal point.
     const point = digits.length + this.exp;
     let body: string;
     if (point > 0) {
@@ -434,7 +434,7 @@ export class Decimal {
     return sign * (absBig(this.coef) / div);
   }
 
-  /** Custom toJSON returns the canonical string — JSON has no decimal type. */
+  /** Custom toJSON returns the canonical string. JSON has no decimal type. */
   toJSON(): string {
     return this.toString();
   }
@@ -442,7 +442,7 @@ export class Decimal {
 
 /**
  * Runtime helper invoked by the `Nd` literal lowering. Always called with a
- * string argument — never with a parsed JS Number, since the whole point of
+ * string argument, never with a parsed JS Number, since the whole point of
  * the literal is to skip the float roundtrip.
  */
 export function __paraDec(source: string): Decimal {

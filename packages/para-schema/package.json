@@ -1,7 +1,7 @@
 {
   "name": "@lyku/para-schema",
   "version": "0.0.1-pre.0",
-  "description": "Para schema type system + portable runtime — JSON Schema 2020-12 with 1:1 brand-type parity. `fromSchema` validates off ParaBun (browsers, Cloudflare Workers, Node), where ParaBun's own fallback is the identity function. Ships two type variants: extended (parabun condition) for .pts projects with full constraint brands, and standard (default) for vanilla TS consumers that only want plain primitives. Pre-release (0.0.x-pre): API may change before 0.1.0.",
+  "description": "Para schema type system + portable runtime: JSON Schema 2020-12 with 1:1 brand-type parity. `fromSchema` validates off ParaBun (browsers, Cloudflare Workers, Node), where ParaBun's own fallback is the identity function. Ships two type variants: extended (parabun condition) for .pts projects with full constraint brands, and standard (default) for vanilla TS consumers that only want plain primitives. Pre-release (0.0.x-pre): API may change before 0.1.0.",
   "publishConfig": {
     "access": "public"
   },

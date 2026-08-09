@@ -1,10 +1,10 @@
-// @lyku/para-sync — typed subscription/query surface: collections (§13.3).
+// @lyku/para-sync: typed subscription/query surface: collections (§13.3).
 //
 // `sync feed :: Post[] from query(...)` replicates a COLLECTION. The reconcile
 // spine scales to a collection "by composition, not a new engine": each row is a
 // §3 createClientReplica keyed by its row key, and the collection's MEMBERSHIP
 // (insert/remove/reorder) is a SEPARATE typed channel from the per-row VALUE
-// deltas — so a reorder never re-parses every row, and each row reconciles by
+// deltas, so a reorder never re-parses every row, and each row reconciles by
 // (schema_version, sequence) independently.
 //
 // The value is a reactive array in membership order. `row(key)` exposes a row's
@@ -126,7 +126,7 @@ export function syncedQuery(schema, opts = {}) {
     const next = new Set(keys);
     for (const k of keys) ensureRow(k, seeds[k]); // inserts (seeded → visible immediately)
     for (const k of [...rows.keys()]) if (!next.has(k)) dropRow(k); // removals
-    orderSig.set(keys.slice()); // order (a reorder is just this — no row re-parse)
+    orderSig.set(keys.slice()); // order (a reorder is just this, no row re-parse)
   }
 
   if (seed) applyMembership(seed);
@@ -176,7 +176,7 @@ export function syncedQuery(schema, opts = {}) {
 }
 
 /**
- * Scalar query sync (§13.7): ONE entity selected by a typed predicate —
+ * Scalar query sync (§13.7): ONE entity selected by a typed predicate,
  * the `limit: 1` degeneration of {@link syncedQuery}, sharing its whole
  * machinery (per-row createClientReplica, membership vs value channels)
  * by composition, not a new engine. The `.pui` form
@@ -186,7 +186,7 @@ export function syncedQuery(schema, opts = {}) {
  * ("the server said no row matches"), never a not-yet-loaded state. The
  * `ready` gate is what keeps those distinct: before the first membership
  * fact (an SSR `seed`, or the first membership delta), `peek()` returns
- * `undefined` and `subscribe` stays silent — so a re-keyed component
+ * `undefined` and `subscribe` stays silent, so a re-keyed component
  * binding keeps showing its stale value instead of flashing undefined
  * while the new subscription loads. After ready, an empty key set emits
  * a real `undefined` (row absent / deleted).
@@ -201,7 +201,7 @@ export function syncedOne(schema, opts = {}) {
   }
   const readySig = signal(Boolean(opts.seed));
   // Wrap the membership stream (explicit, or resolved from the app-wide
-  // config — resolved HERE so the limit:1 injection reaches the server
+  // config: resolved HERE so the limit:1 injection reaches the server
   // subscription) to flip `ready` on the first delta.
   const rawMembership =
     opts.membership ??
@@ -213,7 +213,7 @@ export function syncedOne(schema, opts = {}) {
     ? {
         // Membership applies BEFORE ready flips, and both inside one batch:
         // effects drain synchronously in para-signals, so flipping ready
-        // first would emit a spurious `undefined` ("no row" — a false fact)
+        // first would emit a spurious `undefined` ("no row", a false fact)
         // in the gap before the delta lands.
         listen: (onDelta) =>
           resolved.listen((d) =>
@@ -231,7 +231,7 @@ export function syncedOne(schema, opts = {}) {
   // membership lands.
   const one = derived(() => (readySig.get() ? q.get()[0] : undefined));
   return {
-    /** the entity (tracked read) — `undefined` means "no row matches" once ready */
+    /** the entity (tracked read): `undefined` means "no row matches" once ready */
     get: () => one.get(),
     /** the entity (untracked); `undefined` before the first membership fact */
     peek: () => (readySig.peek() ? one.peek() : undefined),

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import sort from "../src/index";
 
 // Package tests run under system bun, so `require("@lyku/para-parallel")`
-// resolves to the npm shim (no `psort`) — the parallel tier is reported
+// resolves to the npm shim (no `psort`): the parallel tier is reported
 // unavailable here. These cover the serial radix core, argsort, the
 // fast paths, the sync/async surface, and manual-override errors.
 // The native parallel tier is exercised separately on the ParaBun
@@ -34,7 +34,7 @@ function rngF32(n: number, seed = 1): Float32Array {
   return out;
 }
 
-describe("serial value sort — correctness vs TypedArray.sort()", () => {
+describe("serial value sort: correctness vs TypedArray.sort()", () => {
   test.each([0, 1, 2, 5, 63, 64, 65, 1000, 100_000])("u32 n=%i", n => {
     const a = new Uint32Array(n);
     let s = 7;
@@ -91,7 +91,7 @@ describe("serial value sort — correctness vs TypedArray.sort()", () => {
   });
 });
 
-describe("argsort — correctness + stability", () => {
+describe("argsort: correctness + stability", () => {
   test("argF32 yields a permutation that orders the keys", () => {
     const keys = rngF32(5000, 11);
     const idx = sort.argF32(keys);

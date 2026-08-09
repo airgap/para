@@ -2,7 +2,7 @@
 //
 // Each test constructs a block with hand-chosen scales / mins / quants
 // so the expected decoded values are computable by inspection. These
-// are NOT random-equivalent round-trip tests — those would require a
+// are NOT random-equivalent round-trip tests. Those would require a
 // reference encoder (llama.cpp's quantize_q4_K etc.) to stamp a block
 // and verify our decode matches. A future commit can wire that up by
 // shipping a few pre-encoded bytes captured from a real GGUF file.
@@ -105,14 +105,14 @@ test("Q8_0 block decoder: signed quants cross zero", () => {
 });
 
 test("Q6_K block decoder: d=1, scales all 0, all zeros", () => {
-  // With all scales 0, output is always 0 regardless of quants — the
+  // With all scales 0, output is always 0 regardless of quants, the
   // simplest Q6_K test that validates end-to-end decode doesn't crash
   // and returns the mathematically correct zero vector.
   const blk = new Uint8Array(Q6_K_BLOCK_SIZE);
   blk[208] = 0x00;
   blk[209] = 0x3c; // d = 1.0
   // scales[0..15] = 0 (already zero-initialized)
-  // ql and qh arbitrary — scale=0 multiplies them out.
+  // ql and qh arbitrary: scale=0 multiplies them out.
   for (let i = 0; i < 128; i++) blk[i] = 0xff;
 
   const out = new Float32Array(256);

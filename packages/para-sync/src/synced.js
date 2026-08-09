@@ -1,4 +1,4 @@
-// @lyku/para-sync — synced<T>: the client-facing reactive primitive (the "rune").
+// @lyku/para-sync: synced<T>: the client-facing reactive primitive (the "rune").
 //
 // createClientReplica is the pure receive→parse→version-check→apply engine; it
 // needs a transport already fed with envelopes, and it leaves stream wiring and
@@ -8,22 +8,22 @@
 // teardown. `synced` collapses that into a single call.
 //
 // What it adds on top of createClientReplica:
-//   1. A default transport — a private InProcessTransport, the client model
+//   1. A default transport, a private InProcessTransport, the client model
 //      (the WS stream is the only producer; there is no server-internal bus to
 //      inject). Caller may still inject one for tests/advanced use.
-//   2. A stream bridge — given `stream` (a factory yielding {listen, close?}),
+//   2. A stream bridge: given `stream` (a factory yielding {listen, close?}),
 //      every delivered envelope is published on `key`, so the reconciler ingests
 //      it. This is the receipt source; SSR initial state still arrives via seed.
-//   3. A reactive read surface — `.value` / `.get()` are TRACKED reads of the
+//   3. A reactive read surface: `.value` / `.get()` are TRACKED reads of the
 //      default para-signal cell, so reading inside a para reactive context (a
 //      `.pui` component, a derived, an effect) subscribes to live updates with
 //      no manual effect. Reads of `.status` track the reconcile state the same
 //      way. The cell is injectable (e.g. a Svelte-fork-backed or store-backed
 //      cell) for hosts that don't read para signals directly.
-//   4. One teardown — `.dispose()` closes the stream and disposes the replica.
+//   4. One teardown: `.dispose()` closes the stream and disposes the replica.
 //
 // It does NOT write (Tier 1 is read-only replication) and does NOT own the
-// schema or the schema version — those are the caller's, passed straight through.
+// schema or the schema version. Those are the caller's, passed straight through.
 
 import { signal } from "@lyku/para-signals";
 import { InProcessTransport } from "./transport.js";
@@ -37,14 +37,14 @@ import { createClientReplica } from "./client.js";
 /** @typedef {import('./client.js').ReplicaMeta} ReplicaMeta */
 
 /**
- * App-wide defaults so call sites can shrink to `synced(key, schema)` — the
+ * App-wide defaults so call sites can shrink to `synced(key, schema)`, the
  * delivery for a key is inferred from here instead of repeated at every call.
  * Set ONCE near app init. Two deployment shapes (use whichever fits; not both):
  *
- *   - transport — a shared keyed transport (the "single objectfeed WS" model):
+ *   - transport: a shared keyed transport (the "single objectfeed WS" model):
  *     its subscribe(key) IS the per-key stream, so no per-call stream is needed.
  *     This is the intended end-state.
- *   - resolveStream — for today's per-object endpoints: a (key) => SyncStream
+ *   - resolveStream: for today's per-object endpoints: a (key) => SyncStream
  *     map (e.g. key === 'currentUser' ? api.streamCurrentUser() : …). Each
  *     replica then gets a private InProcessTransport fed by the resolved stream.
  *
@@ -54,7 +54,7 @@ let syncDefaults = {};
 
 /**
  * No-validation gate for the type-only `sync x: T from key` form: accept every
- * inbound value verbatim. Used when no schema is supplied — see the schema note
+ * inbound value verbatim. Used when no schema is supplied, see the schema note
  * in {@link synced}.
  * @type {import('./client.js').SyncSchema}
  */
@@ -75,7 +75,7 @@ export function configureSynced(config) {
  * A change-envelope stream: the client's receipt source for one key (in Lyku, an
  * `api.stream*()` socket). `listen` registers a per-envelope callback; `close`
  * (if present) stops delivery. Envelopes are assumed already wire-decoded
- * (msgpackr/BON) — `synced` publishes them verbatim and the parse gate is the
+ * (msgpackr/BON): `synced` publishes them verbatim and the parse gate is the
  * trust boundary.
  *
  * @typedef {object} SyncStream
@@ -87,10 +87,10 @@ export function configureSynced(config) {
  * Live-replicate one server-authoritative object into a reactive cell.
  *
  * Two call forms:
- *   - `synced(key, schema, opts?)` — schema positional (the ergonomic form);
+ *   - `synced(key, schema, opts?)`: schema positional (the ergonomic form);
  *     with delivery configured via {@link configureSynced}, `synced(key, schema)`
  *     is all you write.
- *   - `synced(key, opts)` — schema inside `opts` (the explicit form).
+ *   - `synced(key, opts)`: schema inside `opts` (the explicit form).
  *
  * @template [T=any]
  * @param {string} key                          synced key, e.g. "user:123"
@@ -134,12 +134,12 @@ export function synced(key, schemaOrOpts, maybeOpts) {
       ? schemaOrOpts
       : undefined;
   const opts = (positionalSchema ? maybeOpts : schemaOrOpts) ?? {};
-  // Schema is OPTIONAL: absent ⇒ PASSTHROUGH (no runtime validation) — the
+  // Schema is OPTIONAL: absent ⇒ PASSTHROUGH (no runtime validation), the
   // `sync x: T from key` type-only / trusted mode. synced replicates server-
   // authoritative data over an untrusted wire, so a real gate is the default
   // (the `sync x :: Schema from key` form); skipping it is the deliberate
   // opt-out. A schema that is PRESENT but malformed (no `parse`) is still a hard
-  // error — that's a mistake, not an opt-out.
+  // error. That's a mistake, not an opt-out.
   const schema = positionalSchema ?? opts.schema ?? PASSTHROUGH_SCHEMA;
   if (typeof schema.parse !== "function") {
     throw new Error("synced: the provided `schema` has no parse(value) method");
@@ -148,7 +148,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
   const { stream, transport, seed, refetch, schemaVersion, cell } = opts;
 
   // Own the value cell so the handle can expose `.subscribe` (the .pui `source`/
-  // `synced` binding convention). Default: a para signal — the reconciler's own
+  // `synced` binding convention). Default: a para signal, the reconciler's own
   // default, hoisted here so we keep a reference. An injected cell (e.g. a host
   // SvelteMap-backed one) is used as-is; if it has no `.subscribe`, the handle's
   // is a no-op and the host store drives reactivity instead.
@@ -194,7 +194,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
   let disposed = false;
 
   return {
-    /** current value (tracked read) — the rune's primary read surface */
+    /** current value (tracked read), the rune's primary read surface */
     get value() {
       return replica.get();
     },
@@ -232,7 +232,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
     peekMeta() {
       return replica.peekMeta();
     },
-    /** observability counters — read directly */
+    /** observability counters, read directly */
     stats: replica.stats,
     /** resolves when no recovery refetch is in flight (test/await aid) */
     whenIdle() {
@@ -245,7 +245,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
       try {
         sock?.close?.();
       } catch {
-        /* already closed — teardown must not throw */
+        /* already closed. Teardown must not throw */
       }
       replica.dispose();
     },

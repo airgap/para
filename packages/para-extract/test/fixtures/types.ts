@@ -1,4 +1,4 @@
-// Extraction fixtures — para-extract test suite.
+// Extraction fixtures: para-extract test suite.
 
 export interface User {
   id: bigint;

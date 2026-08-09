@@ -1,6 +1,6 @@
 // Compile-smoke: the emitted bindings for the 2026-07 sync tranche
 // (query-derived §10.7, scalar query §13.7, server source §13.8) must
-// actually COMPILE under the real Svelte 5 compiler in runes mode — the
+// actually COMPILE under the real Svelte 5 compiler in runes mode, the
 // seam none of the string-shape tests cover. Pipeline mirrors production:
 // para-preprocess lowering → TS strip (Bun.Transpiler, what the svelte
 // preprocess step does) → svelte.compile.

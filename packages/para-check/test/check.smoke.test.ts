@@ -1,10 +1,10 @@
 // pui-check end-to-end: a real fixture project run through the BUILT bundle
-// (dist/pui-check.cjs), under both bun and node — lyku.co CI invokes it via
+// (dist/pui-check.cjs), under both bun and node: lyku.co CI invokes it via
 // parabun/bun, editors and plain Node users via node.
 //
 // Every negative is paired with a positive, in that order: the clean fixture
 // must pass BEFORE the planted-error fixtures are shown to fail, and each
-// planted error asserts its EXACT source line — a checker that merely exits 1
+// planted error asserts its EXACT source line: a checker that merely exits 1
 // without accurate positions would fail these, as would one that silently
 // skips .pui files (the planted errors are all inside .pui components).
 import { describe, test, expect, beforeAll } from "bun:test";
@@ -33,7 +33,7 @@ const TSCONFIG = JSON.stringify({
 });
 
 // Clean components: Svelte-5 runes AND Para keyword syntax (signal/derived),
-// plus a cross-component import — all three must type cleanly.
+// plus a cross-component import. All three must type cleanly.
 const OK_PUI = `<script lang="ts">
 	let { count, label = "n" }: { count: number; label?: string } = $props();
 	const doubled = $derived(count * 2);
@@ -96,7 +96,7 @@ for (const runtime of ["bun", "node"] as const) {
       const { code, out } = runCheck(runtime, ws);
       expect(code).toBe(1);
       expect(out).toMatch(/Bad\.pui\(4,\d+\): error TS2322/); // planted on line 4
-      // the untouched sibling stays clean — errors are attributed, not smeared
+      // the untouched sibling stays clean: errors are attributed, not smeared
       expect(out).not.toMatch(/(^|\n)src[\\/]Ok\.pui/);
     });
 

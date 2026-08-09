@@ -8,7 +8,7 @@ test("synced NAME = ARGS → wraps synced(ARGS) + reactive view + auto-dispose",
 synced user = "user:123", { schema: User };
 </script>
 <div>{user?.name}</div>`);
-  // ARGS wrapped in synced(...) — no redundant inner synced( at the call site
+  // ARGS wrapped in synced(...): no redundant inner synced( at the call site
   expect(out).toContain(`const __syn_user = synced("user:123", { schema: User });`);
   expect(out).toContain(`let user = $state(__syn_user.peek?.() ?? __syn_user);`);
   expect(out).toContain(

@@ -1,18 +1,18 @@
-// @lyku/para-sync — presence / ephemeral-state channels (§13.4).
+// @lyku/para-sync: presence / ephemeral-state channels (§13.4).
 //
 // "Who is online," "who is typing," cursor positions, live viewer counts: state
 // that is NOT authoritative, NOT persisted, NOT reconciled by sequence. The
 // truth is "whoever is connected right now." So presence deliberately does NOT
-// use the reconcile machine — no seed, no sequence, no refetch. It is:
+// use the reconcile machine: no seed, no sequence, no refetch. It is:
 //
 //   - a reactive MAP of peerId → value (live members only),
-//   - parse-gated per peer (a peer cannot publish a malformed state — the same
+//   - parse-gated per peer (a peer cannot publish a malformed state: the same
 //     §3.3 trust boundary, shared transport contract §4),
 //   - last-write-wins per peer,
 //   - disconnect-GC'd: a peer's entry vanishes when it leaves.
 //
 // It is explicitly NOT a synced entity: there is no server authority to confirm
-// against, so there is no `mutate` here — the local peer just publishes its own
+// against, so there is no `mutate` here. The local peer just publishes its own
 // state and the map mirrors all live peers.
 
 import { signal } from "@lyku/para-signals";
@@ -49,7 +49,7 @@ export function configurePresence(config) {
  * @param {SyncSchema} schema  the per-peer parse gate.
  * @param {object} opts
  * @param {SyncTransport} opts.transport  the ephemeral channel (same SyncTransport
- *        shape; carries {@link PresenceEnvelope}s — no seed/sequence/refetch).
+ *        shape; carries {@link PresenceEnvelope}s: no seed/sequence/refetch).
  * @param {string} [opts.peerId]  the local peer id. Required to publish (`set`)
  *        or leave; omit for a read-only observer.
  */
@@ -80,7 +80,7 @@ export function presence(channel, schema, opts = {}) {
   const unsub = transport.subscribe(channel, (env) => {
     if (disposed || !env || env.peerId == null) return;
     // My own echoes are managed locally (set reflects self immediately, dispose
-    // removes it), so ignore them — otherwise a self-echoing transport double-fires.
+    // removes it), so ignore them. Otherwise a self-echoing transport double-fires.
     if (peerId != null && env.peerId === peerId) return;
     if (env.leave) {
       if (members.delete(env.peerId)) {
@@ -101,7 +101,7 @@ export function presence(channel, schema, opts = {}) {
   });
 
   return {
-    /** the live-members map (tracked read) — peerId → value */
+    /** the live-members map (tracked read): peerId → value */
     get: () => cell.get(),
     /** the live-members map (untracked) */
     peek: () => cell.peek(),
@@ -114,7 +114,7 @@ export function presence(channel, schema, opts = {}) {
     stats,
     /**
      * Publish MY ephemeral state (last-write-wins for this peer). Requires a
-     * `peerId`. The value is parse-gated locally too — you cannot broadcast a
+     * `peerId`. The value is parse-gated locally too. You cannot broadcast a
      * state your peers would reject.
      * @param {T} value
      */
@@ -134,7 +134,7 @@ export function presence(channel, schema, opts = {}) {
       try {
         if (peerId != null) transport.publish(channel, { peerId, leave: true });
       } catch {
-        /* transport already down — best-effort leave */
+        /* transport already down: best-effort leave */
       }
       unsub();
     },

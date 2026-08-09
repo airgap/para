@@ -4,9 +4,9 @@
 //
 //   mirror        @lyku/para-transpile in-process over the corpus
 //   parabunBatch  one parabun process transpiling the whole corpus
-//                 (in-process ns from batch.ts; wall from out here —
+//                 (in-process ns from batch.ts; wall from out here:
 //                 the difference is spawn + startup overhead)
-//   spawnPerFile  one parabun process PER FILE over the micro fixtures —
+//   spawnPerFile  one parabun process PER FILE over the micro fixtures:
 //                 the parabun-vite-plugin cost model
 //
 // Only the files BOTH sides can transpile are timed (the comparable
@@ -16,7 +16,7 @@
 //
 // Env:
 //   PARABUN_BIN     path to the parabun binary (else @lyku/parabun-bin pin)
-//   BENCH_CORPUS    root dir scanned for macro .pts corpus (optional —
+//   BENCH_CORPUS    root dir scanned for macro .pts corpus (optional,
 //                   micro fixtures only when unset)
 //   BENCH_REPS      timed repetitions (default 5 macro / 20 micro)
 //   BENCH_OUT       result JSON path (default ./bench.json)
@@ -166,7 +166,7 @@ function probeParabun(files: string[]): { ok: string[]; failed: string[] } {
 
 function benchMirror(files: string[], reps: number) {
 	const sources = files.map(f => readFileSync(f, "utf8"));
-	// Warmup pass — JIT, not measured.
+	// Warmup pass: JIT, not measured.
 	for (const src of sources) transpile(src);
 	const totals: number[] = [];
 	const perFile: number[] = [];
@@ -306,7 +306,7 @@ if (baselinePath) {
 	try {
 		base = JSON.parse(readFileSync(baselinePath, "utf8"));
 	} catch {
-		console.log(`check: no readable baseline at ${baselinePath} — skipping (first run)`);
+		console.log(`check: no readable baseline at ${baselinePath}, skipping (first run)`);
 		process.exit(0);
 	}
 	const threshold = Number(process.env.BENCH_THRESHOLD ?? 0.25);

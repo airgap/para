@@ -14,13 +14,13 @@
 //
 // The function/arrow is rendered ANONYMOUS in the decl form so recursive
 // self-references resolve through the outer `const` (the memoized wrapper)
-// — a named inner `function fib(...)` would self-bind and bypass the cache.
+// A named inner `function fib(...)` would self-bind and bypass the cache.
 //
 // Disambiguation from a normal `memo` identifier:
-//   memo(5)        — call: `(` immediately after, no `=>` after the close paren → leave alone
-//   memo.foo       — property access → leave alone
-//   memo = 1       — assignment → leave alone
-//   memo(a, b)     — same: leave alone
+//   memo(5)        : call: `(` immediately after, no `=>` after the close paren → leave alone
+//   memo.foo       : property access → leave alone
+//   memo = 1       : assignment → leave alone
+//   memo(a, b)     : same: leave alone
 //
 // Arity is the formal parameter count. Rest parameters count toward the
 // arity but always land in the multi-arg path at runtime; we don't
@@ -223,7 +223,7 @@ function countArgs(args: string): number {
   return count;
 }
 
-/** Find the end of an arrow body — either a `{ … }` block or an expression
+/** Find the end of an arrow body: either a `{ … }` block or an expression
  * that ends at a top-level `;` / `,` / `)` / `]` / `}` / EOL. */
 function findArrowBodyEnd(src: string, from: number): number {
   let i = from;
@@ -232,7 +232,7 @@ function findArrowBodyEnd(src: string, from: number): number {
     const end = findMatchingBrace(src, i);
     return end === -1 ? src.length : end + 1;
   }
-  // Expression body — walk until top-level delimiter.
+  // Expression body: walk until top-level delimiter.
   let depth = 0;
   while (i < src.length) {
     const c = src[i]!;

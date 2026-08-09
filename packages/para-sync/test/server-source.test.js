@@ -11,7 +11,7 @@ const statsSchema = {
       : { tag: "Err", error: "not Stats" },
 };
 
-describe("createServerSource — opaque server sources (§13.8)", () => {
+describe("createServerSource: opaque server sources (§13.8)", () => {
   test("exactly one refresh policy is mandatory", () => {
     const t = new InProcessTransport();
     const base = { key: "stats", run: () => ({ total: 1 }), schema: statsSchema, transport: t };
@@ -84,7 +84,7 @@ describe("createServerSource — opaque server sources (§13.8)", () => {
     src.stop();
     invalidate(t, "users:changed");
     await tick();
-    expect(src.stats().runs).toBe(2); // stopped — listener released
+    expect(src.stats().runs).toBe(2); // stopped: listener released
   });
 
   test("outbound gate: a run error or parse failure never publishes; clients keep last good", async () => {
@@ -143,7 +143,7 @@ describe("createServerSource — opaque server sources (§13.8)", () => {
     src.stop();
   });
 
-  test("E2E: the client side is plain shipped Tier-1 — synced(key, Schema) goes live", async () => {
+  test("E2E: the client side is plain shipped Tier-1: synced(key, Schema) goes live", async () => {
     const t = new InProcessTransport();
     let total = 40;
     const src = createServerSource({

@@ -17,7 +17,7 @@ sync user :: User from query({ where: u => u.id == id });
   expect(out).toContain(`return () => { __un_user?.(); __sq_user.dispose?.(); };`);
   expect(out).toContain(`import { syncedOne } from "@lyku/para-sync";`);
   expect(out).not.toMatch(/sync user ::/);
-  // Re-key + unmount ride the effect teardown — no construct-once onDestroy.
+  // Re-key + unmount ride the effect teardown, no construct-once onDestroy.
   expect(out).not.toContain(`onDestroy(() => __sq_user`);
 });
 
@@ -29,7 +29,7 @@ sync feed :: Post[] from query({ limit: 20 });
   expect(out).not.toContain("syncedOne");
 });
 
-test("the keyed form is untouched — query() only fires the scalar pass, keys stay evaluate-once", () => {
+test("the keyed form is untouched: query() only fires the scalar pass, keys stay evaluate-once", () => {
   const out = lower(`<script lang="ts">
 sync user :: User from \`user:\${id}\`;
 </script>`);

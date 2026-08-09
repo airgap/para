@@ -1,4 +1,4 @@
-// @lyku/para-sync — per-field authority / conflict policy (§13.2).
+// @lyku/para-sync: per-field authority / conflict policy (§13.2).
 //
 // Authority is a property of the DATA, chosen at the field, and projected onto
 // BOTH halves of the spine:
@@ -9,7 +9,7 @@
 //
 // This is the runtime shape the compiler emits as `__paraAuthority_X`. The
 // classes: "server" (client never writes), "A" (last-write-wins, the Class-A
-// default), "B" (concurrent merge — the ONLY way multi-writer merge is reachable,
+// default), "B" (concurrent merge: the ONLY way multi-writer merge is reachable,
 // and it is a named pure function, never ambient; the §7.2 anti-Meteor boundary).
 
 /**
@@ -54,7 +54,7 @@ export function writableFields(authority) {
 
 /**
  * Write gate (§13.2): return `next` with every @server field forced back to its
- * `base` value — the runtime embodiment of "@server fields are stripped from the
+ * `base` value: the runtime embodiment of "@server fields are stripped from the
  * optimistic arm." (The compiler makes this a compile error; this is the
  * defensive runtime backstop for the direct JS API.) Non-object values pass
  * through unchanged.

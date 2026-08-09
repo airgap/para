@@ -1,4 +1,4 @@
-// C4b-runtime — characterization-snapshot harness.
+// C4b-runtime: characterization-snapshot harness.
 //
 // Behavioral-parity oracle for a migration: SSR-render the ORIGINAL
 // `.svelte` and the MIGRATED `.pui`(→lowered) with the same props,
@@ -6,13 +6,13 @@
 // DOM ⇒ the migration preserved the rendered output for that render.
 //
 // Honest scope (stated as real verdicts, never hidden):
-//  - SSR captures the INITIAL render only — not post-mount client
+//  - SSR captures the INITIAL render only, not post-mount client
 //    reactivity / interaction / async. Strong signal for "did lowering
 //    change output?"; not a universal behavioral oracle.
 //  - If the ORIGINAL won't SSR-render in this harness (heavy TS types
 //    that don't eval as bare JS, context/store-only components that
 //    render empty/throw with default props), the verdict is
-//    `uncharacterizable` — we explicitly DO NOT claim parity. Both
+//    `uncharacterizable`: we explicitly DO NOT claim parity. Both
 //    sides go through the identical pipeline so a limitation never
 //    produces a false mismatch.
 //
@@ -21,7 +21,7 @@
 
 export type CharVerdict =
   | "parity" // original & migrated render byte-identically (normalized)
-  | "mismatch" // RENDER DIFFERS — migration changed observable output
+  | "mismatch" // RENDER DIFFERS: migration changed observable output
   | "uncharacterizable" // original won't render here → no parity claim
   | "skipped"; // safeMigrate left the file unchanged → nothing to verify
 
@@ -35,13 +35,13 @@ export interface CharResult {
 export interface CharDeps {
   /** transform+verify; returns {code, migrated}. (safeMigrate) */
   safeMigrate: (s: string) => { code: string; migrated: boolean };
-  /** lowerPuiReactivity — .pui → .svelte source */
+  /** lowerPuiReactivity: .pui → .svelte source */
   lower: (s: string, runtime?: string, lp?: boolean, hmr?: boolean) => string;
   /** SSR-render a .svelte source with props → html, or throw. */
   renderSSR: (svelteSource: string, props: Record<string, unknown>) => string;
 }
 
-// Strip Svelte 5 SSR hydration markers — render-mode artifacts, not
+// Strip Svelte 5 SSR hydration markers: render-mode artifacts, not
 // behaviour: <!--[-->, <!--]-->, <!---->, <!--[!-->, and the
 // data-svelte-h hydration hashes. Collapse insignificant whitespace.
 function normalize(html: string): string {
@@ -60,7 +60,7 @@ export function characterize(svelteSource: string, props: Record<string, unknown
     return { verdict: "uncharacterizable", detail: `safeMigrate threw: ${(e as Error).message}` };
   }
   if (!migrate.migrated) {
-    return { verdict: "skipped", detail: "safeMigrate left the file unchanged — no migration to verify" };
+    return { verdict: "skipped", detail: "safeMigrate left the file unchanged: no migration to verify" };
   }
 
   // Baseline: render the original .svelte.
@@ -70,7 +70,7 @@ export function characterize(svelteSource: string, props: Record<string, unknown
   } catch (e) {
     return {
       verdict: "uncharacterizable",
-      detail: `original would not SSR-render here (${(e as Error).message?.split("\n")[0]}) — no parity claim`,
+      detail: `original would not SSR-render here (${(e as Error).message?.split("\n")[0]}): no parity claim`,
     };
   }
 

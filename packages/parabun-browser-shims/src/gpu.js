@@ -1,12 +1,12 @@
 // Browser shim for `parabun:gpu`. Two layers:
 //
 //   1. **Sync CPU path** for the upstream signatures (`matVec`,
-//      `matmul`, `dot`, `simdMap`) — scalar loops via @lyku/para-simd. Keeps
+//      `matmul`, `dot`, `simdMap`): scalar loops via @lyku/para-simd. Keeps
 //      existing .pts code compiling to the browser without an awkward
 //      sync→async migration.
 //
 //   2. **WebGPU backend** for the async variants (`matVecAsync`,
-//      `matmulAsync`, `dotAsync`) — real compute shaders with
+//      `matmulAsync`, `dotAsync`): real compute shaders with
 //      workgroup reduction / tiled matmul. Opt-in via
 //      `await gpu.initWebGPU()` at startup.
 //
@@ -21,13 +21,13 @@
 //     workgroup; main-thread sums the workgroup outputs.
 //
 // The WGSL is intentionally portable (avoids subgroup ops, fp16 storage,
-// etc.) so it runs on any WebGPU implementation — Chromium, Firefox
+// etc.) so it runs on any WebGPU implementation: Chromium, Firefox
 // Nightly, Safari 17.4+.
 
 import simd from "@lyku/para-simd";
 import { dequantizeQ4K, dequantizeQ6K, Q4_K_BLOCK_SIZE, Q6_K_BLOCK_SIZE, QK_K } from "./quant.js";
 
-// ── Sync CPU path — always available ────────────────────────────────────
+// ── Sync CPU path: always available ────────────────────────────────────
 
 function dot(a, b) {
   return simd.dot(a, b);
@@ -166,7 +166,7 @@ fn main(
 // 2D valid-mode convolution. Output[y, x] = sum_{ky, kx} input[y+ky, x+kx]
 // * kernel[ky, kx]. Output dims (iH-kH+1) × (iW-kW+1). One thread per
 // output pixel, 16×16 workgroups; nested loops over the kernel. Direct
-// global loads — no shared-memory tile for v1 (worth optimizing later
+// global loads: no shared-memory tile for v1 (worth optimizing later
 // for kernels >= 7×7 where input reuse pays for staging cost).
 const CONV2D_WGSL = /* wgsl */ `
 struct Dims { iW: u32, iH: u32, kW: u32, kH: u32 };
@@ -479,7 +479,7 @@ export async function dotAsync(a, b) {
 
 // ── conv2D / conv2DAsync ────────────────────────────────────────────────
 // Valid-mode 2D convolution. Output dims (iH-kH+1) × (iW-kW+1). The sync
-// path is a naive loop — fine for small kernels and small images. Use
+// path is a naive loop, fine for small kernels and small images. Use
 // conv2DAsync when WebGPU is live for any meaningful workload.
 
 function conv2D(input, kernel, iW, iH, kW, kH) {
@@ -555,7 +555,7 @@ function hold(buf) {
 // matVec / matVecAsync paths. Upload to GPU if WebGPU is live.
 //
 // A future upgrade runs the dequantization inside the compute shader
-// — saves memory (no intermediate f32 copy) and halves bandwidth on
+// Saves memory (no intermediate f32 copy) and halves bandwidth on
 // GPU. The format-specific WGSL ports are tracked in the README
 // roadmap; this hold/dequant path is what makes quantized weights
 // usable end-to-end today.

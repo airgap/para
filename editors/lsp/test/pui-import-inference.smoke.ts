@@ -2,15 +2,15 @@
 // Locks #7: cross-file `.pui`-imports-`.pui` PROP-TYPE inference in the
 // LSP. A bogus prop value on an imported `.pui` component MUST be flagged
 // (TS2322 not-assignable), proving the import resolved to the real
-// svelte2tsx-projected $props() — not the loose `*.pui` wildcard ambient.
+// svelte2tsx-projected $props(), not the loose `*.pui` wildcard ambient.
 // Also asserts no phantom Svelte-global diagnostics (svelte2tsx shims).
 //
 // This chain has SIX stacked failure points (wildcard-ambient shadow /
 // svelte2tsx ambients / jsx unset / module-resolution precedence /
-// fileExists virtual / fromTsPath open-only) — each silently degrades to
+// fileExists virtual / fromTsPath open-only). Each silently degrades to
 // loose `any`. Hand-verification gave false "works" repeatedly; this is
 // the regression gate. Self-contained tmpdir fixture (real on-disk files,
-// real file:// URIs, its own tsconfig — mirrors a real Vite+Svelte
+// real file:// URIs, its own tsconfig, mirrors a real Vite+Svelte
 // project; the bug only reproduces cross-file + closed import).
 
 import { spawn } from "node:child_process";
@@ -146,8 +146,8 @@ const fail = (m: string) => {
       `phantom Svelte-global diagnostics leaked (svelte2tsx ambients missing): ${phantom.map(d => d.message).join(" | ")}`,
     );
   if (!propErr)
-    fail("bogus prop NOT flagged — `.pui` import resolved to loose ambient, NOT real $props() (#7 regressed)");
-  console.log(`PASS pui-import-inference: real cross-file prop type enforced — ${JSON.stringify(propErr.message)}`);
+    fail("bogus prop NOT flagged: `.pui` import resolved to loose ambient, NOT real $props() (#7 regressed)");
+  console.log(`PASS pui-import-inference: real cross-file prop type enforced: ${JSON.stringify(propErr.message)}`);
   proc.kill();
   process.exit(0);
 })();

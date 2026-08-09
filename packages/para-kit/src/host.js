@@ -1,17 +1,17 @@
-// @lyku/para-kit — the server-source host glue (plan §6 item 4 → step 5).
+// @lyku/para-kit: the server-source host glue (plan §6 item 4 → step 5).
 //
 // The manifest gives static declarations ({ name, declId, schema, params,
 // policy, run }); clients subscribe to CONCRETE subKeys (declId + the
 // current wire-param VALUES). This host lazily instantiates ONE
-// createServerSource per live subKey — the §4.4 shared-timer-per-subKey
+// createServerSource per live subKey. The §4.4 shared-timer-per-subKey
 // rule falls out: N clients on the same subKey share one instance, one
-// timer, one sequence stream — and exposes the SSR seed lookup the P9
+// timer, one sequence stream, and exposes the SSR seed lookup the P9
 // load path uses.
 
 import { createServerSource, subKey } from "@lyku/para-sync";
 
 /** Parse `declId:[...json params]` back into its parts. The separator is the
- *  FIRST `:[` — declIds are `path#name` and never contain `:[`. */
+ *  FIRST `:[`: declIds are `path#name` and never contain `:[`. */
 export function parseSubKey(key) {
   const i = key.indexOf(":[");
   if (i === -1) return undefined;
@@ -40,7 +40,7 @@ export function createServerSourceHost(sources, { transport, schemaVersion, onEr
 
   /**
    * Ensure the source behind a concrete subKey is running. Unknown keys
-   * (not a server source — e.g. a query-authority or keyed channel riding
+   * (not a server source, e.g. a query-authority or keyed channel riding
    * the same endpoint) resolve to undefined so the caller just passes them
    * through to the transport.
    * @param {string} key

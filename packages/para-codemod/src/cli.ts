@@ -1,4 +1,4 @@
-// C4a — `.svelte` → `.pui` migration driver.
+// C4a: `.svelte` → `.pui` migration driver.
 //
 // SAFETY: dry-run is the DEFAULT. `--write` is required to touch disk.
 // Even then, only files that `safeMigrate` *verifies compile* are
@@ -22,7 +22,7 @@ export interface MigrationOptions {
    * extensioned `import './Foo.svelte'` specifiers can be rewritten to
    * `'./Foo.pui'`. WITHOUT this a rename wave breaks the build (real:
    * si-bits has 527 extensioned .svelte imports). Only specifiers that
-   * resolve to a file migrated in THIS run are touched — conservative.
+   * resolve to a file migrated in THIS run are touched, conservative.
    */
   importRoots?: string[];
 }
@@ -79,7 +79,7 @@ export function runMigration(files: string[], opts: MigrationOptions, deps: Migr
       let n = 0;
       const next = txt.replace(specRe, (full, pre, spec, post) => {
         const target = resolvePath(dirname(imp), spec + ".svelte");
-        if (!migratedAbs.has(target)) return full; // unrelated .svelte import — leave
+        if (!migratedAbs.has(target)) return full; // unrelated .svelte import. Leave
         n++;
         return `${pre}${spec}.pui${post}`;
       });
@@ -90,7 +90,7 @@ export function runMigration(files: string[], opts: MigrationOptions, deps: Migr
     }
   }
 
-  // 3) apply renames (write .pui, remove .svelte) — only with --write.
+  // 3) apply renames (write .pui, remove .svelte), only with --write.
   if (opts.write) {
     for (const { from, to, code } of toRename) {
       writeFileSync(to, code);
@@ -168,7 +168,7 @@ export async function main(argv: string[]): Promise<number> {
       "usage: para-codemod <path…> [--write] [--import-roots=<dir,dir>]\n" +
         "  dry-run unless --write. --import-roots: dirs whose extensioned\n" +
         "  `import './X.svelte'` specifiers are rewritten to `.pui` for\n" +
-        "  files migrated this run (REQUIRED for a real rename wave —\n" +
+        "  files migrated this run (REQUIRED for a real rename wave:\n" +
         "  otherwise the build breaks on stale .svelte imports).",
     );
     return 2;
@@ -181,7 +181,7 @@ export async function main(argv: string[]): Promise<number> {
   const files = listSvelte(paths);
   const sum = runMigration(files, { write, importRoots }, { compile, lower: lowerPuiReactivity });
   const tx = sum.migrated.length + sum.skipped.length;
-  console.log(`${write ? "MIGRATED" : "DRY-RUN (no --write)"} — ${files.length} .svelte scanned`);
+  console.log(`${write ? "MIGRATED" : "DRY-RUN (no --write)"}: ${files.length} .svelte scanned`);
   console.log(`  ✓ ${write ? "migrated" : "would migrate"} (verified-compile): ${sum.migrated.length}`);
   console.log(`  ↷ skipped (would regress → left as .svelte): ${sum.skipped.length}`);
   console.log(`  · no-op (nothing to transform): ${sum.noop.length}`);

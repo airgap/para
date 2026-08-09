@@ -8,7 +8,7 @@
 //   when not EXPR { BODY }          → require("@lyku/para-signals").when(() => !(EXPR), () => { BODY });
 //
 // Bare-read sugar (rewriting `count` to `count.get()` inside tracked
-// contexts) is NOT applied here — it requires real scope analysis and
+// contexts) is NOT applied here: it requires real scope analysis and
 // lands in v0.2. Until then user code must call `.get()` / `.set()`
 // explicitly. Auto-promotion of `signal x = EXPR` to `derived(...)` when
 // EXPR reads other signals is also v0.2-territory.
@@ -35,7 +35,7 @@ export function transformBlocks(src: string): string {
 
 function transformSignalDecls(src: string): string {
   // Scan on the FULL source (not per code region) because a single
-  // `signal x = …` initializer can contain string literals — splitting
+  // `signal x = …` initializer can contain string literals, splitting
   // by region first breaks the brace-depth scan halfway through. Instead
   // we use the spans only to (a) skip matches whose `signal` keyword is
   // inside a string/comment, and (b) advance over non-code regions during
@@ -86,12 +86,12 @@ function transformSignalDecls(src: string): string {
 // Mirrors `signal NAME = EXPR` exactly, but always wraps the RHS in an
 // arrow and routes through `derived(() => EXPR)` instead of `signal(EXPR)`.
 // Bare-read rewriting of signal references inside EXPR is handled by the
-// existing bare-read pass — it walks `signals.derived(...)` initializers
+// existing bare-read pass: it walks `signals.derived(...)` initializers
 // the same as `signals.signal(...)` ones.
 //
 // If EXPR doesn't read any signals, the result is a derived that never
 // re-fires. Mirroring how `signal NAME = LITERAL` doesn't error, we don't
-// error here either — the user is explicit about wanting a derived.
+// error here either: the user is explicit about wanting a derived.
 // ─────────────────────────────────────────────────────────────────────────
 
 // End (exclusive) of a `derived NAME =` initializer expression. Mirrors
@@ -101,7 +101,7 @@ function transformSignalDecls(src: string): string {
 // a depth-0 `}` (enclosing block close), or EOF. Skips string / template
 // / comment / regex spans so a `;` or newline inside one doesn't end it.
 // MUST stay byte-identical to the copy in @lyku/para-preprocess
-// (index.ts) — the two are parity mirrors of the same parser.
+// (index.ts): the two are parity mirrors of the same parser.
 function derivedInitEnd(src: string, start: number): number {
   const contPrev = (c: string) => c !== "" && "+-*/%&|^<>=!~?:.,([{".includes(c);
   const contNext = (c: string) => c !== "" && "?:.,)]}+-*/%&|^<>=!([".includes(c);
@@ -246,11 +246,11 @@ function transformDerivedDecls(src: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// effect { BODY } and arena { BODY } — both are keyword + block,
+// effect { BODY } and arena { BODY }: both are keyword + block,
 // shared shape.
 // ─────────────────────────────────────────────────────────────────────────
 
-// `effect EXPR;` → `require("@lyku/para-signals").effect(() => EXPR)` — an
+// `effect EXPR;` → `require("@lyku/para-signals").effect(() => EXPR)`, an
 // EXPRESSION-bodied arrow, NOT a block. This preserves the implicit
 // return so an effect whose expression yields a teardown
 // (`effect useKeybind(...)`) registers it as the effect's cleanup, just
@@ -258,7 +258,7 @@ function transformDerivedDecls(src: string): string {
 // `derived(() => EXPR)` precedent; the block form `effect { … }` stays
 // statement-bodied (explicit `return cleanup`). Disambiguation matches
 // the parser: `effect` is the keyword only at statement position, same
-// line, followed by an identifier — `effect(` `effect.` `effect[`
+// line, followed by an identifier: `effect(` `effect.` `effect[`
 // `effect=` `effect;` and labels keep `effect` as a plain identifier
 // (lookahead requires [A-Za-z_$]). The scanner (derivedInitEnd) MUST
 // stay byte-identical to the copy in @lyku/para-preprocess (index.ts);
@@ -307,7 +307,7 @@ function rewriteKeywordBlocks(src: string, keyword: string, wrap: (body: string)
     // Position of the `{` is m.index + (full match length) - 1
     const openBrace = re.lastIndex - 1;
     const closeBrace = findMatchingBrace(src, openBrace);
-    if (closeBrace === -1) continue; // unmatched — leave source alone
+    if (closeBrace === -1) continue; // unmatched, leave source alone
     const body = src.slice(openBrace + 1, closeBrace);
     out += src.slice(last, blockStart);
     out += wrap(body);
@@ -340,7 +340,7 @@ function transformWhenBlocks(src: string): string {
     // Parse predicate + body.
     const result = parseWhenStatement(src, wp.kwPos);
     if (!result) {
-      // Couldn't parse — emit the keyword unchanged and continue.
+      // Couldn't parse: emit the keyword unchanged and continue.
       out += src.slice(wp.kwPos, wp.kwPos + 4);
       i = wp.kwPos + 4;
       continue;
@@ -384,7 +384,7 @@ function findNextWhenStart(src: string, from: number): { start: number; kwPos: n
     if (prev < 0 || prevChar === ";" || prevChar === "{" || prevChar === "}" || prevChar === "\n") {
       return { start: prev + 1, kwPos: whenPos };
     }
-    // Not at a boundary — `when` is mid-expression (or part of a longer
+    // Not at a boundary: `when` is mid-expression (or part of a longer
     // identifier the `\b` happened to allow through). Skip past it.
     pos = whenPos + 4;
   }

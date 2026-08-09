@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// para-extract CLI — substitute `ts<import('./x').T>` directives in .pts
+// para-extract CLI: substitute `ts<import('./x').T>` directives in .pts
 // files with extracted schema bodies (committed-artifact flow, mirroring
 // scripts/codegen.ts):
 //
@@ -28,7 +28,7 @@ for (const file of files) {
     continue;
   }
   if (check) {
-    console.error(`✗ ${file} is stale — run \`bun para-extract ${file}\``);
+    console.error(`✗ ${file} is stale: run \`bun para-extract ${file}\``);
     stale++;
   } else {
     writeFileSync(path, code);

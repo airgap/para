@@ -1,5 +1,5 @@
 /**
- * pui2tsx — transform a `.pui` (Para UI) component into typed TSX.
+ * pui2tsx: transform a `.pui` (Para UI) component into typed TSX.
  *
  * Pipeline:
  *   1. Find every <script> block (instance + module).
@@ -14,7 +14,7 @@
  * Used by parabun-ts-plugin (import-site types) and, later, parabun-lsp
  * (in-file type intelligence). svelte2tsx only inspects component syntax
  * to derive the type surface, so plain npm `svelte` is sufficient for the
- * parse — the @lyku/para-ui runtime fork doesn't alter type shapes.
+ * parse: the @lyku/para-ui runtime fork doesn't alter type shapes.
  */
 
 import { svelte2tsx } from "svelte2tsx";

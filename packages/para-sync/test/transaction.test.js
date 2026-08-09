@@ -5,7 +5,7 @@ const anySchema = { parse: (value) => ({ tag: "Ok", value }) };
 const env = (sequence, value, schema_version = "1.0") => ({ value, schema_version, sequence });
 const seeded = (value) => createClientReplica({ key: "e", schema: anySchema, transport: new InProcessTransport(), seed: env(1, value) });
 
-describe("createTransaction — atomic multi-key intents (§13.6)", () => {
+describe("createTransaction: atomic multi-key intents (§13.6)", () => {
   const moveItem = (rA, rB, send) =>
     createTransaction({
       groupOpId: "g1",

@@ -2,7 +2,7 @@
   "name": "@lyku/para-arena",
   "version": "0.0.0-dev",
   "private": true,
-  "description": "Buffer-pool helpers (Pool) and a no-op scope() that exists so .pts code using `arena { … }` blocks compiles cleanly. Browsers don't expose GC control, so scope() is a passthrough; Pool is a real typed-array free-list. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "description": "Buffer-pool helpers (Pool) and a no-op scope() that exists so .pts code using `arena { … }` blocks compiles cleanly. Browsers don't expose GC control, so scope() is a passthrough; Pool is a real typed-array free-list. NOT YET RELEASED: private:true / 0.0.0-dev pending the workspace split.",
   "type": "module",
   "main": "./src/index.js",
   "module": "./src/index.js",

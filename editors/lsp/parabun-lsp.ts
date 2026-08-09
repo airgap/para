@@ -17,7 +17,7 @@
 // Dual-mode: same file runs as the LSP main process OR as the tsc helper
 // subprocess (depending on the `--tsc-helper` flag). The helper offloads
 // `getSemanticDiagnostics` to a separate process so the main LSP's
-// event loop stays responsive — hover, completions, parabun fast-pass
+// event loop stays responsive: hover, completions, parabun fast-pass
 // diagnostics all keep working while tsc is mid-validate. Cancellation
 // is "implicit by versioning": the main process discards any helper
 // response whose document version no longer matches the latest content.
@@ -140,7 +140,7 @@ function transformLine(line: string): string {
   return line;
 }
 
-// `(req:: User)` → `(req:  User)` — second `:` becomes a space, column-preserving.
+// `(req:: User)` → `(req:  User)`. Second `:` becomes a space, column-preserving.
 function stripValidationMarker(line: string): string {
   return line.replace(/(:):/g, "$1 ");
 }
@@ -170,7 +170,7 @@ function injectIsHelpers(source: string): string {
 }
 
 // Single-line `schema X from <expr>` and single-line `schema X = <expr>`
-// (where `<expr>` is NOT an open-brace literal — `transformSchemaEqualsBlock`
+// (where `<expr>` is NOT an open-brace literal: `transformSchemaEqualsBlock`
 // already handled `schema X = { ... }` at whole-source scope). Both
 // wrap the rhs in `__paraFromSchema(() => (<expr>))` so tsc sees the
 // typed result with `.parse` / `.is` / `.schema` resolved.
@@ -194,7 +194,7 @@ function transformModelFromLine(line: string): string {
 // Emit a TS type alias so a `schema X` declaration is usable in BOTH
 // value AND type position: `satisfies PostgresTableModel<X>` works
 // without `typeof X`. The alias resolves to `(typeof X)["schema"]`
-// — the UNWRAPPED JSON Schema body literal — rather than the full
+// (the UNWRAPPED JSON Schema body literal) rather than the full
 // `__paraFromSchema` helper return (`{schema, parse, is} & S`).
 // Measured on lyku's sharedDrafts.pts: unwrapped form makes tsc
 // ~2x faster cold (18.8s → 9.7s) and 1.5-2.2x faster on warm edits
@@ -264,7 +264,7 @@ function transformSchemaEqualsBlock(source: string): string {
 
 // Prepend an ambient declaration of `__paraFromSchema` to the source
 // when any of the schema transforms emitted a call. The return type is
-// the JSON Schema literal `S` plus runtime decoration — `.parse` /
+// the JSON Schema literal `S` plus runtime decoration: `.parse` /
 // `.is` / `.schema` / field-accessors all resolve at the call site
 // without per-file `.d.ts` shims. Wide `S` (no `<const>` type
 // parameter) so we don't compound tsc's literal-inference memory
@@ -347,7 +347,7 @@ function injectSchemaHelper(source: string): string {
 
 // Inline `schema { ... }` expression → `__paraFromSchema(() => ({ ... }))`.
 // Wrapping in the typed helper (declared by `injectSchemaHelper`) means
-// tsc sees the expression's type as `SchemaShape & body` — `.parse` /
+// tsc sees the expression's type as `SchemaShape & body`: `.parse` /
 // `.is` / `.schema` / field-accessors resolve at the call site without
 // per-file `.d.ts` shims. Brace-balanced; strings/comments skipped so a
 // `}` inside a literal can't close the body early.
@@ -358,7 +358,7 @@ function transformInlineSchemaExpr(source: string): string {
   let match: RegExpExecArray | null;
   let lastEnd = 0;
   while ((match = re.exec(source)) !== null) {
-    // Skip if inside a comment / string — quick & dirty: walk from the
+    // Skip if inside a comment / string. Quick & dirty: walk from the
     // start of the line and check whether the match offset is inside a
     // recognized comment/string region. Cheaper than a full scanner and
     // good enough for the LSP rewrite.
@@ -406,7 +406,7 @@ function transformInlineSchemaExpr(source: string): string {
 }
 
 // Quick check for "is offset N inside a single/double/backtick string
-// or a //- or /*-comment" — by walking from the start of the source.
+// or a //- or /*-comment", by walking from the start of the source.
 // Linear in offset, but the LSP only invokes this per regex match so
 // total work is bounded by the source length.
 function isInsideStringOrComment(source: string, offset: number): boolean {
@@ -442,7 +442,7 @@ function isInsideStringOrComment(source: string, offset: number): boolean {
 }
 
 // `schema X { ... }` (multi-line) → `const X: { parse, schema } = { ... }`.
-// We don't try to mirror the field shape — the LSP just needs the binding
+// We don't try to mirror the field shape. The LSP just needs the binding
 // to exist so go-to-def, hover, and member completions on `X.parse` /
 // `X.schema` work. The runtime owns the actual codegen. Also emits a
 // `type X = { ... }` alias so `if (v is X)` can narrow via the typed
@@ -452,7 +452,7 @@ function isInsideStringOrComment(source: string, offset: number): boolean {
 // only TYPE FRAGMENTS that are Para-specific (refinements `int(0..150)`,
 // array+bounds `[str](1..=10)`, lowercase aliases `int`/`str`/`bool`/`float`)
 // are rewritten to plain TS. Plain TS field types (`number`/`string`/etc.,
-// capitalized model refs) pass through verbatim — preserving hover
+// capitalized model refs) pass through verbatim, preserving hover
 // positions inside the body for the common pg-models case.
 function transformModelDeclBlock(source: string): string {
   return source.replace(
@@ -548,7 +548,7 @@ function paraBaseTypeToTsLsp(t: string): string {
 // a typed expression. String/comment content is masked first so `match`
 // inside string literals (e.g. an English description containing the
 // word) doesn't trigger a spurious IIFE rewrite. Match-body close is
-// found by depth-balanced scan from the opening `{` — the older regex
+// found by depth-balanced scan from the opening `{`. The older regex
 // (`[\s\S]*?\n\s*\}`) couldn't terminate a single-line `match e { ... }`
 // and swallowed the enclosing function's closing brace, which made
 // downstream tsc parse past EOF.
@@ -701,7 +701,7 @@ function transformRbind(line: string): string {
 }
 
 // `A -> fn` → `A , fn` (column-preserving: both `->` and `, ` are 2 chars).
-// TS sees a comma expression between two references — enough for identifier
+// TS sees a comma expression between two references, enough for identifier
 // resolution, hover, and go-to-def on both sides. Negative lookbehind keeps
 // `-->` (post-decrement followed by `>`), `=>` (arrow), and `<-` from
 // matching.
@@ -711,7 +711,7 @@ function transformCallBind(line: string): string {
 
 // `signal NAME = RHS` → `let    NAME = RHS`. The `signal` keyword is replaced
 // with `let   ` (3 chars + 3 spaces = 6, matching `signal`'s 6 chars) so every
-// column after the keyword stays at its original position — hover, go-to-def,
+// column after the keyword stays at its original position. Hover, go-to-def,
 // and diagnostic ranges all still map 1:1. `let` rather than `const` because
 // Parabun rewrites `NAME = x` / `NAME++` to `.set()` calls at parse time, so
 // those mutations must not trip TS's const-reassignment check.
@@ -719,19 +719,19 @@ function transformSignal(line: string): string {
   return line.replace(/\b(signal)\b(?=\s+[A-Za-z_$][\w$]*\s*[=,;:!])/g, "let   ");
 }
 
-// `effect { body }` → `      { body }` — six spaces replace `effect`, leaving
+// `effect { body }` → `      { body }`. Six spaces replace `effect`, leaving
 // a bare block statement that TypeScript accepts. Column positions inside
 // the body are unchanged. Only triggers when `effect` is immediately before
-// `{` (same line) — other uses of `effect` as an identifier are untouched.
+// `{` (same line). Other uses of `effect` as an identifier are untouched.
 // Blank `effect` (6 → six spaces, column-preserving) in BOTH forms:
 // block `effect {` and single-statement `effect EXPR;`. Same
-// disambiguation as the parser/grammar — `effect(` `effect.` `effect[`
+// disambiguation as the parser/grammar: `effect(` `effect.` `effect[`
 // `effect=` `effect:` `effect;` keep `effect` as a plain identifier.
 function transformEffect(line: string): string {
   return line.replace(/\b(effect)\b(?=\s*\{|\s+[A-Za-z_$])/g, "      ");
 }
 
-// `prop NAME …` → `let  NAME …` — `prop` (4) ↔ `let ` (4), column-preserving.
+// `prop NAME …` → `let  NAME …`: `prop` (4) ↔ `let ` (4), column-preserving.
 // One `prop` may declare several comma-separated declarators
 // (`prop a: T = '', b = 3`); `let` accepts that declarator list verbatim,
 // so the fast-pass parser is satisfied without re-implementing the merge
@@ -740,16 +740,16 @@ function transformProp(line: string): string {
   return line.replace(/\b(prop)\b(?=\s+[A-Za-z_$])/g, "let ");
 }
 
-// Single-line `derived NAME = EXPR` → `let     NAME = EXPR` — `derived` (7)
+// Single-line `derived NAME = EXPR` → `let     NAME = EXPR`: `derived` (7)
 // ↔ `let    ` (7), mirroring transformSignal. The lookahead's `[=,;:!]`
 // excludes the block form `derived NAME { … }` (brace, not in the class),
-// which the fast-pass parser still can't parse — tracked as drift debt
+// which the fast-pass parser still can't parse, tracked as drift debt
 // alongside the structural unification (see LYK ticket).
 function transformDerivedDecl(line: string): string {
   return line.replace(/\b(derived)\b(?=\s+[A-Za-z_$][\w$]*\s*[=,;:!])/g, "let    ");
 }
 
-// `arena { body }` → `     { body }` — five spaces replace `arena`, same
+// `arena { body }` → `     { body }`. Five spaces replace `arena`, same
 // column-preserving trick as transformEffect.
 function transformArena(line: string): string {
   return line.replace(/\b(arena)\b(?=\s*\{)/g, "     ");
@@ -762,7 +762,7 @@ function transformArena(line: string): string {
 function transformParallel(line: string): string {
   // Statement form: keep `let|const` so TS still sees a declaration.
   line = line.replace(/\b(parallel|para)(\s+)(?=let|const)/g, (_m, kw, space) => " ".repeat(kw.length) + space);
-  // Expression form: hand TS a bare `{ … }` — fine in expression position.
+  // Expression form: hand TS a bare `{ … }`, fine in expression position.
   line = line.replace(/\b(parallel|para)\b(?=\s*\{)/g, (_m, kw) => " ".repeat(kw.length));
   return line;
 }
@@ -774,12 +774,12 @@ function transformParallel(line: string): string {
 // Column-preserving rewrites that give TS a normal `if`/`else` shape so the
 // embedded TypeScript checker doesn't choke on the surface syntax. The paired
 // `when not { … }` lands as `else { … }` so it attaches to the preceding
-// transformed `if` — readers still get sensible hover / TS diagnostics. The
+// transformed `if`. Readers still get sensible hover / TS diagnostics. The
 // actual desugar is owned by the parser (→ require("@lyku/para-signals").when(...)
 // with the predicate negated for the `not` form); this transform is a TS-side
 // shim only.
 function transformWhenBlock(line: string): string {
-  // Bare paired form first — `when not` followed directly by `{` (no
+  // Bare paired form first: `when not` followed directly by `{` (no
   // predicate). 8 chars `when not` ↔ 8 chars `else    `, brace column held.
   line = line.replace(/\bwhen\s+not(\s*\{)/g, (_m, brace) => `else    ${brace}`);
   // Negated form with predicate.
@@ -802,11 +802,11 @@ function stripPure(line: string): string {
 
 // Statement form: `memo name(` → `function name(` and `memo async name(` →
 // `async function name(`. TS needs a real `function` keyword to parse the
-// declaration. This shifts the declaration line's columns right by 4 — hover
+// declaration. This shifts the declaration line's columns right by 4. Hover
 // on the body (different lines) is unaffected.
 //
 // Arrow/expression form: `memo (...) =>`, `memo x =>`, `memo async ...`, and
-// `memo <T>(...)` — `memo` is replaced by 4 spaces so TS just sees the bare
+// `memo <T>(...)`: `memo` is replaced by 4 spaces so TS just sees the bare
 // arrow. Column-preserving, so hover/go-to-def lands on the right span.
 function stripMemo(line: string): string {
   line = line.replace(
@@ -926,7 +926,7 @@ const docVersions = new Map<string, number>();
 //
 // When a .svelte file is opened we extract `<script lang="pts|parabun|pjs|
 // ptsx|pjsx">` regions and replace everything else (HTML/template/CSS) with
-// blank-but-line-preserving padding — characters become spaces, newlines stay.
+// blank-but-line-preserving padding. Characters become spaces, newlines stay.
 // The resulting synthetic source has the same line/column shape as the
 // original .svelte, so diagnostics generated against it land on the correct
 // file positions with zero coordinate math.
@@ -935,7 +935,7 @@ const docVersions = new Map<string, number>();
 // pick TS vs TSX. The TS service sees the synthetic source under a virtual
 // `<file>.svelte.ts` (or .tsx) path.
 
-// JSX flavors (ptsx/pjsx) are intentionally omitted — Svelte's template
+// JSX flavors (ptsx/pjsx) are intentionally omitted. Svelte's template
 // language IS its JSX-equivalent; the `<script>` block holds logic, not
 // markup, so a JSX-flavored script in a .svelte file would be confusing
 // even if technically parseable. React-flavored parabun goes in .ptsx/.pjsx
@@ -1033,7 +1033,7 @@ function extractParabunScripts(svelteText: string, isPui: boolean): SvelteScript
 }
 
 // Length-preserving blank of everything OUTSIDE parabun <script> bodies
-// (markup, style, non-parabun scripts) — newlines kept so line/column
+// (markup, style, non-parabun scripts). Newlines kept so line/column
 // offsets into the result equal those into the original. Used by the
 // fast undefined-identifier scan for `.pui` so it only sees real script
 // code. If there is no parabun script, the whole thing blanks.
@@ -1095,7 +1095,7 @@ function ingestDocumentText(uri: string, text: string): string | undefined {
     // No closed parabun-flavored blocks. We still claim the URI if:
     //   - It's `.pui` (extension is the marker; emit template-level
     //     diagnostics even when there's no script content).
-    //   - It's `.svelte` with an *unclosed* parabun-flavored `<script>` —
+    //   - It's `.svelte` with an *unclosed* parabun-flavored `<script>`,
     //     so the user sees a "missing </script>" diagnostic from the
     //     fast pass rather than silent failure.
     const wellFormednessIssues = findTemplateWellFormednessIssues(text, isPui);
@@ -1176,7 +1176,7 @@ function extractStyleBlocks(svelteText: string): StyleBlock[] {
     const langRaw = (langMatch?.[1] ?? langMatch?.[2] ?? langMatch?.[3] ?? "css").toLowerCase();
     // css/scss/less validated by vscode-css-languageservice; sass (indented)
     // routed through dart-sass since the css service can't parse indented
-    // syntax. postcss and stylus would need separate parsers — skip them
+    // syntax. postcss and stylus would need separate parsers. Skip them
     // rather than misclassify as CSS and emit spurious diagnostics.
     let lang: StyleLang;
     if (langRaw === "scss") lang = "scss";
@@ -1193,7 +1193,7 @@ function extractStyleBlocks(svelteText: string): StyleBlock[] {
 }
 
 // Lazy-cached singleton services. `vscode-css-languageservice` services
-// are stateless across documents — same instance can validate any number
+// are stateless across documents. Same instance can validate any number
 // of style blocks.
 let cssLsp: any | undefined;
 let cssService: any | undefined;
@@ -1292,7 +1292,7 @@ function getSassModule(): any | undefined {
  * `@forward` first (replace with spaces, line-preserving) so isolated style
  * blocks don't blow up trying to resolve workspace stylesheets. Sass throws
  * on the first error rather than collecting all, so we emit one diagnostic
- * per parse attempt — acceptable v1.
+ * per parse attempt, acceptable v1.
  */
 function validateSass(
   content: string,
@@ -1506,14 +1506,14 @@ function initTypeScriptService() {
   if (!workspaceRoot) return;
 
   // Search order:
-  //   1. workspace root — pick up the user's pinned typescript so .pts
+  //   1. workspace root: pick up the user's pinned typescript so .pts
   //      files in their project see the same lib & strictness they
   //      configured for tsc.
-  //   2. directory containing this LSP script — when the VS Code
+  //   2. directory containing this LSP script: when the VS Code
   //      extension bundles a typescript copy, it lives here. Without
   //      this fallback, users whose workspace has no typescript dep
   //      saw "type features disabled" and zero diagnostics.
-  //   3. plain `require("typescript")` — global / parent-of-cwd
+  //   3. plain `require("typescript")`: global / parent-of-cwd
   //      resolutions, last-resort.
   const nodePath = require("path");
   const lspDir = nodePath.dirname(__filename);
@@ -1530,7 +1530,7 @@ function initTypeScriptService() {
     } catch {
       logMessage(
         2,
-        "[parabun-lsp] TypeScript not found — type features disabled. Install typescript in your workspace.",
+        "[parabun-lsp] TypeScript not found. Type features disabled. Install typescript in your workspace.",
       );
       return;
     }
@@ -1551,7 +1551,7 @@ function initTypeScriptService() {
   };
 
   // Per-file project resolution. The previous code resolved ONE tsconfig
-  // from the workspace root — wrong in a monorepo: a `.pui`/.svelte in
+  // from the workspace root, wrong in a monorepo: a `.pui`/.svelte in
   // apps/webui needs apps/webui/tsconfig.json (extends
   // .svelte-kit/tsconfig.json → $app/$lib/$env/$types paths, the @lyku/*
   // paths, svelte-shims, vite/client). It also discarded the tsconfig's
@@ -1591,7 +1591,7 @@ function initTypeScriptService() {
     if (cfg) {
       const f = ts!.readConfigFile(cfg, ts!.sys.readFile);
       if (!f.error) {
-        // 5th arg (configFileName) is REQUIRED so `extends` resolves —
+        // 5th arg (configFileName) is REQUIRED so `extends` resolves:
         // apps/webui/tsconfig.json extends ./.svelte-kit/tsconfig.json,
         // which is where $app/$lib/$env/$types paths live.
         const parsed = ts!.parseJsonConfigFileContent(f.config, ts!.sys, nodePath.dirname(cfg), undefined, cfg);
@@ -1653,7 +1653,7 @@ function initTypeScriptService() {
           // (`declare module "*.pui"`) INSIDE the LSP's own program. That
           // shim exists for non-LSP consumers (plain tsc / svelte-check),
           // but a wildcard ambient shadows host-resolved per-file modules in
-          // the checker — so with it loaded, `import X from './X.pui'`
+          // the checker, so with it loaded, `import X from './X.pui'`
           // resolves to the loose `Component<Record<string,any>>` instead of
           // the real svelte2tsx-projected $props() (verified: .pui7-probe).
           // The LSP owns real per-file `.pui` types via
@@ -1668,12 +1668,12 @@ function initTypeScriptService() {
       const realPath = fromTsPath(fileName);
       const uri = pathToUri(realPath);
       // `.pui` (Slice B): serve full svelte2tsx output so the TS service
-      // sees real component/prop/template types — not the blank-padded
+      // sees real component/prop/template types, not the blank-padded
       // script-only synthetic. Raw markup lives in svelteRawTexts.
       if (isPuiUri(uri)) {
         // Open docs keep raw in svelteRawTexts; a CLOSED `.pui` reached
         // here only via an `import X from './X.pui'` (resolved by
-        // resolveModuleNameLiterals) — read+project it from disk too, or
+        // resolveModuleNameLiterals). Read+project it from disk too, or
         // the importer falls back to the loose `*.pui` ambient and loses
         // real $props() types.
         let raw = svelteRawTexts.get(uri);
@@ -1725,7 +1725,7 @@ function initTypeScriptService() {
       // Virtual component paths: `<x>.pui.tsx` / `<x>.svelte.{ts,tsx,js}`
       // are served by getScriptSnapshot (projection) but have no real
       // file. resolveModuleNameLiterals resolves `./X.pui` to
-      // `X.pui.tsx`; TS then validates it via fileExists — which MUST
+      // `X.pui.tsx`; TS then validates it via fileExists, which MUST
       // say true or the import dies TS2307 even though resolution
       // succeeded (verified: .pui7-probe). Recognize them via the
       // existing fromTsPath inverse.
@@ -1765,15 +1765,15 @@ function initTypeScriptService() {
       };
       return moduleLiterals.map(literal => {
         const name = literal.text;
-        // `import X from './X.pui'` — a RELATIVE `.pui` is unambiguously
+        // `import X from './X.pui'`. A RELATIVE `.pui` is unambiguously
         // the sibling file, never a module. It MUST resolve to the
         // projected virtual `.pui.tsx` (served by getScriptSnapshot via
         // svelte2tsx) so importers get the REAL $props() types. Do this
         // BEFORE consulting standard resolution: the program carries a
         // wildcard `declare module "*.pui"` ambient (shipped by
         // @lyku/para-preprocess/pui), and ts.resolveModuleName resolves
-        // the relative specifier to THAT ambient — a truthy resolvedModule
-        // — so a `!res.resolvedModule` guard never fires and the loose
+        // the relative specifier to THAT ambient (a truthy resolvedModule)
+        // so a `!res.resolvedModule` guard never fires and the loose
         // `Component<Record<string,any>>` wins (verified: .pui7-probe).
         // The concrete sibling file must beat the wildcard. Relative only;
         // bare/aliased `.pui` falls through to paths/baseUrl.
@@ -1894,7 +1894,7 @@ function mapPositionFromTransformed(
 }
 
 // ---------------------------------------------------------------------------
-// Validation — combined Bun transpiler + TypeScript diagnostics
+// Validation: combined Bun transpiler + TypeScript diagnostics
 // ---------------------------------------------------------------------------
 
 // Debounce + staleness guard. A full validate (transpile + tsc
@@ -1908,17 +1908,17 @@ function mapPositionFromTransformed(
 // Fix: coalesce didChange events per-URI via a setTimeout window
 // (cancelling the prior timer on each edit) so only the latest
 // content gets validated. Inside validate, capture the document
-// version at entry and recheck before publishing — if the user typed
+// version at entry and recheck before publishing. If the user typed
 // again while tsc was working, we skip the publish so stale
 // diagnostics for an old version don't overwrite the latest editor
 // state.
-// Fast pass (parabun-syntax) fires after a short idle window — long
+// Fast pass (parabun-syntax) fires after a short idle window, long
 // enough to coalesce a typing burst, short enough that error feedback
 // feels live. Slow pass (tsc semantic) waits longer because the
 // per-edit tsc cost on @lyku-sized workspaces is 0.5-1 s warm; firing
 // it every 250 ms while typing burns CPU for no benefit. The slow pass
 // runs in a subprocess so the LSP main loop stays responsive
-// regardless of how long tsc takes — hover, completions, parabun
+// regardless of how long tsc takes. Hover, completions, parabun
 // diagnostics all keep working during the validate.
 const FAST_DEBOUNCE_MS = 250;
 const SLOW_DEBOUNCE_MS = 1500;
@@ -1949,7 +1949,7 @@ function scheduleValidate(uri: string) {
   slowTimers.set(uri, slow);
 }
 
-// Fast pass — Bun transpiler parse errors + all parabun-specific regex
+// Fast pass: Bun transpiler parse errors + all parabun-specific regex
 // validators. Runs in the main LSP process, synchronously, on every
 // debounced didChange. Publishes a `fast-only` diagnostic set
 // immediately. The slow pass (tsc) arrives later via the helper
@@ -2048,7 +2048,7 @@ function handleHelperReply(msg: any): void {
     version: number;
     diagnostics: LspDiagnostic[];
   };
-  // Staleness guard — discard tsc results for any version that's no
+  // Staleness guard: discard tsc results for any version that's no
   // longer the latest content. The fast pass already published for
   // the current version; ignoring stale tsc just means we wait for
   // the next debounced slow pass to fire on the latest content.
@@ -2061,7 +2061,7 @@ function requestTscDiagnostics(uri: string, content: string, version: number): v
   ensureTscHelper();
   const lang = svelteLangs.get(uri);
   // The helper subprocess type-checks `.pui` via the svelte2tsx
-  // projection, which needs the RAW .pui text (svelteRawTexts) — the
+  // projection, which needs the RAW .pui text (svelteRawTexts). The
   // `content` we send is the blank-padded synthetic. Without `raw` the
   // helper's computeTsDiagnostics short-circuits to [] for every .pui
   // (LYK-912: all .pui type errors were invisible).
@@ -2080,14 +2080,14 @@ function computeFastDiagnostics(uri: string, content: string): LspDiagnostic[] {
 
   // Bun transpiler diagnostics (Parabun parse errors). The Bun
   // AggregateError attaches each individual parse failure to `e.errors`
-  // — we iterate that and emit one diagnostic per error with the
+  // We iterate that and emit one diagnostic per error with the
   // attached `position` so squiggles land on the offending tokens
   // instead of all bunched at line 0.
   // For `.pui`, parse the SINGLE-SOURCE projection (pui-transform /
-  // svelte2tsx — the exact lowering the slow tsc pass uses) instead of
+  // svelte2tsx: the exact lowering the slow tsc pass uses) instead of
   // the legacy transformParabunToTS shim. That shim is a hand-maintained
   // parallel keyword-lowerer that drifts (it lacked mount/prop/derived;
-  // block-`derived NAME { … }` still can't be column-shimmed) — LYK-911.
+  // block-`derived NAME { … }` still can't be column-shimmed). LYK-911.
   // Map parse-error positions back to the raw .pui via the sourcemap,
   // mirroring computeTsDiagnostics' `.pui` block. Fall back to the legacy
   // path only when the projection is unavailable (e.g. svelte2tsx throws
@@ -2122,7 +2122,7 @@ function computeFastDiagnostics(uri: string, content: string): LspDiagnostic[] {
       const len = pos?.length ?? 1;
       if (toOrig && pos) {
         const o = toOrig(line, col);
-        if (!o) continue; // generated-only svelte2tsx scaffolding — not user code
+        if (!o) continue; // generated-only svelte2tsx scaffolding, not user code
         line = o.line;
         col = o.character;
       }
@@ -2145,7 +2145,7 @@ function computeFastDiagnostics(uri: string, content: string): LspDiagnostic[] {
   diagnostics.push(...findModelBodyDiagnostics(content));
   diagnostics.push(...findUnknownIdentifierDiagnostics(content, uri));
 
-  // Template-level well-formedness — scan the original .svelte/.pui
+  // Template-level well-formedness: scan the original .svelte/.pui
   // markup (kept in svelteRawTexts) rather than the blank-padded synthetic
   // the parabun parser sees.
   if (isComponentUri(uri)) {
@@ -2177,7 +2177,7 @@ function computeTsDiagnostics(uri: string, content: string): LspDiagnostic[] {
 
   // `.pui` (Slice B): diagnostics are over svelte2tsx output; map each
   // back to the raw .pui via the sourcemap. Generated positions with no
-  // original mapping are svelte2tsx scaffolding (not user code) — drop
+  // original mapping are svelte2tsx scaffolding (not user code). Drop
   // them rather than squiggle at (0,0).
   if (isPuiUri(uri)) {
     const raw = svelteRawTexts.get(uri);
@@ -2188,7 +2188,7 @@ function computeTsDiagnostics(uri: string, content: string): LspDiagnostic[] {
       for (const diag of all) {
         if (diag.start === undefined || diag.length === undefined) continue;
         const dm = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
-        // Drop projection scaffolding — never user code. Three classes:
+        // Drop projection scaffolding, never user code. Three classes:
         //  • bridge-lowering internals (`__sig_*`, `__v`);
         //  • svelte2tsx machinery (`svelteHTML`, `__sveltets_*`, the
         //    `///<reference types="svelte" />`);
@@ -2290,7 +2290,7 @@ function analyzeForMemo(fnName: string, params: string[], rawBody: string, allPu
   const arity1 = params.length === 1;
   const arity0 = params.length === 0;
 
-  // Body is "trivial" when it does none of the work-suggesting things — no
+  // Body is "trivial" when it does none of the work-suggesting things: no
   // loop, no self-recursion, and no call to another declared-pure function.
   // The work is then O(1) arithmetic, so memo overhead tends to exceed it
   // even for multi-line bodies (e.g. `arcradius` with 4 args and a handful
@@ -2338,13 +2338,13 @@ function findMemoHints(uri: string, content: string): LspDiagnostic[] {
         },
         severity: 4,
         source: "parabun",
-        message: `Could be \`memo\` — body has ${pro} memo-friendly signals (recursion / loop / pure-fn call / single primitive arg)`,
+        message: `Could be \`memo\`. Body has ${pro} memo-friendly signals (recursion / loop / pure-fn call / single primitive arg)`,
         code: MEMO_SUGGEST_CODE,
       });
     } else if (memoMatch && pro < MEMO_SUGGEST_MIN_PRO_SIGNALS && (arity0 || bodyTrivial)) {
       const reason = arity0
-        ? "0-arg memo — a plain `const` captures the value just as well"
-        : "body is trivial — the memo map lookup likely costs more than the work";
+        ? "0-arg memo. A plain `const` captures the value just as well"
+        : "body is trivial. The memo map lookup likely costs more than the work";
       hints.push({
         range: {
           start: { line: i, character: kwStart },
@@ -2352,7 +2352,7 @@ function findMemoHints(uri: string, content: string): LspDiagnostic[] {
         },
         severity: 4,
         source: "parabun",
-        message: `\`memo\` may not pay off here — ${reason}`,
+        message: `\`memo\` may not pay off here: ${reason}`,
         code: MEMO_UNNECESSARY_CODE,
       });
     }
@@ -2495,7 +2495,7 @@ function extractFunctionSignatureAndBody(lines: string[], fnLine: number): { par
 function bodyHasSideEffects(params: string[], rawBody: string): boolean {
   const body = maskCommentsAndStrings(rawBody);
   if (/\bthis\b/.test(body) || /\barguments\b/.test(body)) return true;
-  // `await` is async I/O — the awaited callee is doing the side effect, but
+  // `await` is async I/O. The awaited callee is doing the side effect, but
   // the awaiting function is observably impure regardless.
   if (/\bawait\b/.test(body)) return true;
 
@@ -2527,13 +2527,13 @@ function bodyHasSideEffects(params: string[], rawBody: string): boolean {
     /\b(\w+)(?:\.[a-zA-Z_$]\w*)*\.(push|pop|shift|unshift|splice|sort|reverse|fill|copyWithin|set|delete|clear|add)\s*\(/g;
   while ((m = mutMethodRe.exec(body)) !== null) {
     const root = m[1];
-    if (locals.has(root)) continue; // local container — its scope is the function
+    if (locals.has(root)) continue; // local container. Its scope is the function
     return true;
   }
 
   // Calls on free variables not in the curated pure-safe-call set. Any
   // `console.error(...)`, `api.foo()`, etc. count as observable side effects
-  // from the caller's perspective even if the callee is internally pure —
+  // from the caller's perspective even if the callee is internally pure:
   // the suggestion-side hint is for *confidently* pure functions only, so we
   // err strict.
   const freeCallRe = /\b(\w+)\s*\(/g;
@@ -2543,7 +2543,7 @@ function bodyHasSideEffects(params: string[], rawBody: string): boolean {
     if (paramSet.has(name)) continue;
     if (JS_KEYWORDS.test(name)) continue;
     if (PURE_SAFE_CALLS.has(name)) continue;
-    // A free identifier being called — be conservative and treat as a side
+    // A free identifier being called. Be conservative and treat as a side
     // effect. False negatives (missing a hint where the function IS pure)
     // are vastly preferable to false positives like the one that prompted
     // this fix.
@@ -2759,7 +2759,7 @@ function findPureViolations(uri: string, content: string): LspDiagnostic[] {
             m.index,
             m[1].length,
             2,
-            `"${m[1]}()" is non-deterministic — breaks referential transparency in pure function`,
+            `"${m[1]}()" is non-deterministic, breaks referential transparency in pure function`,
           ),
         );
       }
@@ -2774,7 +2774,7 @@ function findPureViolations(uri: string, content: string): LspDiagnostic[] {
             m.index,
             call.length,
             2,
-            `"${call}()" performs I/O — breaks referential transparency in pure function`,
+            `"${call}()" performs I/O, breaks referential transparency in pure function`,
           ),
         );
       }
@@ -2782,7 +2782,7 @@ function findPureViolations(uri: string, content: string): LspDiagnostic[] {
       const fetchRe = /\b(fetch)\s*\(/g;
       while ((m = fetchRe.exec(bline)) !== null) {
         diagnostics.push(
-          pureDiag(lineIdx, m.index, 5, 2, `"fetch()" performs I/O — breaks referential transparency in pure function`),
+          pureDiag(lineIdx, m.index, 5, 2, `"fetch()" performs I/O, breaks referential transparency in pure function`),
         );
       }
 
@@ -2794,7 +2794,7 @@ function findPureViolations(uri: string, content: string): LspDiagnostic[] {
             m.index,
             m[0].length - 1,
             2,
-            `"new Date()" is non-deterministic — breaks referential transparency in pure function`,
+            `"new Date()" is non-deterministic, breaks referential transparency in pure function`,
           ),
         );
       }
@@ -2952,7 +2952,7 @@ function getAllPureFns(uri: string, content: string): Set<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Hover — TypeScript type info + Parabun operator docs
+// Hover: TypeScript type info + Parabun operator docs
 // ---------------------------------------------------------------------------
 
 function getHoverResult(
@@ -3004,7 +3004,7 @@ function getHoverResult(
 
 // Slice 0 of the reactive-graph hover: a static, single-file, *syntactic*
 // scan of which reactive constructs read a given signal/derived. Honest
-// limits — source-level, so it misses dynamic / conditional / cross-file
+// limits: source-level, so it misses dynamic / conditional / cross-file
 // dependencies and can include shadowed names; the true reactive graph is
 // a runtime property. Surfaced as plain text in the signal hover; visuals
 // (SVG-in-hover / webview) are deliberately a later slice.
@@ -3048,7 +3048,7 @@ export function staticReactiveDependents(content: string, name: string): Reactiv
     }
   }
 
-  // effect { … } — brace-matched so a multi-line body counts.
+  // effect { … }: brace-matched so a multi-line body counts.
   const effRe = /\beffect\s*\{/g;
   let em: RegExpExecArray | null;
   while ((em = effRe.exec(content)) !== null) {
@@ -3087,7 +3087,7 @@ export function getParabunHover(content: string, line: number, character: number
       const out: string[] = [`### \`schema ${info.name}\``, ""];
       if (info.origin === "from") {
         out.push(
-          "Ingested from a JSON Schema (`schema X from <expr>` or `schema X = <expr>`) — schema literal preserved on the binding.",
+          "Ingested from a JSON Schema (`schema X from <expr>` or `schema X = <expr>`), schema literal preserved on the binding.",
           "",
         );
       } else if (info.origin === "import") {
@@ -3101,7 +3101,7 @@ export function getParabunHover(content: string, line: number, character: number
       }
       out.push(
         "**Members:**",
-        "- `parse(v)` → Result<T, str> — runtime validator",
+        "- `parse(v)` → Result<T, str>: runtime validator",
         "- `schema` → JSON Schema 2020-12 object",
       );
       return out.join("\n");
@@ -3124,12 +3124,12 @@ export function getParabunHover(content: string, line: number, character: number
       const field = info.fields.find(f => f.name === wordAt);
       if (field) {
         return [
-          `### \`${field.name}\` — field of \`${info.name}\``,
+          `### \`${field.name}\`: field of \`${info.name}\``,
           "",
           "```typescript",
           `${field.name}${field.optional ? "?" : ""}: ${field.typeName}`,
           "```",
-          field.optional ? "\n_Optional — gated by present-check at runtime._" : "",
+          field.optional ? "\n_Optional, gated by present-check at runtime._" : "",
         ]
           .filter(Boolean)
           .join("\n");
@@ -3139,7 +3139,7 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "fun") {
     return [
-      "### `fun` — shorthand for `function`",
+      "### `fun`: shorthand for `function`",
       "",
       "Parabun shorthand. `fun` desugars to `function` at parse time.",
       "",
@@ -3153,7 +3153,7 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "pure") {
     return [
-      "### `pure` — function purity modifier",
+      "### `pure`: function purity modifier",
       "",
       "Marks a function as **pure**. The transpiler enforces:",
       "- No `this` access",
@@ -3170,16 +3170,16 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "memo") {
     return [
-      "### `memo` — memoized pure function declarator",
+      "### `memo`: memoized pure function declarator",
       "",
       "`memo name(params) { body }` declares a memoized pure function. `memo`",
       "is a first-class declarator: it implies both **pure** (no outer mutation,",
       "no `this`) and **function**, so no extra keyword is needed.",
       "",
       "Cache shape is picked from arity:",
-      "- **0 args** — singleton, first result reused forever.",
-      "- **1 arg** — `Map` keyed by the argument (object identity, no stringify).",
-      "- **≥2 args / rest** — nested `Map` chain, one level per argument.",
+      "- **0 args**: singleton, first result reused forever.",
+      "- **1 arg**: `Map` keyed by the argument (object identity, no stringify).",
+      "- **≥2 args / rest**: nested `Map` chain, one level per argument.",
       "",
       "Async calls dedupe concurrent in-flight invocations (later callers get",
       "the first call's promise); rejected promises evict.",
@@ -3196,14 +3196,14 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "signal" && isSignalDeclarationAt(lineText, character)) {
     return [
-      "### `signal` — reactive binding",
+      "### `signal`: reactive binding",
       "",
       "`signal NAME = RHS` declares a reactive signal. Bare reads of `NAME`",
       "rewrite to `NAME.get()`, assignments to `NAME.set(...)`. If `RHS` references",
       "another in-scope signal, the declaration auto-promotes to",
       "`derived(() => RHS)` (read-only).",
       "",
-      "`signal` always implies `const` — there's no `signal let`/`var`. Use",
+      "`signal` always implies `const`. There's no `signal let`/`var`. Use",
       "`// @parabun-strict-signals` to opt out of auto-derive file-wide.",
       "",
       "```typescript",
@@ -3225,12 +3225,12 @@ export function getParabunHover(content: string, line: number, character: number
     if (declM) {
       const deps = staticReactiveDependents(content, wordAt);
       const head = declM[1] === "derived" ? "derived (read-only)" : "signal";
-      const md: string[] = [`### \`${wordAt}\` — reactive ${head}`, ""];
+      const md: string[] = [`### \`${wordAt}\`: reactive ${head}`, ""];
       if (deps.length === 0) {
         md.push("_No static single-file dependents found._");
       } else {
         md.push("**Reactive dependents** _(static, single-file approximation):_", "");
-        for (const d of deps) md.push(`- ${d.label} — line ${d.line + 1}`);
+        for (const d of deps) md.push(`- ${d.label}, line ${d.line + 1}`);
         md.push(
           "",
           "_Syntactic, single-file: misses dynamic / conditional / cross-file deps; may include shadowed names. The true graph is a runtime property._",
@@ -3242,23 +3242,23 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "schema") {
     return [
-      "### `schema NAME = <body>` — data shape declaration",
+      "### `schema NAME = <body>`: data shape declaration",
       "",
       "Declares a runtime-validated JSON Schema. Emits:",
       "",
-      "- `NAME.parse(v) → Result<NAME, str>` — fast inline validator",
-      "- `NAME.schema` — the underlying JSON Schema 2020-12 object",
-      "- field navigation accessors — `User.id.type`, `User.profile.bio.maxLength`, etc.",
+      "- `NAME.parse(v) → Result<NAME, str>`: fast inline validator",
+      "- `NAME.schema`: the underlying JSON Schema 2020-12 object",
+      "- field navigation accessors: `User.id.type`, `User.profile.bio.maxLength`, etc.",
       "",
       "Body is JSON Schema 2020-12 (Para extends `type` with `bigint`, `varchar`,",
       "`text`, `char`, `timestamptz`, `snowflake`, `numeric`, `jsonb`, `enum`).",
       "",
       "Forms:",
-      "- `schema X = { ... }` — JSON Schema literal",
-      "- `schema X from <expr>` — ingest an existing schema value (file import,",
+      "- `schema X = { ... }`: JSON Schema literal",
+      "- `schema X from <expr>`: ingest an existing schema value (file import,",
       "  remote fetch, lockstep pg-models output)",
-      "- `schema X { id: int, name: str(1..50) }` — Para-DSL with refinement types",
-      "- `schema { ... }` (expression) — inline literal at value position",
+      "- `schema X { id: int, name: str(1..50) }`: Para-DSL with refinement types",
+      "- `schema { ... }` (expression): inline literal at value position",
       "",
       "```typescript",
       "schema User = {",
@@ -3276,7 +3276,7 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "match") {
     return [
-      "### `match EXPR { arm => result, ... }` — pattern matching expression",
+      "### `match EXPR { arm => result, ... }`: pattern matching expression",
       "",
       "Lowers to a switch (when arms are all literal-only or all Result/Option",
       "constructors) or a ternary chain (otherwise). Returns the result of the",
@@ -3300,12 +3300,12 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "from" && /\bschema\s+[A-Za-z_$][\w$]*\s+from\b/.test(lineText)) {
     return [
-      "### `schema X from <expr>` — ingest existing JSON Schema",
+      "### `schema X from <expr>`: ingest existing JSON Schema",
       "",
       "Lowers to `const X = __paraFromSchema(<expr>)`. Returns the same",
       "`{ parse, schema }` interface as native `schema X = { ... }` declarations.",
       "Works with any expression that evaluates to a JSON Schema 2020-12 object",
-      "— file imports, locally-built schemas, lockstep pg-models output, etc.",
+      ": file imports, locally-built schemas, lockstep pg-models output, etc.",
       "",
       "Runtime walker handles JSON Schema 2020-12 plus lockstep aliases",
       "(`bigint`, `varchar`, `text`, `char`, `timestamptz`, `snowflake`,",
@@ -3321,15 +3321,15 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "effect" && isEffectBlockAt(lineText, character)) {
     return [
-      "### `effect { ... }` — reactive effect block",
+      "### `effect { ... }`: reactive effect block",
       "",
       "Runs the body once immediately, tracks every signal `.get()` inside",
       "as a dependency, and re-runs when any dep changes. Returning a function",
-      "from the body registers it as a cleanup — it fires before the next run",
+      "from the body registers it as a cleanup. It fires before the next run",
       "and on dispose.",
       "",
       "`return` / `break` / `continue` are arrow-local (the body lifts into an",
-      "arrow). `await` is rejected — the flush loop is synchronous.",
+      "arrow). `await` is rejected. The flush loop is synchronous.",
       "",
       "```typescript",
       "signal count = 0;",
@@ -3345,10 +3345,10 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (wordAt === "is" && /\bis\s+(?:not\s+)?[A-Z]/.test(lineText)) {
     return [
-      "### `is` — runtime type-guard",
+      "### `is`: runtime type-guard",
       "",
       "`expr is Type` returns true when `expr` validates as `Type`. Lowers to",
-      '`(Type.parse(expr).tag === "Ok")` — never throws, just a boolean.',
+      '`(Type.parse(expr).tag === "Ok")`, never throws, just a boolean.',
       "Negate with `is not Type`.",
       "",
       "Triggers only when the right-hand side is a Capitalized identifier, so",
@@ -3369,7 +3369,7 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (around.includes("::")) {
     return [
-      "### `::` — per-arg validation marker",
+      "### `::`: per-arg validation marker",
       "",
       "Opts a function parameter into runtime validation. `(req:: User)` injects",
       "`User.parse(req)` at function entry, throwing on Err. Plain `(req: User)`",
@@ -3381,7 +3381,7 @@ export function getParabunHover(content: string, line: number, character: number
       "",
       "```typescript",
       "function handler(req:: User, ctx) {",
-      "  return req.email;  // req validated at entry — guaranteed shape",
+      "  return req.email;  // req validated at entry, guaranteed shape",
       "}",
       "```",
     ].join("\n");
@@ -3389,7 +3389,7 @@ export function getParabunHover(content: string, line: number, character: number
 
   if (around.includes("..=")) {
     return [
-      "### `..=` — inclusive range",
+      "### `..=`: inclusive range",
       "",
       "`a..=b` is the inclusive integer range from `a` to `b`. `a..b` is exclusive.",
       "Empty / inverted ranges produce `[]` (no throw).",
@@ -3402,7 +3402,7 @@ export function getParabunHover(content: string, line: number, character: number
   }
   if (around.includes("..!")) {
     return [
-      "### `..!` — catch operator",
+      "### `..!`: catch operator",
       "",
       "Attaches an error handler to a promise expression.",
       "",
@@ -3414,7 +3414,7 @@ export function getParabunHover(content: string, line: number, character: number
   }
   if (around.includes("..&")) {
     return [
-      "### `..&` — finally operator",
+      "### `..&`: finally operator",
       "",
       "Attaches a cleanup handler that runs regardless of outcome.",
       "",
@@ -3426,7 +3426,7 @@ export function getParabunHover(content: string, line: number, character: number
   }
   if (around.includes("..>")) {
     return [
-      "### `..>` — then operator",
+      "### `..>`: then operator",
       "",
       "Attaches a fulfillment handler to a promise expression.",
       "",
@@ -3438,11 +3438,11 @@ export function getParabunHover(content: string, line: number, character: number
   }
   if (/\b(parallel|para)\b/.test(around)) {
     return [
-      "### `parallel` — fan-out promise composition",
+      "### `parallel`: fan-out promise composition",
       "",
-      "Two forms — both run their RHSes in parallel via `Promise.all` while",
+      "Two forms. Both run their RHSes in parallel via `Promise.all` while",
       "preserving the surface-syntax names (no positional-array footgun).",
-      "`para` is an interchangeable shorthand — both keywords lower identically.",
+      "`para` is an interchangeable shorthand. Both keywords lower identically.",
       "",
       "**Expression form:**",
       "",
@@ -3462,19 +3462,19 @@ export function getParabunHover(content: string, line: number, character: number
       "// → const [user, posts] = await Promise.all([fetchUser(id), fetchPosts(id)]);",
       "```",
       "",
-      "`Promise.all` semantics — fail-fast on first rejection. Per-decl",
+      "`Promise.all` semantics: fail-fast on first rejection. Per-decl",
       "`..!` in the statement form gives independent fallbacks.",
     ].join("\n");
   }
   if (around.includes("~>")) {
     return [
-      "### `~>` — reactive binding operator",
+      "### `~>`: reactive binding operator",
       "",
       "`A ~> B` creates a reactive binding: whenever the signals read by `A`",
       "change, `B` gets re-assigned with `A`'s new value. `B` must be",
-      "assignable — an identifier or property access.",
+      "assignable: an identifier or property access.",
       "",
-      "Desugars to `require('@lyku/para-signals').effect(() => { B = A; })` —",
+      "Desugars to `require('@lyku/para-signals').effect(() => { B = A; })`,",
       "evaluating `A` in a tracked context and returning the disposer, so",
       "you can capture it: `const stop = src ~> dst;`.",
       "",
@@ -3488,14 +3488,14 @@ export function getParabunHover(content: string, line: number, character: number
   }
   if (/(?<![\-=<])->/.test(around)) {
     return [
-      "### `->` — reactive call-binding operator",
+      "### `->`: reactive call-binding operator",
       "",
       "`A -> fn` creates a reactive call-binding: whenever the signals read",
       "by `A` change, `fn` is re-invoked with `A`'s new value. `fn` must be",
-      "a callable target — an identifier, property access, or indexed",
+      "a callable target: an identifier, property access, or indexed",
       "function.",
       "",
-      "Desugars to `require('@lyku/para-signals').effect(() => { fn(A); })` — the",
+      "Desugars to `require('@lyku/para-signals').effect(() => { fn(A); })`, the",
       "call-sink complement to `~>`. Same precedence, same disposer return,",
       "same optional `when COND` guard.",
       "",
@@ -3509,7 +3509,7 @@ export function getParabunHover(content: string, line: number, character: number
   }
   if (around.includes("|>")) {
     return [
-      "### `|>` — pipeline operator",
+      "### `|>`: pipeline operator",
       "",
       "Pipes a value through a function. Chains read left-to-right.",
       "",
@@ -3521,11 +3521,11 @@ export function getParabunHover(content: string, line: number, character: number
   }
   if (/\bwhen\b/.test(around) && /\{/.test(around)) {
     return [
-      "### `when` — edge-triggered block (rising / falling)",
+      "### `when`: edge-triggered block (rising / falling)",
       "",
       "`when EXPR { BODY }` fires `BODY` once each time `EXPR` transitions",
       "false→true. `when not EXPR { BODY }` fires on the true→false edge.",
-      "Reads inside `EXPR` are auto-tracked — every signal becomes a dep.",
+      "Reads inside `EXPR` are auto-tracked. Every signal becomes a dep.",
       "",
       "**Paired form:** a bare `when not { BODY }` immediately following a",
       "`when EXPR { … }` block (no predicate after `not`) pairs with it as",
@@ -3536,7 +3536,7 @@ export function getParabunHover(content: string, line: number, character: number
       "is edge-triggered.",
       "",
       "Desugars to `require('@lyku/para-signals').when(() => EXPR, () => { BODY })`",
-      "— the `not` form negates the predicate (`() => !(EXPR)`), and the paired",
+      ": the `not` form negates the predicate (`() => !(EXPR)`), and the paired",
       "form emits two such calls.",
       "",
       "```typescript",
@@ -3564,8 +3564,8 @@ function getWordAt(line: string, col: number): string {
 
 // True when the cursor is sitting on the `signal` keyword of a `signal NAME =`
 // declaration (as opposed to a plain identifier named `signal` imported from
-// `@lyku/para-signals`). Gates the hover so `const x = signal(0)` — which is also
-// valid — doesn't trigger the keyword tooltip.
+// `@lyku/para-signals`). Gates the hover so `const x = signal(0)` (which is also
+// valid) doesn't trigger the keyword tooltip.
 function isSignalDeclarationAt(line: string, col: number): boolean {
   const word = findWordBounds(line, col);
   if (!word || line.slice(word.start, word.end) !== "signal") return false;
@@ -3608,7 +3608,7 @@ function getDefinition(uri: string, content: string, line: number, character: nu
       let startPos: LspPosition;
       let endPos: LspPosition;
 
-      // Read the original source — prefer open document, fall back to disk
+      // Read the original source. Prefer open document, fall back to disk
       const origContent =
         targetContent ??
         (() => {
@@ -3657,7 +3657,7 @@ function getDefinition(uri: string, content: string, line: number, character: nu
 }
 
 // ---------------------------------------------------------------------------
-// Para schema registry — symbol-aware completions + diagnostics
+// Para schema registry: symbol-aware completions + diagnostics
 // ---------------------------------------------------------------------------
 //
 // Scans the source for `schema X { ... }` / `schema X from <expr>` / imported
@@ -3674,10 +3674,10 @@ interface ParaModelField {
 interface ParaModelInfo {
   name: string;
   origin: "decl" | "from" | "import";
-  fields: ParaModelField[]; // empty for from/import — opaque externally
+  fields: ParaModelField[]; // empty for from/import, opaque externally
 }
 
-// Recognized builtin refinement / format types (capitalized) — completions
+// Recognized builtin refinement / format types (capitalized). Completions
 // should offer these alongside user-defined models. Matches what the parser
 // supports today.
 const PARA_BUILTIN_TYPES = ["Email", "UUID", "Url", "Date", "DateTime", "IpV4", "IpV6", "Slug"];
@@ -3727,20 +3727,20 @@ const JS_BUILTIN_TYPE_NAMES = new Set([
 function extractModelRegistry(content: string): Map<string, ParaModelInfo> {
   const reg = new Map<string, ParaModelInfo>();
 
-  // model X { fields }   — capture body to parse fields
+  // model X { fields }  : capture body to parse fields
   const declRe = /\b(?:export\s+)?schema\s+([A-Za-z_$][\w$]*)\s*\{([\s\S]*?)\n\s*\}/g;
   let m: RegExpExecArray | null;
   while ((m = declRe.exec(content)) !== null) {
     reg.set(m[1], { name: m[1], origin: "decl", fields: parseFieldsBlock(m[2]) });
   }
 
-  // model X from <expr> — opaque field list
+  // model X from <expr>: opaque field list
   const fromRe = /\b(?:export\s+)?schema\s+([A-Za-z_$][\w$]*)\s+from\b/g;
   while ((m = fromRe.exec(content)) !== null) {
     if (!reg.has(m[1])) reg.set(m[1], { name: m[1], origin: "from", fields: [] });
   }
 
-  // model X = <expr> — lockstep-style ingestion. Same opaque-field
+  // model X = <expr>: lockstep-style ingestion. Same opaque-field
   // treatment as `from`. Excludes the `schema X { ... }` form (which
   // has no `=`) since that's caught by declRe above.
   const eqRe = /\b(?:export\s+)?schema\s+([A-Za-z_$][\w$]*)\s*=/g;
@@ -3748,7 +3748,7 @@ function extractModelRegistry(content: string): Map<string, ParaModelInfo> {
     if (!reg.has(m[1])) reg.set(m[1], { name: m[1], origin: "from", fields: [] });
   }
 
-  // import { X, Y as Z } from "..." — anything imported as a capitalized
+  // import { X, Y as Z } from "...". Anything imported as a capitalized
   // name MIGHT be a model. Add as opaque so `(req:: X)` doesn't false-flag.
   // Also catches `import default, { X } from "..."` patterns.
   const importRe = /\bimport\b[^{}]*\{([^}]+)\}\s*from\b/g;
@@ -3756,7 +3756,7 @@ function extractModelRegistry(content: string): Map<string, ParaModelInfo> {
     for (const part of m[1].split(",")) {
       const seg = part.trim();
       if (!seg) continue;
-      // `Foo` or `Foo as Bar` — pick the local binding name (after `as`).
+      // `Foo` or `Foo as Bar`. Pick the local binding name (after `as`).
       const asMatch = seg.match(/(?:[A-Za-z_$][\w$]*\s+as\s+)?([A-Z][\w$]*)\s*$/);
       if (asMatch && !reg.has(asMatch[1])) {
         reg.set(asMatch[1], { name: asMatch[1], origin: "import", fields: [] });
@@ -3781,7 +3781,7 @@ function parseFieldsBlock(body: string): ParaModelField[] {
     let typeFrag = m[2].trim();
     const optional = typeFrag.endsWith("?");
     if (optional) typeFrag = typeFrag.slice(0, -1).trim();
-    // Strip range `(0..150)` / array brackets / literal-union — keep the
+    // Strip range `(0..150)` / array brackets / literal-union. Keep the
     // base type name for hover/completion purposes.
     typeFrag = typeFrag.replace(/\([^)]*\)/g, "").trim();
     typeFrag = typeFrag.replace(/^\[|\](.*)/g, "").trim();
@@ -3793,7 +3793,7 @@ function parseFieldsBlock(body: string): ParaModelField[] {
 }
 
 // Lightweight "Cannot find name" detection that runs in the fast pass
-// (no tsc, ~5 ms per file). Catches the most common kind of typo — a
+// (no tsc, ~5 ms per file). Catches the most common kind of typo: a
 // referenced identifier that isn't imported, declared anywhere in the
 // file, or a known global. tsc would catch the same error eventually
 // via TS2304/TS2552 but only after the cold semantic pass (10-40 s on
@@ -3818,11 +3818,11 @@ function findUnknownIdentifierDiagnostics(content: string, sourceUri: string): L
   if (!isPui && !/\.(pts|ptsx|pjs|pjsx)$/.test(uriToPath(sourceUri))) return [];
 
   // For `.pui` the fast typo/undefined detector must scan ONLY the
-  // parabun <script> bodies — blank everything else (markup, other
+  // parabun <script> bodies. Blank everything else (markup, other
   // script langs) length-preservingly so markup tag/attr names don't
   // false-positive and so offsets stay absolute into `content` (the
   // ranges below use offsetToPosition(content,…) directly). Without
-  // this `.pui` got NO fast undefined-name detection — it bailed on the
+  // this `.pui` got NO fast undefined-name detection. It bailed on the
   // extension and only the slow 10-40 s cold pass ran (unreliable on a
   // real layout), so typos like `mosudnt` / a retired `mount;` slipped
   // through entirely.
@@ -3881,7 +3881,7 @@ function findUnknownIdentifierDiagnostics(content: string, sourceUri: string): L
     }
   }
   // Array-form destructure: `const [a, b, ...rest] = ...`. Same
-  // over-permissive shape as the param handler — extract every
+  // over-permissive shape as the param handler. Extract every
   // identifier in the bracket body. Holes like `const [, x] = arr`
   // work because empty splits get skipped via the identifier match.
   const arrayDestructRe = /\b(?:const|let|var)\s+\[([^\[\]]*)\]\s*=/g;
@@ -3894,14 +3894,14 @@ function findUnknownIdentifierDiagnostics(content: string, sourceUri: string): L
 
   // 4. Function / arrow / method parameters. Earlier rev bailed out
   // when params contained `{` or `[` (destructuring), which silently
-  // missed every name bound inside an array/object pattern — including
+  // missed every name bound inside an array/object pattern, including
   // the common case `[, table]` / `{ a, b }` / `{ a: b }`. Real fix
   // would need an AST, but the over-permissive heuristic below clears
   // ~90% of the false-positive squiggles: when destructuring is
   // detected, just add every identifier in the param substring to
   // inScope. The cost is occasional over-permission (e.g. property
   // keys in `{ a: b }` get added even though `a` is the key not the
-  // binding) — but inScope is an allowlist; over-broad permission
+  // binding), but inScope is an allowlist; over-broad permission
   // doesn't cause MISSED-name diagnostics, only restrictive checks do.
   // Reserved words / built-ins are filtered separately by the use-
   // scanner so adding `return` etc. is harmless.
@@ -3912,13 +3912,13 @@ function findUnknownIdentifierDiagnostics(content: string, sourceUri: string): L
     const params = pm[1] ?? pm[2] ?? pm[3];
     if (!params) continue;
     if (/[{[]/.test(params)) {
-      // Destructuring path — extract every identifier.
+      // Destructuring path. Extract every identifier.
       const idRe = /[A-Za-z_$][\w$]*/g;
       let im: RegExpExecArray | null;
       while ((im = idRe.exec(params)) !== null) inScope.add(im[0]);
       continue;
     }
-    // Flat-param path — pre-existing per-binding strip.
+    // Flat-param path: pre-existing per-binding strip.
     for (const raw of params.split(",")) {
       const stripped = raw
         .trim()
@@ -3962,7 +3962,7 @@ function findUnknownIdentifierDiagnostics(content: string, sourceUri: string): L
     if (/^\s*:(?!:)/.test(after)) continue;
     // Object-shorthand method: `{ name() { ... } }`.
     if (/^\s*\(/.test(after) && /[,{]\s*$/.test(before)) continue;
-    // NOTE: deliberately do NOT skip identifiers after `: ` — that
+    // NOTE: deliberately do NOT skip identifiers after `: `. That
     // boundary is ambiguous between type-annotation position
     // (`const x: Type`) and object-literal value position
     // (`{ key: value }`). Skipping all `: ` swallowed the most useful
@@ -3994,14 +3994,14 @@ function findUnknownIdentifierDiagnostics(content: string, sourceUri: string): L
   return diags;
 }
 
-// Common globals — conservative list. A missed global = false positive
+// Common globals: conservative list. A missed global = false positive
 // squiggle (annoying); a wrongly-allowed identifier = missed real error.
 const KNOWN_GLOBAL_IDENTIFIERS = new Set<string>([
   // ─── codegen:lsp-allowlist:begin ──────────────────────────────────
   // AUTO-GENERATED from src/language-surface.ts. Run `bun scripts/generate-lsp-allowlist.ts`
   // to regenerate. The CI gate at scripts/codegen/check-clean.ts fails
   // if the committed contents drift from the catalog. Do not hand-edit
-  // — add new Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts
+  // : add new Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts
   // instead.
   "_",
   "signal",
@@ -4134,7 +4134,7 @@ const KNOWN_GLOBAL_IDENTIFIERS = new Set<string>([
   "this",
   "super",
   "arguments",
-  // Common TS type names — included so type-position identifiers
+  // Common TS type names, included so type-position identifiers
   // don't false-positive (we deliberately don't skip `: T`
   // boundaries because they're ambiguous with object-literal
   // values).
@@ -4268,7 +4268,7 @@ function findUnknownValidationTypeDiagnostics(content: string): LspDiagnostic[] 
       range: { start: offsetToPosition(content, start), end: offsetToPosition(content, end) },
       severity: 1,
       source: "parabun",
-      message: `Unknown type '${typeName}' for \`::\` validation marker — declare a \`schema ${typeName} = { ... }\` or import one`,
+      message: `Unknown type '${typeName}' for \`::\` validation marker. Declare a \`schema ${typeName} = { ... }\` or import one`,
       code: "parabun-unknown-validate-type",
     });
   }
@@ -4282,7 +4282,7 @@ function findUnknownValidationTypeDiagnostics(content: string): LspDiagnostic[] 
 // `schema` is the data-shape primitive. Top-level keys must come from
 // the JSON Schema 2020-12 vocabulary (plus a small set of Para / lockstep
 // DDL extensions). HTTP-endpoint shapes are no longer in scope for the
-// `schema` primitive — those live in plain JS objects and are
+// `schema` primitive. Those live in plain JS objects and are
 // lockstep's concern, not Para's.
 
 const SCHEMA_KEYWORDS = new Set([
@@ -4344,7 +4344,7 @@ const SCHEMA_KEYWORDS = new Set([
   "deprecated",
   "readOnly",
   "writeOnly",
-  // Para / lockstep DDL extensions — recognized on column-shape models
+  // Para / lockstep DDL extensions, recognized on column-shape models
   // (pg-models) and treated as schema keywords for diagnostic purposes.
   "length",
   "unique",
@@ -4415,7 +4415,7 @@ function walkModelTopEntries(body: string, baseOffset: number): ModelTopEntry[] 
       const key = body.slice(keyStart, keyEnd);
       let j = i;
       while (j < body.length && /\s/.test(body[j])) j++;
-      // Shorthand `{ request, response }` — the identifier is both the
+      // Shorthand `{ request, response }`. The identifier is both the
       // key and (an implicit reference to) the value. Treat the value
       // span as the identifier itself so type-checks see "identifier".
       if (body[j] === "," || body[j] === "}" || j === body.length) {
@@ -4494,7 +4494,7 @@ function classifyModelValue(
   return "unknown";
 }
 
-// Quick edit-distance for "did you mean…" — full Levenshtein but capped at
+// Quick edit-distance for "did you mean…", full Levenshtein but capped at
 // distance 4 (cheap enough for these short keyword sets).
 function editDistance(a: string, b: string): number {
   if (a === b) return 0;
@@ -4571,7 +4571,7 @@ function findModelBodyDiagnostics(content: string): LspDiagnostic[] {
     if (entries.length === 0) continue;
 
     const keysSeen = new Set(entries.map(e => e.key));
-    // Lockstep records have `properties` without top-level `type` — leave
+    // Lockstep records have `properties` without top-level `type`. Leave
     // those alone since they're an established pattern that lockstep
     // generates from postgres column shapes.
     const looksLikeRecord = keysSeen.has("properties") && !keysSeen.has("type");
@@ -4579,7 +4579,7 @@ function findModelBodyDiagnostics(content: string): LspDiagnostic[] {
     for (const entry of entries) {
       if (SCHEMA_KEYWORDS.has(entry.key)) continue;
       const suggestion = suggestKey(entry.key, SCHEMA_KEYWORDS);
-      const hint = suggestion ? ` — did you mean '${suggestion}'?` : "";
+      const hint = suggestion ? `. Did you mean '${suggestion}'?` : "";
       diags.push({
         range: {
           start: offsetToPosition(content, entry.keyStart),
@@ -4596,7 +4596,7 @@ function findModelBodyDiagnostics(content: string): LspDiagnostic[] {
 }
 
 // Scan back from the cursor to detect "we're after a known model identifier
-// followed by `.`" — used to inject `parse` / `schema` completions.
+// followed by `.`", used to inject `parse` / `schema` completions.
 function detectModelMemberAccessContext(content: string, line: number, character: number): string | null {
   const offset = positionToOffset(content, line, character);
   // Walk backwards: skip whitespace, then identifier chars, then a `.`,
@@ -4612,7 +4612,7 @@ function detectModelMemberAccessContext(content: string, line: number, character
   return ident;
 }
 
-// Detect "we're after `arg:: ` (typing the type identifier)" — used to
+// Detect "we're after `arg:: ` (typing the type identifier)", used to
 // suggest known model names + builtin types.
 function detectValidationMarkerContext(content: string, line: number, character: number): boolean {
   const offset = positionToOffset(content, line, character);
@@ -4626,7 +4626,7 @@ function detectValidationMarkerContext(content: string, line: number, character:
 }
 
 // Detect "we're inside a `schema X { ... }` body, typing a field type
-// (after `:` but before `,`/`;`/`}`)" — used to suggest builtin types
+// (after `:` but before `,`/`;`/`}`)", used to suggest builtin types
 // + other models.
 function detectModelFieldTypeContext(content: string, line: number, character: number): boolean {
   const offset = positionToOffset(content, line, character);
@@ -4635,7 +4635,7 @@ function detectModelFieldTypeContext(content: string, line: number, character: n
   while (i >= 0 && /[\w$\s\[\]\?]/.test(content[i])) i--;
   if (i < 0 || content[i] !== ":" || content[i - 1] === ":") return false;
   // Now walk back further, find a `{`. If we find `,` or `;` before `{`,
-  // we're separating fields — still inside a model body.
+  // we're separating fields, still inside a model body.
   let depth = 0;
   for (let j = i - 1; j >= 0; j--) {
     const ch = content[j];
@@ -4654,7 +4654,7 @@ function detectModelFieldTypeContext(content: string, line: number, character: n
 }
 
 // ---------------------------------------------------------------------------
-// Completions — TypeScript + Parabun keywords
+// Completions: TypeScript + Parabun keywords
 // ---------------------------------------------------------------------------
 
 const parabunCompletions = [
@@ -4809,7 +4809,7 @@ function getCompletions(
           kind: 10, // property
           detail: "JSON Schema 2020-12 object",
           documentation:
-            "JSON Schema object describing this model's shape — hand off to OpenAPI / MongoDB / external validators.",
+            "JSON Schema object describing this model's shape. Hand off to OpenAPI / MongoDB / external validators.",
           sortText: "0schema",
         },
       );
@@ -4977,7 +4977,7 @@ function buildInterfaceToModelEdit(
     `${indent}${exportKw}schema ${name} {${mainBody}${indent}}`,
   ].join("\n\n");
 
-  // Drop our own indent prefix from the front of the combined output —
+  // Drop our own indent prefix from the front of the combined output:
   // the edit range starts at column 0 of `startLine`, so the first
   // `${indent}` would double-indent. We re-add it on later lines via
   // `${indent}` but let the first line stand on its own.
@@ -5035,10 +5035,10 @@ function parseInterfaceBody(body: string): ConvField[] | null {
     if (body[i] !== ":") return null;
     i++;
     while (i < n && /\s/.test(body[i])) i++;
-    // Read type — either a nested `{ ... }` or text up to `,` / `;` / newline at depth 0.
+    // Read type: either a nested `{ ... }` or text up to `,` / `;` / newline at depth 0.
     let typeNode: ConvType;
     if (body[i] === "{") {
-      // Nested object — capture body to matching close.
+      // Nested object. Capture body to matching close.
       let depth = 1;
       i++;
       const innerStart = i;
@@ -5235,7 +5235,7 @@ function getCodeActions(uri: string, content: string, range: LspRange, params?: 
 }
 
 // ---------------------------------------------------------------------------
-// Semantic Tokens — pure keyword highlighting
+// Semantic Tokens: pure keyword highlighting
 // ---------------------------------------------------------------------------
 
 const SEMANTIC_TOKEN_TYPES = ["function", "variable", "class"];
@@ -5277,8 +5277,8 @@ function collectComponentTagTokens(
 // Collect names declared with `signal NAME = ...` (including multi-declarator
 // forms like `signal a = 1, b = 2`). Used to semantic-highlight signal-bound
 // identifier references so readers can spot reactive reads/writes at a
-// glance. Conservative: matches the declaration line only — doesn't follow
-// re-exports, and doesn't handle `let x = signal(0)` (unsugared form —
+// glance. Conservative: matches the declaration line only, doesn't follow
+// re-exports, and doesn't handle `let x = signal(0)` (unsugared form:
 // there's no parse-time marker the LSP can see from a regex).
 function collectSignalNames(content: string): Set<string> {
   const names = new Set<string>();
@@ -5302,10 +5302,10 @@ function collectSignalNames(content: string): Set<string> {
 }
 
 // Plain variables/params/functions/classes carry no parabun-specific marker, so
-// the regex passes (pure/signal/component) leave them un-tokenized — they render
+// the regex passes (pure/signal/component) leave them un-tokenized. They render
 // white (TextMate can't classify a bare identifier reference). Source full tokens
 // from the TS service over the svelte2tsx projection (it sees every binding) and
-// map each span back to the raw .pui via the sourcemap — the same projection +
+// map each span back to the raw .pui via the sourcemap, the same projection +
 // toOriginal() pattern computeTsDiagnostics uses. Only `.pui` (svelte2tsx-backed);
 // other parabun langs already get TS semantic highlighting from the TS server.
 function collectTsSemanticTokens(
@@ -5334,7 +5334,7 @@ function collectTsSemanticTokens(
       if (tsType === 7 || tsType === 6) type = 1; // variable / parameter → variable
       else if (tsType === 10 || tsType === 11) type = 0; // function / member → function
       else if (tsType === 0) type = 2; // class
-      else continue; // type/interface/namespace/etc. — leave to TextMate
+      else continue; // type/interface/namespace/etc. Leave to TextMate
       const gs = offsetToPosition(t.code, start);
       const os = t.toOriginal(gs.line, gs.character);
       if (!os) continue; // projection-only scaffolding (no original mapping)
@@ -5349,7 +5349,7 @@ function collectTsSemanticTokens(
 function computeSemanticTokens(uri: string, content: string): number[] {
   // Collect every token as {line, col, len, type, modifiers}, then sort and
   // emit. Multiple passes (pure / signal) touch different regions but may
-  // overlap per line in any order — LSP requires strictly-ascending output.
+  // overlap per line in any order. LSP requires strictly-ascending output.
   type Token = { line: number; col: number; len: number; type: number; modifiers: number };
   const tokens: Token[] = [];
   const lines = content.split("\n");
@@ -5378,7 +5378,7 @@ function computeSemanticTokens(uri: string, content: string): number[] {
     }
 
     // Signal-bound identifier references. Every occurrence of a name declared
-    // via `signal NAME = ...` — declaration site included — gets the "signal"
+    // via `signal NAME = ...` (declaration site included) gets the "signal"
     // modifier. Covers reads, writes, method calls (`count.get()` still gets
     // highlighted on the `count` part). Strings/comments aren't stripped;
     // accept the occasional false-positive inside a string literal to keep
@@ -5388,7 +5388,7 @@ function computeSemanticTokens(uri: string, content: string): number[] {
       while ((m = idRe.exec(line)) !== null) {
         const name = m[0];
         if (!signalNames.has(name)) continue;
-        // Skip property-access position: `foo.count` — `count` there is a
+        // Skip property-access position: `foo.count`, `count` there is a
         // property, not a reference to the outer signal binding.
         if (m.index > 0 && line[m.index - 1] === ".") continue;
         tokens.push({ line: i, col: m.index, len: name.length, type: 1, modifiers: 0b100 });
@@ -5405,7 +5405,7 @@ function computeSemanticTokens(uri: string, content: string): number[] {
 
   tokens.sort((a, b) => a.line - b.line || a.col - b.col);
 
-  // Dedup exact-overlap tokens (same line+col+len) — keep the first, OR-
+  // Dedup exact-overlap tokens (same line+col+len). Keep the first, OR-
   // combine modifiers. Rare in practice but guards against double-emission.
   const data: number[] = [];
   let prevLine = 0;
@@ -5416,7 +5416,7 @@ function computeSemanticTokens(uri: string, content: string): number[] {
       const prev = tokens[i - 1];
       if (prev.line === t.line && prev.col === t.col && prev.len === t.len && prev.type === t.type) {
         // Exact overlap (e.g. the signal pass and the TS pass both emit a
-        // `variable` token for a signal binding) — OR-combine modifiers onto the
+        // `variable` token for a signal binding). OR-combine modifiers onto the
         // already-emitted token instead of dropping the signal/declaration bit.
         if (data.length > 0) data[data.length - 1] |= t.modifiers;
         continue;
@@ -5484,7 +5484,7 @@ function handleMessage(msg: any) {
       const stored = ingestDocumentText(uri, text);
       docVersions.set(uri, version ?? 1);
       if (stored === undefined) {
-        // .svelte file with no parabun script blocks — nothing to analyze.
+        // .svelte file with no parabun script blocks, nothing to analyze.
         publishDiagnostics(uri, []);
         break;
       }
@@ -5622,7 +5622,7 @@ function handleMessage(msg: any) {
 }
 
 // ---------------------------------------------------------------------------
-// stdin reader — Content-Length framed messages (main LSP only)
+// stdin reader: Content-Length framed messages (main LSP only)
 // ---------------------------------------------------------------------------
 
 // PARABUN_LSP_NO_LISTEN lets the module be imported (unit tests) without
@@ -5669,7 +5669,7 @@ if (!HELPER_MODE && !process.env.PARABUN_LSP_NO_LISTEN) {
 
 // ---------------------------------------------------------------------------
 // tsc helper subprocess mode. Reads newline-delimited JSON messages from
-// stdin (one message per line — no Content-Length framing because the
+// stdin (one message per line: no Content-Length framing because the
 // payloads are bounded and we control both sides). Maintains its own
 // `documents` / `docVersions` state synced from the main process, runs
 // the same tsService setup as `initTypeScriptService`, and replies with
@@ -5722,7 +5722,7 @@ function handleHelperMessage(msg: any): void {
       docVersions.set(msg.uri, msg.version);
       if (msg.lang) svelteLangs.set(msg.uri, msg.lang);
       else if (isComponentUri(msg.uri)) svelteLangs.delete(msg.uri);
-      // Raw component source — required for the `.pui` svelte2tsx
+      // Raw component source, required for the `.pui` svelte2tsx
       // projection in computeTsDiagnostics / getScriptSnapshot. The
       // main process holds it in svelteRawTexts; the helper only learns
       // it via this message (LYK-912).

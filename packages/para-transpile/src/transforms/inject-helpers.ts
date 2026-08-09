@@ -3,9 +3,9 @@
 // When transformUsingPolyfill emits calls to `__addDisposableResource` and
 // `__disposeResources`, those helpers need to exist somewhere. Two
 // strategies:
-//   (a) import from `bun:wrap` — couples the standalone output to the
+//   (a) import from `bun:wrap`: couples the standalone output to the
 //       shim package having a specific export shape.
-//   (b) inline at the top of the emitted file — self-contained, no
+//   (b) inline at the top of the emitted file: self-contained, no
 //       shim coupling. Costs ~30 lines per file that uses `using`.
 //
 // We pick (b) here because the standalone aims to be self-sufficient.
@@ -51,7 +51,7 @@ function __disposeResources(env) {
 
 export function injectUsingHelpers(src: string): string {
   // Inject only if the polyfill helpers are referenced AND not already
-  // defined. Cheap detection on the call sites — the user is unlikely to
+  // defined. Cheap detection on the call sites: the user is unlikely to
   // shadow these specific names.
   const needsAdd = src.includes("__addDisposableResource(");
   const needsDispose = src.includes("__disposeResources(");

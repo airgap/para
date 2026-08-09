@@ -111,8 +111,8 @@ describe("delimiter auto-detect", () => {
   });
 
   test("auto-detect ignores delimiter chars inside quoted regions", async () => {
-    // The header has ZERO commas outside quotes — only the embedded
-    // ",,,,," inside the quoted cell — and four real tabs. Auto-detect
+    // The header has ZERO commas outside quotes (only the embedded
+    // ",,,,," inside the quoted cell) and four real tabs. Auto-detect
     // should pick tab.
     const rows = await collect(csv.parseCsv('a\t"b,,,,,c"\td\te\n1\t2\t3\t4\n', { delimiter: "" }));
     expect(rows).toEqual([{ a: 1, "b,,,,,c": 2, d: 3, e: 4 }]);

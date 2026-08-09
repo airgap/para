@@ -1,6 +1,6 @@
 # @lyku/para-bench
 
-Differential **performance** benchmark across the Para ↔ ParaBun boundary —
+Differential **performance** benchmark across the Para ↔ ParaBun boundary:
 the timing counterpart to `@lyku/para-parity` (which owns correctness).
 Same corpus, both implementations, three cost models:
 
@@ -32,10 +32,10 @@ The nightly `Bench (trend)` stage in `jenkins/Jenkinsfile` benches the
 LATEST parabun release against a shallow sparse checkout of the lyku
 monorepo (the largest Para corpus in existence), archives `bench.json`,
 and compares against the previous run's baseline kept in the persistent
-workspace. Regressions mark the stage UNSTABLE — trend signal, not a
+workspace. Regressions mark the stage UNSTABLE: trend signal, not a
 merge gate; the blocking gate belongs on parabun's side (the
 lyku-integration required check).
 
-Noise discipline: medians over warmed reps, generous 25% thresholds —
+Noise discipline: medians over warmed reps, generous 25% thresholds:
 this runs on a shared agent; single-digit-percent deltas are weather, not
 signal.

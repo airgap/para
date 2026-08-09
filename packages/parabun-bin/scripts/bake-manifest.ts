@@ -2,14 +2,14 @@
 // per-platform carrier packages. This is the para-owned half of the P2
 // pin mechanism (boundary doc decision 1 / invariant B2): parabun's
 // Jenkins publishes `@lyku/parabun-bin-<os>-<arch>@<pin>` carriers; this
-// script — run in a deliberate, reviewed para "bump the pin" PR — reads
+// script (run in a deliberate, reviewed para "bump the pin" PR) reads
 // each carrier's self-declared `parabunSha256` via `npm view`, writes
 // the manifest, and sets the umbrella + its optionalDependencies to the
 // pin version. After this, the lockfile IS the pin.
 //
 // Usage:  bun scripts/bake-manifest.ts --version 0.0.0-pin-<sha>
 //
-// Fails loud if any expected carrier is missing or lacks the field —
+// Fails loud if any expected carrier is missing or lacks the field:
 // never bakes a half manifest (a missing platform must be a conscious
 // choice, made by editing PLATFORMS, not a silent gap).
 
@@ -73,7 +73,7 @@ writeFileSync(
   join(pkgRoot, "manifest.json"),
   JSON.stringify(
     {
-      $comment: `Baked by scripts/bake-manifest.ts from published @lyku/parabun-bin-* carriers at the pin bump. version = the pinned parabun release. Do NOT hand-edit sha256 — re-run the bake.`,
+      $comment: `Baked by scripts/bake-manifest.ts from published @lyku/parabun-bin-* carriers at the pin bump. version = the pinned parabun release. Do NOT hand-edit sha256. Re-run the bake.`,
       version,
       platforms,
     },

@@ -48,7 +48,7 @@ async function project(viewer, id = 1n) {
   return access.project(record);
 }
 
-describe("visibilityGate — domain-free per-field projection", () => {
+describe("visibilityGate: domain-free per-field projection", () => {
   test("registry: unknown tag is not resolved (fail-safe)", () => {
     expect(hasVisibilityResolver(FRIENDS)).toBe(true);
     expect(hasVisibilityResolver("subscribers")).toBe(false);
@@ -105,7 +105,7 @@ describe("visibilityGate — domain-free per-field projection", () => {
     expect(fr.dateOfBirth).toBe("1990-01-01");
   });
 
-  describe("createVisibilityCache — per-class, version-stamped", () => {
+  describe("createVisibilityCache: per-class, version-stamped", () => {
     const fields = {
       dateOfBirth: "dateOfBirthVisibility",
       status: "statusVisibility",

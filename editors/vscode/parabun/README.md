@@ -1,6 +1,6 @@
 # Parabun for VS Code
 
-Language support for **Parabun** (`.pts` / `.pjs`) files — a Bun fork with pure functions, error chaining, and pipeline operators.
+Language support for **Parabun** (`.pts` / `.pjs`) files, a Bun fork with pure functions, error chaining, and pipeline operators.
 
 ## Features
 
@@ -12,7 +12,7 @@ Language support for **Parabun** (`.pts` / `.pjs`) files — a Bun fork with pur
 ## Parabun Syntax
 
 ```pts
-// Pure functions — visually distinct, compile-time enforced
+// Pure functions, visually distinct, compile-time enforced
 pure function add(a: number, b: number): number {
   return a + b;
 }

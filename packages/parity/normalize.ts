@@ -49,7 +49,7 @@ export function normalize(src: string): string {
       allowAwaitOutsideFunction: true,
     });
   } catch (e) {
-    // If we can't parse, return the source verbatim — the caller's diff
+    // If we can't parse, return the source verbatim. The caller's diff
     // surfaces this with the parse error preserved.
     return src;
   }
@@ -58,7 +58,7 @@ export function normalize(src: string): string {
   // preserves type annotations because TSC isn't in our pipeline).
   stripTypeScript(ast);
 
-  // Step 2: unwrap canonical's IIFE signal initializer wrappers —
+  // Step 2: unwrap canonical's IIFE signal initializer wrappers:
   // `signals.signal((() => EXPR)())` ≡ `signals.signal(EXPR)`.
   unwrapSignalIIFE(ast);
 
@@ -125,7 +125,7 @@ function stripTypeScript(ast: t.File) {
 
 function unwrapSignalIIFE(ast: t.File) {
   // Pattern: CallExpression(callee=ArrowFunctionExpression(params=[], body=EXPR), arguments=[])
-  // — i.e., `(() => EXPR)()` evaluating to EXPR. Replace with the body.
+  // I.e., `(() => EXPR)()` evaluating to EXPR. Replace with the body.
   traverse(ast, {
     CallExpression(path) {
       const callee = path.node.callee;
@@ -270,7 +270,7 @@ function unwindUsingPolyfill(ast: t.File) {
         const next = body[i + 1];
         if (envName && next && t.isTryStatement(next)) {
           // Verify the try body contains at least one `using` resource decl
-          // tied to this env — otherwise this is some unrelated env-shaped
+          // tied to this env. Otherwise this is some unrelated env-shaped
           // decl and we leave it alone.
           const tryBody = next.block.body;
           const hasMatch = tryBody.some(s => matchUsingResourceDecl(s, envName) !== null);
@@ -282,7 +282,7 @@ function unwindUsingPolyfill(ast: t.File) {
               if (m) {
                 const decl = t.variableDeclaration("const", [t.variableDeclarator(m.id, m.init)]);
                 // Babel doesn't model `using` as a kind on the AST in older
-                // versions — but @babel/types ≥7.21 does. Set via cast.
+                // versions, but @babel/types ≥7.21 does. Set via cast.
                 (decl as any).kind = m.async ? "await using" : "using";
                 out.push(decl);
               } else {
@@ -296,7 +296,7 @@ function unwindUsingPolyfill(ast: t.File) {
         // Drop trailing scaffolding: canonical emits sibling
         // `var __bun_temp_ref_3$, __bun_temp_ref_4$` AFTER the try block
         // for the catch's error/hasError tracking. Those are dead in our
-        // normalization once the try is unwound — but we already advanced
+        // normalization once the try is unwound, but we already advanced
         // past the try, so they remain as-is. Most of the time renameGensyms
         // collapses them; for safety we just leave them.
         out.push(stmt);

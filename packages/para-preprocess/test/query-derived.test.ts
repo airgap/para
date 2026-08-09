@@ -14,11 +14,11 @@ derived user :: User = graphql.userById(id);
   // SWR seed + shadow update on every settle.
   expect(out).toContain(`if (__sd_user !== undefined) { __qdv_user = __sd_user; user = __sd_user; }`);
   expect(out).toContain(`__qd_user.subscribe?.((__v: typeof user) => { __qdv_user = __v; user = __v; })`);
-  // Cleanup path is the $effect.pre teardown — re-key AND unmount.
+  // Cleanup path is the $effect.pre teardown: re-key AND unmount.
   expect(out).toContain(`return () => { __un_user?.(); __qd_user.dispose?.(); };`);
   expect(out).toContain(`import { querySignal } from "@lyku/para-signals";`);
   expect(out).not.toMatch(/derived user ::/);
-  // No onDestroy needed — the effect teardown covers unmount.
+  // No onDestroy needed: the effect teardown covers unmount.
   expect(out).not.toContain(`onDestroy(() => __qd_user`);
 });
 

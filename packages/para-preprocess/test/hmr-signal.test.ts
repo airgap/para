@@ -51,7 +51,7 @@ test("hmrSignal preserves identity, value and subscribers across a module re-eva
   first.set(42);
 
   const afterHmr = moduleEval(); // module re-evaluated by vite HMR
-  expect(afterHmr).toBe(first); // same instance — identity preserved
+  expect(afterHmr).toBe(first); // same instance, identity preserved
   expect(afterHmr.peek()).toBe(42); // value survived (not reset to 0)
 
   let seen: number | undefined;

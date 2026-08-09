@@ -6,7 +6,7 @@ prop max: number = 1;
 
 // `source` (LYK-895): binds the native ALSA capture handle's reactive
 // peak level into a component-reactive, read-only cell that auto-closes
-// the mic on unmount. No manual onMount/onDestroy, no $effect glue —
+// the mic on unmount. No manual onMount/onDestroy, no $effect glue:
 // this is the Para moat: reactive state that IS a native capability.
 source level = audioMeter(device ? { device } : {});
 

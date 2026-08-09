@@ -1,11 +1,11 @@
-// @lyku/para-sync — durable storage adapters for the offline layer.
+// @lyku/para-sync: durable storage adapters for the offline layer.
 //
 // Two shapes, both pluggable so the browser can back them with IndexedDB /
 // localStorage while tests + SSR use in-memory:
 //
-//   MutationStore  — an op-id-keyed durable LOG of unconfirmed optimistic
+//   MutationStore: an op-id-keyed durable LOG of unconfirmed optimistic
 //                    mutations (§13.5). list/append(upsert)/remove/clear.
-//   SnapshotStore  — a single durable ENVELOPE per synced key (read-side
+//   SnapshotStore: a single durable ENVELOPE per synced key (read-side
 //                    durability): { load(): SyncEnvelope|undefined, save(env) }.
 //
 // The mutation `input` and the snapshot `value` must be serializable for the
@@ -24,7 +24,7 @@
  */
 
 /**
- * In-memory mutation log — tests, SSR, and the default when no durable backend
+ * In-memory mutation log: tests, SSR, and the default when no durable backend
  * is configured (offline replay still works within a session; it just doesn't
  * survive a reload).
  * @returns {MutationStore}
@@ -112,7 +112,7 @@ export function createMemorySnapshot() {
 }
 
 /**
- * localStorage-backed snapshot for one synced key — pass as `persist` to
+ * localStorage-backed snapshot for one synced key. Pass as `persist` to
  * createClientReplica / synced so a cold start seeds from the last confirmed
  * value before any network.
  * @param {string} key       the synced key, e.g. "channel:42"
@@ -138,7 +138,7 @@ export function localStorageSnapshot(key, storage) {
       try {
         ls.setItem(K, JSON.stringify(env));
       } catch {
-        /* quota / serialization failure — durability is best-effort */
+        /* quota / serialization failure: durability is best-effort */
       }
     },
   };

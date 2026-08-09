@@ -19,11 +19,11 @@ const back = await fromParquet(buf);
 
 ## What ships
 
-- **Table / RecordBatch / Column** — narrow-int widening on read, dictionary-batch decode, `List<T>`.
-- **12 computes** — sum / mean / min / max / variance / stddev / quantile / median / distinct / filter / groupBy / sort / cumsum / diff / argMin / argMax / count.
-- **Bridges** — `fromRows()` / `toRows()` for the array-of-objects shape JS apps tend to have.
-- **Arrow IPC** — streaming + file formats. Hand-rolled FlatBuffers builder/reader (no npm dep). `DictionaryBatch` decode for round-tripping default `Dictionary<Utf8>` string columns.
-- **Parquet** — `fromParquet()` / `toParquet()`. Hand-rolled Thrift / Snappy / RLE / dictionary. Compressions: UNCOMPRESSED / SNAPPY / GZIP.
+- **Table / RecordBatch / Column**: narrow-int widening on read, dictionary-batch decode, `List<T>`.
+- **12 computes**: sum / mean / min / max / variance / stddev / quantile / median / distinct / filter / groupBy / sort / cumsum / diff / argMin / argMax / count.
+- **Bridges**: `fromRows()` / `toRows()` for the array-of-objects shape JS apps tend to have.
+- **Arrow IPC**: streaming + file formats. Hand-rolled FlatBuffers builder/reader (no npm dep). `DictionaryBatch` decode for round-tripping default `Dictionary<Utf8>` string columns.
+- **Parquet**: `fromParquet()` / `toParquet()`. Hand-rolled Thrift / Snappy / RLE / dictionary. Compressions: UNCOMPRESSED / SNAPPY / GZIP.
 
 ## Pending
 
@@ -31,4 +31,4 @@ Dictionary write encoding. Nested types (Struct / Map / FixedSizeList / Decimal)
 
 ## Status
 
-`private:true / 0.0.0-dev` — pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.
+`private:true / 0.0.0-dev`: pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.

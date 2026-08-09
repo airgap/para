@@ -10,7 +10,7 @@ const userSchema = {
       : { tag: "Err", error: "not a User" },
 };
 
-// A tiny in-memory "database" the evaluate closure reads — the stand-in for
+// A tiny in-memory "database" the evaluate closure reads: the stand-in for
 // what lockstep-pg-compiled SQL does in production.
 function makeDb(rows) {
   const table = new Map(rows.map((r) => [r.id, r]));
@@ -33,7 +33,7 @@ function makeDb(rows) {
   };
 }
 
-describe("createQueryAuthority — read-set invalidation (plan step 3)", () => {
+describe("createQueryAuthority: read-set invalidation (plan step 3)", () => {
   test("constructor guards", () => {
     expect(() => createQueryAuthority({})).toThrow("`transport`");
     const t = new InProcessTransport();
@@ -75,7 +75,7 @@ describe("createQueryAuthority — read-set invalidation (plan step 3)", () => {
     await auth.wrote({ table: "users", rowKey: "user:1" });
     expect(published).toEqual([
       { value: { id: 1, name: "ada lovelace" }, schema_version: "1.0", sequence: 2 },
-    ]); // row 2 untouched — deep-equal short-circuit
+    ]); // row 2 untouched: deep-equal short-circuit
 
     await auth.wrote({ table: "users" }); // nothing changed since
     expect(published).toHaveLength(1); // no spurious republish, sequences never skip
@@ -159,7 +159,7 @@ describe("createQueryAuthority — read-set invalidation (plan step 3)", () => {
     await tick();
     const before = auth.stats().evaluations;
     await auth.wrote({ table: "users", rowKey: "user:99" });
-    expect(auth.stats().evaluations).toBe(before); // provably disjoint — skipped
+    expect(auth.stats().evaluations).toBe(before); // provably disjoint: skipped
     await auth.wrote({ table: "users", rowKey: "user:1" });
     expect(auth.stats().evaluations).toBe(before + 1);
   });

@@ -1,13 +1,13 @@
-// Browser shim for `@lyku/para-signals` — a minimal synchronous reactive core
+// Browser shim for `@lyku/para-signals`: a minimal synchronous reactive core
 // matching the upstream surface (signal / derived / effect / batch /
 // untrack).
 //
 // Design sketch:
-//   - `signal()` — writable value. Reads subscribe the current effect;
+//   - `signal()`: writable value. Reads subscribe the current effect;
 //     writes mark subscribers dirty and schedule them.
-//   - `derived()` — lazy memoized computation. Re-computes on read
+//   - `derived()`: lazy memoized computation. Re-computes on read
 //     when dirty; re-subscribes to its dynamic dep set each time.
-//   - `effect()` — imperative subscriber. Re-runs when any dep changes.
+//   - `effect()`: imperative subscriber. Re-runs when any dep changes.
 //   - Effects are queued and drained synchronously via a `flushing`
 //     flag that prevents re-entrant drains (scheduling inside a drain
 //     just appends to the queue).
@@ -68,7 +68,7 @@ class WritableSignal {
     // Empty-subs guard: with no subscribers there is nothing to invalidate
     // and no reason to enter the batch/drain machinery. This elides the
     // Array.from(this._subs) snapshot + the batchDepth dance + drain() on the
-    // hot unobserved-write path — which the /fyp bench measured as the bulk of
+    // hot unobserved-write path, which the /fyp bench measured as the bulk of
     // the fork-mirror update tax (~5.3% update; ~168 ns/mirror in situ, most of
     // it this allocation + drain). Semantically transparent: the new value is
     // already stored above, so later get()/peek() observe it; and whenever
@@ -127,7 +127,7 @@ class DerivedSignal {
   _invalidate() {
     if (this._dirty) return;
     this._dirty = true;
-    // A derived is a "node" from an effect's perspective — its own subs
+    // A derived is a "node" from an effect's perspective: its own subs
     // (effects that read this derived) need to re-run.
     for (const s of Array.from(this._subs)) s._invalidate();
   }
@@ -196,11 +196,11 @@ export function signal(value) {
  * Lifecycle: `pending: true` until the promise settles, then exactly one
  * of `data` / `error` is populated and `pending: false`. `dispose()`
  * (component unmount) aborts the AbortController AND drops any late
- * settle — no stale state, no setState-after-unmount leak. The thunk
+ * settle: no stale state, no setState-after-unmount leak. The thunk
  * receives that AbortSignal: `promiseSignal(s => fetch(u, { signal: s }))`
  * gets true network cancellation. The `.pui` keyword form
  * `async signal x = EXPR` lowers to `promiseSignal(() => (EXPR))` (the
- * common case — component-side cancel; opt into network abort by calling
+ * common case: component-side cancel; opt into network abort by calling
  * promiseSignal directly).
  *
  * @template T
@@ -237,7 +237,7 @@ export function promiseSignal(thunk) {
 }
 
 /**
- * promiseSignal's tracked, gated sibling — the producer behind the
+ * promiseSignal's tracked, gated sibling: the producer behind the
  * `.pui` query-derived cell `derived NAME :: SCHEMA = EXPR` (spec ch. 07
  * §10.7). One querySignal instance is ONE run: the bridge constructs it
  * inside `$effect.pre`, so signal reads in the thunk are tracked (the
@@ -246,16 +246,16 @@ export function promiseSignal(thunk) {
  * one. Latest-wins therefore needs no run-id machinery here: dispose()
  * aborts the in-flight request AND drops a late settle.
  *
- * The settle crosses the schema's parse gate (a trust boundary — the
+ * The settle crosses the schema's parse gate (a trust boundary: the
  * response came off a wire): `Ok` stores the PARSED value; `Err` lands
  * in `error` as a state, never a throw (the sync inbound-gate mode).
  *
  * Stale-while-revalidate: `opts.prev` is the previous cell value from
- * the superseded run — its `data` seeds this run's cell so a re-key
+ * the superseded run: its `data` seeds this run's cell so a re-key
  * shows the old value with `pending: true` instead of a flash to
  * undefined. Cold start (no prev) begins at `data: undefined`.
  *
- * Client-pull with no reconcile — deliberately in para-signals, not
+ * Client-pull with no reconcile: deliberately in para-signals, not
  * para-sync.
  *
  * @template T
@@ -277,7 +277,7 @@ export function querySignal(thunk, schema, opts = {}) {
   let disposed = false;
   // Synchronous fire, same rationale as promiseSignal: the request starts
   // immediately AND reads of tracked state happen inside the caller's
-  // effect scope — which is what makes the re-key tracking work at all.
+  // effect scope, which is what makes the re-key tracking work at all.
   let p;
   try {
     p = Promise.resolve(thunk(ac.signal));
@@ -315,7 +315,7 @@ export function querySignal(thunk, schema, opts = {}) {
 /**
  * HMR-stable signal. Keyed by a module-stable string (e.g.
  * `import.meta.url + "::name"`), the FIRST call creates the signal via
- * `make()`; subsequent calls — after a vite/HMR module re-evaluation —
+ * `make()`; subsequent calls (after a vite/HMR module re-evaluation)
  * return the SAME instance, preserving its current value and existing
  * subscribers. The registry lives on globalThis so it survives the
  * module reload. Emitted by the .pui lowering's dev/HMR bridge form
@@ -380,7 +380,7 @@ export const __test = {
 // WebSocket). When you `dispose()` the resource:
 //
 //   - Its `.alive` signal flips to false (one final notification to
-//     any effect that observed it — typical pattern is to read .alive
+//     any effect that observed it: typical pattern is to read .alive
 //     in the same effect that reads the data signals).
 //   - All `onDispose` cleanups registered during setup run, in
 //     reverse-registration order.
@@ -421,7 +421,7 @@ export function resource(setup) {
   try {
     exports = setup(ctx) || {};
   } catch (err) {
-    // Setup failed — run any cleanups registered before the throw and
+    // Setup failed: run any cleanups registered before the throw and
     // re-raise. Callers expect either a working handle or an exception.
     for (const c of cleanups.splice(0).reverse()) {
       try {
@@ -473,7 +473,7 @@ export function resource(setup) {
 // Hardware modules emit streams (audio frames, sensor ticks, video
 // frames). These adapters lift the underlying primitive (AsyncIterable
 // / ReadableStream / EventTarget) into a resource-tied signal that
-// exposes the latest value — no manual pump loop in user code.
+// exposes the latest value: no manual pump loop in user code.
 
 /**
  * Adapt an `AsyncIterable<T>` to a resource-tied signal. The signal
@@ -506,7 +506,7 @@ export function fromAsyncIter(source, initial = undefined) {
           value.set(next.value);
         }
       } catch {
-        // Iterator threw — adapter just stops; consumers see .alive
+        // Iterator threw: adapter just stops; consumers see .alive
         // remain true since the resource isn't formally disposed
         // (caller can subscribe to detect via no further updates).
       }
@@ -587,7 +587,7 @@ export function fromEventTarget(target, eventName, opts = {}) {
  * Lifecycle is owned by the `source` bridge: its `$effect.pre`
  * subscribes (Svelte `subscribe` fires the current value synchronously,
  * then on change) and the unsubscribe it returns is the effect
- * teardown — auto-unsubscribed on unmount. `dispose` is therefore a
+ * teardown: auto-unsubscribed on unmount. `dispose` is therefore a
  * no-op; `peek` is a transient subscribe/read for the initial seed.
  *
  * @template T
@@ -639,7 +639,7 @@ export function throttled(source, ms) {
           timer = null;
           havePending = false;
         }
-        // Only commit lastEmit when we actually emit — otherwise the
+        // Only commit lastEmit when we actually emit, otherwise the
         // initial effect run (which is a no-op when the source already
         // matches `out`) would eat the leading edge of the first real
         // change.
@@ -694,7 +694,7 @@ export function debounced(source, ms) {
   });
 }
 
-// ─── proxySignal — deep-reactive object/array state ───────────────────
+// ─── proxySignal: deep-reactive object/array state ────────────────────
 //
 // Wraps an object or array in a Proxy where every property read tracks
 // the active effect and every write notifies subscribers. Nested objects
@@ -735,7 +735,7 @@ export function proxySignal(initial) {
   const version = new WritableSignal(0);
   const isArr = Array.isArray(initial);
 
-  // Eager length signal for arrays — array mutators (push/pop/splice/etc.)
+  // Eager length signal for arrays: array mutators (push/pop/splice/etc.)
   // run through the proxy's set trap on individual indices, but they also
   // change `length`. Effects that read .length need their own signal.
   if (isArr) sources.set("length", new WritableSignal(initial.length));
@@ -746,7 +746,7 @@ export function proxySignal(initial) {
     get(target, prop, receiver) {
       if (prop === PROXY_MARKER) return true;
 
-      // Methods/symbols on the prototype chain bypass tracking — they
+      // Methods/symbols on the prototype chain bypass tracking. They
       // operate on `this` (the proxy) so any mutations they cause flow
       // through the set trap anyway.
       const desc = Object.getOwnPropertyDescriptor(target, prop);
@@ -762,7 +762,7 @@ export function proxySignal(initial) {
       }
       if (s !== undefined) return s.get();
 
-      // Non-own / accessor / inherited — pass through.
+      // Non-own / accessor / inherited: pass through.
       return Reflect.get(target, prop, receiver);
     },
 

@@ -6,7 +6,7 @@
 //
 //   import rtp from "@lyku/para-rtp";
 //
-//   // Sender — wrap an Opus packet in RTP
+//   // Sender: wrap an Opus packet in RTP
 //   const wire = rtp.pack({
 //     payloadType: 111,   // Opus default in many sdp setups
 //     sequence: 1234,
@@ -33,7 +33,7 @@ const RTP_VERSION = 2;
 
 type PackOptions = {
   /**
-   * Payload type — 7-bit value. SDP-negotiated. Common: 0 = G.711 µ-law,
+   * Payload type: 7-bit value. SDP-negotiated. Common: 0 = G.711 µ-law,
    * 8 = G.711 A-law, 96-127 = dynamic (Opus, VP8, H.264 land here).
    */
   payloadType: number;
@@ -41,7 +41,7 @@ type PackOptions = {
   sequence: number;
   /** 32-bit timestamp at the codec's sample rate. */
   timestamp: number;
-  /** 32-bit synchronization source identifier — uniquely identifies the stream. */
+  /** 32-bit synchronization source identifier: uniquely identifies the stream. */
   ssrc: number;
   /** Marker bit. Codec-specific meaning (e.g., last packet of a frame). Default false. */
   marker?: boolean;
@@ -111,7 +111,7 @@ function pack(opts: PackOptions): Uint8Array {
   const dv = new DataView(buf.buffer);
 
   // Byte 0: V (2 bits) | P (1) | X (1) | CC (4)
-  // Pack/parse are decoupled from extensions for v1 — pack never sets X
+  // Pack/parse are decoupled from extensions for v1: pack never sets X
   // or P. Receivers handle either gracefully via parse().
   buf[0] = (RTP_VERSION << 6) | (cc & 0x0f);
   // Byte 1: M (1 bit) | PT (7 bits)
@@ -219,11 +219,11 @@ function parse(bytes: Uint8Array): ParsedPacket {
 //   setInterval(() => {
 //     const next = jb.pop();
 //     if (next) decode(next.payload);          // payload arrived in order
-//     else handleConcealment();                // gap — lost or not-yet-arrived
+//     else handleConcealment();                // gap: lost or not-yet-arrived
 //   }, frameDurationMs);
 //
 // 16-bit sequence wrap-around: RFC 3550 sequence numbers are u16 and wrap
-// every 65535 packets. Comparison is "modulo signed" — the diff is sign-
+// every 65535 packets. Comparison is "modulo signed": the diff is sign-
 // extended into 16 bits so adjacent sequences compare correctly across
 // the wrap boundary.
 
@@ -237,7 +237,7 @@ type JitterBufferOptions = {
   /**
    * Max number of packets the buffer can hold ahead of the expected one
    * before declaring the missing slot lost and advancing. Default 5,
-   * which translates to 100 ms at 20 ms voice frames — typical for
+   * which translates to 100 ms at 20 ms voice frames, typical for
    * voice calls. Bigger = better loss tolerance, more added latency.
    */
   maxLag?: number;
@@ -245,7 +245,7 @@ type JitterBufferOptions = {
 
 const signalsMod = require("@lyku/para-signals");
 
-// Structural Signal types — keep this module agnostic of @lyku/para-signals's
+// Structural Signal types. Keep this module agnostic of @lyku/para-signals's
 // class hierarchy. Same shape as audio.ts / camera.ts / vision.ts.
 type Signal<T> = {
   get(): T;
@@ -264,7 +264,7 @@ class JitterBuffer {
   // Reactive surface (LYK-744 v1). Only the signals that map to state
   // this primitive actually tracks. `connected` and `jitterMs` from the
   // PLAN-module-signals row need a future Session abstraction (RTP /
-  // RTCP correlation, source-arrival timestamp differencing) — neither
+  // RTCP correlation, source-arrival timestamp differencing). Neither
   // exists in @lyku/para-rtp v1. When a Session class lands, those signals
   // join the surface there, not here.
   #pendingSig: WritableSignal<number>;
@@ -281,7 +281,7 @@ class JitterBuffer {
   }
   /**
    * Fraction of expected packets that were declared lost over the buffer's
-   * lifetime — `lossCount / (lossCount + delivered)`. Updates on every
+   * lifetime: `lossCount / (lossCount + delivered)`. Updates on every
    * delivered or lost transition. 0 until the first packet is observed.
    */
   get lossRateSignal(): Signal<number> {
@@ -306,7 +306,7 @@ class JitterBuffer {
 
   /**
    * Insert a parsed packet. Late arrivals (sequence < expected) are
-   * dropped silently — the consumer has already concealed past them.
+   * dropped silently. The consumer has already concealed past them.
    */
   push(packet: ParsedPacket): void {
     if (this.#expected === null) {
@@ -359,7 +359,7 @@ class JitterBuffer {
       this.#lossCount++;
       this.#lossCountSig.set(this.#lossCount);
       this.#recomputeLossRate();
-      // Skip the missing slot — advance expected to the smallest one we
+      // Skip the missing slot. Advance expected to the smallest one we
       // have. Re-enter pop so subsequent contiguous-buffered packets
       // drain in one batch.
       this.#expected = smallestAhead;

@@ -1,4 +1,4 @@
-// Para language surface — single source of truth for every keyword,
+// Para language surface: single source of truth for every keyword,
 // operator, refinement type, and primitive type the language exposes.
 //
 // Auxiliary tools (TextMate grammars, LSP allowlist, ts-plugin
@@ -18,7 +18,7 @@
 //   4. The CI gate at scripts/codegen/check-clean.ts will fail any
 //      PR that adds catalog entries but forgets the regen step.
 
-/** Each Para construct's classification — drives which auxiliary
+/** Each Para construct's classification: drives which auxiliary
  *  surfaces care about it. Keywords appear in the TextMate grammar
  *  and the LSP allowlist; operators appear in the grammar only;
  *  refinement / primitive types appear in the grammar as type-
@@ -40,7 +40,7 @@ export type Language = "pts" | "ptsx" | "pjs" | "pjsx";
 export type CaptureScopes = Record<string, string>;
 
 export interface LanguageEntry {
-  /** Stable identifier — used as the catalog key, never user-visible. */
+  /** Stable identifier: used as the catalog key, never user-visible. */
   id: string;
   /** One-line description, used as the grammar pattern's `comment` and
    *  in any generated docs. Plain prose; not parsed. */
@@ -50,23 +50,23 @@ export interface LanguageEntry {
   /** Source extensions this pattern fires in. Defaults to all four if
    *  not specified. */
   languages?: Language[];
-  /** The match regex (raw — no JSON-escape wrapping needed since this
+  /** The match regex (raw: no JSON-escape wrapping needed since this
    *  is a TS file). Use String.raw`...` to avoid backslash duplication. */
   pattern: string;
   /** Scope assignments per capture group. If the regex has captures
    *  but `scopes` is empty, the whole match takes `name`. */
   scopes?: CaptureScopes;
-  /** Optional single-scope fallback when the pattern has no captures —
+  /** Optional single-scope fallback when the pattern has no captures,
    *  e.g. operator entries that just need one scope on the whole match. */
   name?: string;
   /** True when the LSP's fast-pass "Cannot find name" check should
    *  treat the keyword token as a known identifier. Applies to entries
    *  whose `kind` is `keyword` / `constructor` / `constant` and which
-   *  appear at expression position — `_`, `Ok`, `Err`, etc. Operators
+   *  appear at expression position: `_`, `Ok`, `Err`, etc. Operators
    *  and types are never "names" in the unknown-ident sense. */
   lspAllowlist?: boolean;
   /** Optional pointer to the canonical test file pinning runtime
-   *  behavior — listed in generated docs so readers can jump to a
+   *  behavior: listed in generated docs so readers can jump to a
    *  concrete example. Multiple tests may anchor one entry. */
   tests?: string[];
   /** Optional snippet body. If present, codegen also emits a VS Code
@@ -74,7 +74,7 @@ export interface LanguageEntry {
   snippet?: string;
   /** Whether this entry contributes to the inject grammar (`injectTo`
    *  source.pts/ptsx/pjs/pjsx) or only to the main per-extension
-   *  grammars. Defaults true — most patterns inject. The few that
+   *  grammars. Defaults true. Most patterns inject. The few that
    *  don't (operator-rich main-grammar patterns like the decimal
    *  literal) opt out. */
   inject?: boolean;
@@ -87,12 +87,12 @@ export interface LanguageEntry {
  *  (`pure` alone). Within each section, ordering is by specificity. */
 export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `async { … }` block expression ────────────────────────────────
-  // Bare `async` immediately before a brace — the Para async-block form.
+  // Bare `async` immediately before a brace: the Para async-block form.
   // Must precede `fun`/`pure …` forms; its `{` lookahead keeps it from
   // matching `async fun`/`async function`/`pure async …` (handled below).
   {
     id: "async-block",
-    doc: "async { … } — Para async block expression (async immediately before a brace)",
+    doc: "async { … }: Para async block expression (async immediately before a brace)",
     kind: "keyword",
     pattern: String.raw`\b(async)\b(?=\s*\{)`,
     scopes: { "1": "storage.modifier.async" },
@@ -101,7 +101,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `fun` shorthand for `function` ────────────────────────────────
   {
     id: "fun-decl",
-    doc: "fun NAME(...) — shorthand alias for function declarations / expressions",
+    doc: "fun NAME(...): shorthand alias for function declarations / expressions",
     kind: "keyword",
     pattern: String.raw`\b(fun)\b(?=\s*[a-zA-Z_$*(<])`,
     scopes: { "1": "storage.type.function.parabun" },
@@ -157,7 +157,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "pure-async-arrow",
-    doc: "pure async arrow — pure async (x) => ... / pure async x => ...",
+    doc: "pure async arrow: pure async (x) => ... / pure async x => ...",
     kind: "keyword",
     pattern: String.raw`\b(pure)\s+(async)\b(?=\s*(?:\(|\w+\s*=>))`,
     scopes: {
@@ -167,7 +167,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "pure-arrow",
-    doc: "pure arrow — pure (x) => ... / pure x => ...",
+    doc: "pure arrow: pure (x) => ... / pure x => ...",
     kind: "keyword",
     pattern: String.raw`\b(pure)\b(?=\s*(?:\(|\w+\s*=>))`,
     scopes: { "1": "keyword.other.pure.parabun" },
@@ -176,7 +176,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── Signals / reactivity ──────────────────────────────────────────
   {
     id: "signal-decl",
-    doc: "signal NAME = ... — reactive cell declaration",
+    doc: "signal NAME = ...: reactive cell declaration",
     kind: "keyword",
     pattern: String.raw`\b(signal)\b(?=\s+[A-Za-z_$][\w$]*\s*[=,;:!])`,
     scopes: { "1": "storage.type.signal.parabun" },
@@ -184,7 +184,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "source-decl",
-    doc: "source NAME = ... — native-handle reactive view, auto-disposed on unmount (.pui)",
+    doc: "source NAME = ...: native-handle reactive view, auto-disposed on unmount (.pui)",
     kind: "keyword",
     pattern: String.raw`\b(source)\b(?=\s+[A-Za-z_$][\w$]*\s*[=:])`,
     scopes: { "1": "storage.type.source.parabun" },
@@ -196,7 +196,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // to `synced(...)` from @lyku/para-sync via para-preprocess.
   {
     id: "sync-decl",
-    doc: "sync NAME :: SCHEMA from KEY | sync NAME : TYPE from KEY — server-authoritative replica, parse-gated (::) or trusted (:) (.pui)",
+    doc: "sync NAME :: SCHEMA from KEY | sync NAME : TYPE from KEY: server-authoritative replica, parse-gated (::) or trusted (:) (.pui)",
     kind: "keyword",
     pattern: String.raw`\b(sync)\b(?=\s+[A-Za-z_$][\w$]*\s*::?)`,
     scopes: { "1": "storage.type.sync.parabun" },
@@ -204,7 +204,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "synced-decl",
-    doc: "synced NAME = ARGS — full-control synced(key, opts) replica binding (.pui)",
+    doc: "synced NAME = ARGS: full-control synced(key, opts) replica binding (.pui)",
     kind: "keyword",
     pattern: String.raw`\b(synced)\b(?=\s+[A-Za-z_$][\w$]*\s*[=:])`,
     scopes: { "1": "storage.type.synced.parabun" },
@@ -212,7 +212,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "mutate-decl",
-    doc: "mutate NAME of ENTITY { optimistic(p){…} [rollback(p){…}] [confirm(p){…}] } — Tier-2 optimistic write intent (.pui, §13.1)",
+    doc: "mutate NAME of ENTITY { optimistic(p){…} [rollback(p){…}] [confirm(p){…}] }: Tier-2 optimistic write intent (.pui, §13.1)",
     kind: "keyword",
     pattern: String.raw`\b(mutate)\b(?=\s+[A-Za-z_$][\w$]*\s+of\b)`,
     scopes: { "1": "storage.type.mutate.parabun" },
@@ -220,17 +220,17 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "sync-server-source",
-    doc: "sync NAME :: SCHEMA from server EXPR every/on/once — opaque server-source sync: the visible runtime-boundary marker + declared refresh policy (.pui, §13.8)",
+    doc: "sync NAME :: SCHEMA from server EXPR every/on/once: opaque server-source sync: the visible runtime-boundary marker + declared refresh policy (.pui, §13.8)",
     kind: "keyword",
     // Contextual ONLY (`server` directly after `from`): bare `server` is a
-    // ubiquitous identifier, so no splash keyword and no LSP allowlist entry —
+    // ubiquitous identifier, so no splash keyword and no LSP allowlist entry:
     // the grammar position is the entire signal.
     pattern: String.raw`(?<=\bfrom)\s+(server)\b`,
     scopes: { "1": "storage.modifier.server.parabun" },
   },
   {
     id: "every-postfix",
-    doc: "`every MS_EXPR` postfix on a signal declaration — drives the cell from an interval",
+    doc: "`every MS_EXPR` postfix on a signal declaration: drives the cell from an interval",
     kind: "keyword",
     // Approximate match: `every` preceded by a paren / digit / identifier
     // char (so the keyword reads as a postfix on an expression). Avoids
@@ -241,7 +241,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "derived-decl",
-    doc: "derived NAME = EXPR / derived NAME { … } — read-only computed cell ($derived / $derived.by); derived NAME :: SCHEMA = EXPR — query-derived cell: tracked re-run, latest-wins, parse-gated settle (querySignal, .pui)",
+    doc: "derived NAME = EXPR / derived NAME { … }: read-only computed cell ($derived / $derived.by); derived NAME :: SCHEMA = EXPR: query-derived cell: tracked re-run, latest-wins, parse-gated settle (querySignal, .pui)",
     kind: "keyword",
     pattern: String.raw`\b(derived)\b(?=\s+[A-Za-z_$][\w$]*\s*[=,;:!{])`,
     scopes: { "1": "storage.type.derived.parabun" },
@@ -249,7 +249,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "effect",
-    doc: "effect { ... } block, or effect EXPR; single-statement — signals.effect() / $effect",
+    doc: "effect { ... } block, or effect EXPR; single-statement: signals.effect() / $effect",
     kind: "keyword",
     // Block form (`effect {`) OR single-statement form (`effect <ident>…`).
     // Same disambiguation as the parser: `effect(` `effect.` `effect[`
@@ -263,7 +263,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `when` edge-triggered handlers ────────────────────────────────
   {
     id: "when-not",
-    doc: "when not EXPR { ... } — fires on the negated edge",
+    doc: "when not EXPR { ... }: fires on the negated edge",
     kind: "keyword",
     pattern: String.raw`\b(when)\s+(not)\b`,
     scopes: {
@@ -274,21 +274,21 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "when-expr",
-    doc: "when EXPR { ... } — fires on the rising edge",
+    doc: "when EXPR { ... }: fires on the rising edge",
     kind: "keyword",
     pattern: String.raw`\b(when)\b(?=\s+[!A-Za-z_$])`,
     scopes: { "1": "keyword.control.when.parabun" },
   },
   {
     id: "when-start",
-    doc: "trailing `start` modifier — initial-truthy + edge",
+    doc: "trailing `start` modifier: initial-truthy + edge",
     kind: "keyword",
     pattern: String.raw`\b(start)\b(?=\s*\{)`,
     scopes: { "1": "keyword.control.when.start.parabun" },
   },
   {
     id: "when-stop",
-    doc: "paired `when stop { }` arm — fires on falling edge of preceding when",
+    doc: "paired `when stop { }` arm: fires on falling edge of preceding when",
     kind: "keyword",
     pattern: String.raw`\b(when)\s+(stop)\b(?=\s*\{)`,
     scopes: {
@@ -300,7 +300,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `arena` / `memo` / `defer` ────────────────────────────────────
   {
     id: "arena-block",
-    doc: "arena { ... } — DeferGC scope",
+    doc: "arena { ... }: DeferGC scope",
     kind: "keyword",
     pattern: String.raw`\b(arena)\b(?=\s*\{)`,
     scopes: { "1": "keyword.control.arena.parabun" },
@@ -308,7 +308,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "memo-async-stmt",
-    doc: "memo async NAME( — statement-form async memoized fn",
+    doc: "memo async NAME(: statement-form async memoized fn",
     kind: "keyword",
     pattern: String.raw`\b(memo)\s+(async)\s+(?=[A-Za-z_$][\w$]*\s*(?:<|\())`,
     scopes: {
@@ -318,14 +318,14 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "memo-stmt",
-    doc: "memo NAME( — statement-form memoized fn (sync)",
+    doc: "memo NAME(: statement-form memoized fn (sync)",
     kind: "keyword",
     pattern: String.raw`\b(memo)\s+(?!async\b)(?=[A-Za-z_$][\w$]*\s*(?:<|\())`,
     scopes: { "1": "keyword.other.memo.parabun" },
   },
   {
     id: "memo-async-arrow",
-    doc: "memo async (...) / memo async NAME => — async arrow form",
+    doc: "memo async (...) / memo async NAME =>: async arrow form",
     kind: "keyword",
     pattern: String.raw`\b(memo)\s+(async)\s+(?=\(|[A-Za-z_$][\w$]*\s*=>)`,
     scopes: {
@@ -335,14 +335,14 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "memo-arrow",
-    doc: "memo (...) / memo <T>(...) / memo NAME => — sync arrow form",
+    doc: "memo (...) / memo <T>(...) / memo NAME =>: sync arrow form",
     kind: "keyword",
     pattern: String.raw`\b(memo)\s+(?=\(|<[\w\s,=]+>\s*\(|[A-Za-z_$][\w$]*\s*=>)`,
     scopes: { "1": "keyword.other.memo.parabun" },
   },
   {
     id: "defer-stmt",
-    doc: "defer EXPR / defer await EXPR — block-exit hook (LIFO)",
+    doc: "defer EXPR / defer await EXPR: block-exit hook (LIFO)",
     kind: "keyword",
     pattern: String.raw`\b(defer)\b(?=\s+[A-Za-z_$])`,
     scopes: { "1": "keyword.control.defer.parabun" },
@@ -352,7 +352,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── Reactive-binding / call-binding arrows ────────────────────────
   {
     id: "rbind-op",
-    doc: "~> reactive-binding operator — `src ~> dst` wraps in signals.effect(() => { dst = src })",
+    doc: "~> reactive-binding operator: `src ~> dst` wraps in signals.effect(() => { dst = src })",
     kind: "operator",
     pattern: String.raw`~>`,
     name: "keyword.operator.rbind.parabun",
@@ -365,14 +365,14 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
     name: "keyword.operator.callbind.parabun",
   },
 
-  // ─── `schema` (the single shape primitive — 6 declaration forms) ───
+  // ─── `schema` (the single shape primitive: 6 declaration forms) ───
   // Recursion/cyclic capability modifiers (para-schema-recursion-plan.md §1.1):
   //   declaration := [cyclicMod] "schema" [configList] ident "=" type
   //   cyclicMod   := "cyclic" [ "(" intLiteral ")" ]
   //   configList  := "(" key ":" value {"," key ":" value} [","] ")"
   {
     id: "cyclic-schema",
-    doc: "cyclic [(n)] schema — cycle-capability modifier on a schema declaration. Only a keyword when `schema` follows; `cyclic(1)` alone stays a plain call.",
+    doc: "cyclic [(n)] schema: cycle-capability modifier on a schema declaration. Only a keyword when `schema` follows; `cyclic(1)` alone stays a plain call.",
     kind: "keyword",
     pattern: String.raw`\b(cyclic)\s*(?:\(\s*(\d+)\s*\))?(?=\s*schema\b)`,
     scopes: {
@@ -383,7 +383,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "schema-config-decl",
-    doc: "schema(depth: 8) NAME — declaration with config list. `schema(` followed by a paren group and then an identifier is a declaration; without the trailing identifier it remains a plain call (see schema-bare skip).",
+    doc: "schema(depth: 8) NAME: declaration with config list. `schema(` followed by a paren group and then an identifier is a declaration; without the trailing identifier it remains a plain call (see schema-bare skip).",
     kind: "keyword",
     pattern: String.raw`\b(schema)\s*\(([^()]*)\)\s*([A-Za-z_$][\w$]*)\b`,
     scopes: {
@@ -393,7 +393,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "export-schema-from",
-    doc: "export schema NAME from <expr> — exported JSON Schema ingestion",
+    doc: "export schema NAME from <expr>: exported JSON Schema ingestion",
     kind: "keyword",
     pattern: String.raw`\b(export)\s+(schema)\s+([A-Za-z_$][\w$]*)\s+(from)\b`,
     scopes: {
@@ -405,7 +405,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "schema-from",
-    doc: "schema NAME from <expr> — ingest existing JSON Schema (file / fetch / inline literal)",
+    doc: "schema NAME from <expr>: ingest existing JSON Schema (file / fetch / inline literal)",
     kind: "keyword",
     pattern: String.raw`\b(schema)\s+([A-Za-z_$][\w$]*)\s+(from)\b`,
     scopes: {
@@ -416,7 +416,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "export-schema-decl",
-    doc: "export schema NAME { ... } / NAME = ... — exported declaration",
+    doc: "export schema NAME { ... } / NAME = ...: exported declaration",
     kind: "keyword",
     pattern: String.raw`\b(export)\s+(schema)\s+([A-Za-z_$][\w$]*)\b`,
     scopes: {
@@ -427,7 +427,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "schema-decl",
-    doc: "schema NAME { ... } / NAME = ... / NAME from ... — declaration",
+    doc: "schema NAME { ... } / NAME = ... / NAME from ...: declaration",
     kind: "keyword",
     pattern: String.raw`\b(schema)\s+([A-Za-z_$][\w$]*)\b`,
     scopes: {
@@ -437,14 +437,14 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "schema-inline",
-    doc: "schema { ... } — inline expression literal (no name binding)",
+    doc: "schema { ... }: inline expression literal (no name binding)",
     kind: "keyword",
     pattern: String.raw`\b(schema)\b(?=\s*\{)`,
     scopes: { "1": "storage.type.schema.parabun" },
   },
   {
     id: "schema-ts-extract",
-    doc: "ts<import('./x').T> — TS-extraction directive at schema-body position (para-ts-extractor-plan.md §0). Closed form only: ts, <, import('specifier'), ., TypeName, >. Substituted with the extracted JSON body by para-extract; unsubstituted sites throw at runtime with instructions.",
+    doc: "ts<import('./x').T>: TS-extraction directive at schema-body position (para-ts-extractor-plan.md §0). Closed form only: ts, <, import('specifier'), ., TypeName, >. Substituted with the extracted JSON body by para-extract; unsubstituted sites throw at runtime with instructions.",
     kind: "keyword",
     pattern: String.raw`\b(ts)\s*(<)\s*(import)\s*\(\s*(['"][^'"]*['"])\s*\)\s*(\.)\s*([A-Za-z_$][\w$]*)\s*(>)`,
     scopes: {
@@ -456,7 +456,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "schema-bare",
-    doc: "Bare `schema` keyword fallback — highlights as soon as typed; skipped when followed by =/(/./: (used as identifier or object key)",
+    doc: "Bare `schema` keyword fallback: highlights as soon as typed; skipped when followed by =/(/./: (used as identifier or object key)",
     kind: "keyword",
     pattern: String.raw`\b(schema)\b(?![\s]*[=.(:])`,
     scopes: { "1": "storage.type.schema.parabun" },
@@ -466,7 +466,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `match` ───────────────────────────────────────────────────────
   {
     id: "match-expr",
-    doc: "match EXPR { ... } — pattern matching expression",
+    doc: "match EXPR { ... }: pattern matching expression",
     kind: "keyword",
     pattern: String.raw`\b(match)\b(?=\s+[A-Za-z_$(])`,
     scopes: { "1": "keyword.control.match.parabun" },
@@ -476,7 +476,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `::` validation marker ────────────────────────────────────────
   {
     id: "validate-marker",
-    doc: ":: per-arg runtime validation marker — `fn(req:: User) {...}` injects User.parse(req) at entry",
+    doc: ":: per-arg runtime validation marker: `fn(req:: User) {...}` injects User.parse(req) at entry",
     kind: "operator",
     pattern: String.raw`::`,
     name: "keyword.operator.validate.parabun",
@@ -485,7 +485,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── Result/Option constructors ────────────────────────────────────
   {
     id: "result-option-ctor",
-    doc: "Ok / Err / Some — Result/Option tagged-union constructors (in call position)",
+    doc: "Ok / Err / Some: Result/Option tagged-union constructors (in call position)",
     kind: "constructor",
     pattern: String.raw`\b(Ok|Err|Some)\b(?=\s*\()`,
     scopes: { "1": "support.function.constructor.result.parabun" },
@@ -493,7 +493,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "none-const",
-    doc: "None — bare Option constant",
+    doc: "None: bare Option constant",
     kind: "constant",
     pattern: String.raw`\b(None)\b(?!\s*[\.\[\(])`,
     scopes: { "1": "constant.language.option.none.parabun" },
@@ -503,7 +503,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── Refinement / primitive types in schema-body field positions ───
   {
     id: "refinement-types",
-    doc: "Capitalized refinement / format types — Email / UUID / Url / Date / DateTime / IpV4 / IpV6 / Slug",
+    doc: "Capitalized refinement / format types: Email / UUID / Url / Date / DateTime / IpV4 / IpV6 / Slug",
     kind: "refinement-type",
     pattern: String.raw`(:|::)(\s+)(Email|UUID|Url|Date|DateTime|IpV4|IpV6|Slug)\b`,
     scopes: {
@@ -513,7 +513,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "primitive-types",
-    doc: "Lowercase primitive types — int / str / string / bool / boolean / float / num / number (in `: Type` position)",
+    doc: "Lowercase primitive types: int / str / string / bool / boolean / float / num / number (in `: Type` position)",
     kind: "primitive-type",
     pattern: String.raw`(:)(\s+)(int|str|string|bool|boolean|float|num|number)\b`,
     scopes: {
@@ -525,7 +525,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `is` / `is not` type-guard ─────────────────────────────────────
   {
     id: "is-not-guard",
-    doc: '`expr is not Type` — runtime negated type-guard, lowers to Type.parse(expr).tag !== "Ok"',
+    doc: '`expr is not Type`: runtime negated type-guard, lowers to Type.parse(expr).tag !== "Ok"',
     kind: "operator",
     pattern: String.raw`\b(is)\s+(not)\b(?=\s+[A-Z])`,
     scopes: {
@@ -535,7 +535,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "is-guard",
-    doc: '`expr is Type` — runtime type-guard, lowers to Type.parse(expr).tag === "Ok"',
+    doc: '`expr is Type`: runtime type-guard, lowers to Type.parse(expr).tag === "Ok"',
     kind: "operator",
     pattern: String.raw`\b(is)\b(?=\s+[A-Z])`,
     scopes: { "1": "keyword.operator.is.parabun" },
@@ -544,7 +544,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── `parallel` / `para` fan-out blocks ────────────────────────────
   {
     id: "parallel-decl",
-    doc: "parallel/para let|const NAME = ..., ... — fan-out promise composition (statement form)",
+    doc: "parallel/para let|const NAME = ..., ...: fan-out promise composition (statement form)",
     kind: "keyword",
     pattern: String.raw`\b(parallel|para)\s+(let|const)\b`,
     scopes: {
@@ -555,7 +555,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   },
   {
     id: "parallel-block",
-    doc: "parallel/para { ... } — fan-out promise composition (expression form)",
+    doc: "parallel/para { ... }: fan-out promise composition (expression form)",
     kind: "keyword",
     pattern: String.raw`\b(parallel|para)\b(?=\s*\{)`,
     scopes: { "1": "storage.modifier.parallel.parabun" },
@@ -567,42 +567,42 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // first and never sees the trailing `= ! & >`.
   {
     id: "range-inclusive-op",
-    doc: "..= inclusive range — `a..=b` lowers to iterator over [a, b]",
+    doc: "..= inclusive range: `a..=b` lowers to iterator over [a, b]",
     kind: "operator",
     pattern: String.raw`\.\.=`,
     name: "keyword.operator.range-inclusive.parabun",
   },
   {
     id: "catch-op",
-    doc: "..! error-chain operator — `p ..! handler` lowers to `p.catch(handler)`",
+    doc: "..! error-chain operator: `p ..! handler` lowers to `p.catch(handler)`",
     kind: "operator",
     pattern: String.raw`\.\.!`,
     name: "keyword.operator.catch.parabun",
   },
   {
     id: "finally-op",
-    doc: "..& finally operator — `p ..& cleanup` lowers to `p.finally(cleanup)`",
+    doc: "..& finally operator: `p ..& cleanup` lowers to `p.finally(cleanup)`",
     kind: "operator",
     pattern: String.raw`\.\.&`,
     name: "keyword.operator.finally.parabun",
   },
   {
     id: "then-op",
-    doc: "..> then operator — `p ..> next` lowers to `p.then(next)`",
+    doc: "..> then operator: `p ..> next` lowers to `p.then(next)`",
     kind: "operator",
     pattern: String.raw`\.\.>`,
     name: "keyword.operator.then.parabun",
   },
   {
     id: "range-op",
-    doc: ".. exclusive range — `a..b` lowers to iterator over [a, b)",
+    doc: ".. exclusive range: `a..b` lowers to iterator over [a, b)",
     kind: "operator",
     pattern: String.raw`\.\.(?!\.)`,
     name: "keyword.operator.range.parabun",
   },
   {
     id: "pipeline-op",
-    doc: "|> pipeline operator — threads LHS as first arg of RHS call",
+    doc: "|> pipeline operator: threads LHS as first arg of RHS call",
     kind: "operator",
     pattern: String.raw`\|>`,
     name: "keyword.operator.pipeline.parabun",
@@ -611,7 +611,7 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // ─── Decimal literal (Nd suffix) ───────────────────────────────────
   {
     id: "decimal-literal",
-    doc: "Nd decimal literal — `0.0825d` / `42d` route arithmetic through .add / .mul methods (exact, no FP drift)",
+    doc: "Nd decimal literal: `0.0825d` / `42d` route arithmetic through .add / .mul methods (exact, no FP drift)",
     kind: "operator",
     pattern: String.raw`(?<![\w$.])((?:\.\d+|\d+(?:\.\d*)?)(?:[eE][+-]?\d+)?)(d)(?![\w$])`,
     scopes: {
@@ -629,9 +629,9 @@ export const LANGUAGE_SURFACE: LanguageEntry[] = [
   // diagnostic from firing on the source-level `_` reference.
   {
     id: "underscore-lambda",
-    doc: "`_` expression-context lambda placeholder — wraps the arg in (__pu => …) at parse time",
+    doc: "`_` expression-context lambda placeholder: wraps the arg in (__pu => …) at parse time",
     kind: "keyword",
-    pattern: String.raw`(?!)`, // matches nothing — no syntactic highlight, only LSP allowlist contribution
+    pattern: String.raw`(?!)`, // matches nothing: no syntactic highlight, only LSP allowlist contribution
     lspAllowlist: true,
     inject: false,
   },
@@ -644,7 +644,7 @@ export const DEFAULT_LANGUAGES: Language[] = ["pts", "ptsx", "pjs", "pjsx"];
 
 /** Para-specific keywords the splash demo's tiny inline highlighter
  *  (`/raid/para-site/public/transpile.js`) bolds on the .pts side.
- *  That highlighter is regex-based, not TextMate — it just does naive
+ *  That highlighter is regex-based, not TextMate: it just does naive
  *  alternation, so it needs literal keyword names, not the lookahead-
  *  aware patterns the grammar generators consume. Constructors / type
  *  names / operators aren't here; the splash highlighter handles them
@@ -670,7 +670,7 @@ export const SPLASH_PARA_KEYWORDS: string[] = [
   "para",
   "is",
   "every",
-  /* Contextual — only meaningful after `from`, and the TextMate/LSP
+  /* Contextual: only meaningful after `from`, and the TextMate/LSP
    * layers scope it that way (`sync-server-source`). The splash
    * regex is word-boundary-dumb, but the reel's only bare `server`
    * outside the `from server` form sits in comments/strings, which
@@ -682,7 +682,7 @@ export const SPLASH_PARA_KEYWORDS: string[] = [
 /** Plain-JS reserved words the splash highlights on BOTH sides of the
  *  demo (since they appear in both Para source and the desugared JS
  *  output). Kept here so the codegen can rebuild the JS-only regex
- *  too — otherwise the JS pane's keyword list drifts the same way
+ *  too, otherwise the JS pane's keyword list drifts the same way
  *  the Para one used to. */
 export const SPLASH_JS_KEYWORDS: string[] = [
   "const",
@@ -699,7 +699,7 @@ export const SPLASH_JS_KEYWORDS: string[] = [
   "true",
   "false",
   "null",
-  // Module / import keywords — appear in Runtime tab demos (every
+  // Module / import keywords: appear in Runtime tab demos (every
   // parabun:* snippet starts with `import X from "parabun:..."`) and
   // in the .js output pane for pipeline-style Lang demos that emit
   // `import { ... } from "@lyku/para-pipeline"`.
@@ -717,17 +717,17 @@ export const SPLASH_JS_KEYWORDS: string[] = [
   "of",
 ];
 
-/** Entries marked `lspAllowlist: true` — convenience accessor for the
+/** Entries marked `lspAllowlist: true`: convenience accessor for the
  *  LSP codegen. Returns the literal token text from the pattern's
  *  most-specific capture group, OR the entry's id when the pattern is
  *  a meta-entry (like the underscore placeholder) with no surface
  *  token. The LSP codegen reads its tokens from a hand-maintained
- *  array in catalog format — falling back to id-as-name keeps the
+ *  array in catalog format, falling back to id-as-name keeps the
  *  meta-entry case sane. */
 export const LSP_ALLOWLIST_TOKENS: string[] = [
   // Tokens are listed explicitly (rather than parsed from the regex)
   // because the regex captures can include alternations like
-  // `Ok|Err|Some`, ranges, etc. — easier to maintain a literal list
+  // `Ok|Err|Some`, ranges, etc. Easier to maintain a literal list
   // here than parse alternation groups out of the patterns.
   "_",
   "signal",

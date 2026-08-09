@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { transpile } from "../src/index";
 
-// Note: the `pure` strip is intentionally column-preserving — `pure ` (5
+// Note: the `pure` strip is intentionally column-preserving. `pure ` (5
 // chars) becomes 5 spaces. Don't `.trim()` the output or the leading spaces
 // disappear and the assertion looks misleading.
 

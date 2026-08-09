@@ -2,7 +2,7 @@
   "name": "@lyku/para-mcp",
   "version": "0.0.0-dev",
   "private": true,
-  "description": "Model Context Protocol client. stdio (subprocess over newline-delimited JSON-RPC 2.0) and ws (WebSocket text frames) transports. The structural surface @lyku/para-assistant reuses for its tools: option. NOT YET RELEASED — private:true / 0.0.0-dev pending the workspace split.",
+  "description": "Model Context Protocol client. stdio (subprocess over newline-delimited JSON-RPC 2.0) and ws (WebSocket text frames) transports. The structural surface @lyku/para-assistant reuses for its tools: option. NOT YET RELEASED: private:true / 0.0.0-dev pending the workspace split.",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",

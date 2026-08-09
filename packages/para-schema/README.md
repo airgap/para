@@ -24,7 +24,7 @@ The split is implemented via the `parabun` package-export condition:
 When `customConditions` includes `"parabun"`, tsc resolves to the extended
 variant. Without it, vanilla TS resolves to the standard variant. The
 exported names are identical in both files, so a `.d.ts` emitted by
-`gen-dts-rewrite` works unchanged in either audience — only the
+`gen-dts-rewrite` works unchanged in either audience: only the
 constraint expressivity changes.
 
 ## Surface
@@ -51,7 +51,7 @@ type Tags       = ArrayOf<string, { minItems: 1; maxItems: 10 }>;
 ```
 
 In the extended variant these are structurally distinct from their base
-types — you can't pass a raw `string` where `Username` is expected. In
+types: you can't pass a raw `string` where `Username` is expected. In
 the standard variant they all collapse to `string`/`number`/etc. and
 the constraints are dropped silently.
 
@@ -66,13 +66,13 @@ const getUser = {
 };
 
 const handler: Handles<typeof getUser, AppCtx> = (req, ctx) => {
-  // req: { id: bigint } — derived from request schema
-  // return: { name: string } — derived from response schema
+  // req: { id: bigint } (derived from request schema)
+  // return: { name: string } (derived from response schema)
   return { name: `user${req.id}` };
 };
 ```
 
-## `fromSchema` — the portable runtime
+## `fromSchema`: the portable runtime
 
 ```ts
 import { fromSchema } from "@lyku/para-schema";
@@ -87,12 +87,12 @@ const Workspace = fromSchema({
 Workspace.parse({ name: "Lyku" });        // { tag: "Ok", value: { name: "Lyku" } }
 Workspace.parse({ name: 42 });            // { tag: "Err", error: "name: expected string" }
 Workspace.is({ name: "Lyku" });           // true
-Workspace.name.maxLength;                 // 120 — field navigation
+Workspace.name.maxLength;                 // 120 (field navigation)
 ```
 
 **Why this exists.** On ParaBun, `schema NAME = { … }` lowers to the
 built-in validator in the Bun fork. Off ParaBun, ParaBun's own fallback
-is `__paraFromSchema = (schema) => schema` — the *identity function*. A
+is `__paraFromSchema = (schema) => schema`: the *identity function*. A
 schema shipped to a browser or a Cloudflare Worker therefore validated
 nothing at all. `fromSchema` is a faithful, dependency-free port of that
 validator, so the same schema gates data on the edge and in the client
@@ -114,19 +114,19 @@ JSON Schema again, safe to embed in another schema literal); `parse`,
 JSON Schema 2020-12 plus the Para/Postgres type tags, so a lockstep
 record model is already a valid body: `bigint`, `snowflake`, `varchar`,
 `text`, `char`, `numeric`, `timestamptz`, `date`, `jsonb`, `enum`.
-`required` means NOT NULL — an omitted key is nullable, and a present
+`required` means NOT NULL: an omitted key is nullable, and a present
 `null` fails a required field. A record with `properties` and no
 explicit `type` is treated as an object.
 
 Composition is by **embedding**: a sub-schema that is itself a wrapped
 schema (it has `.parse`) validates itself. The portable runtime has no
 module `$ref` registry, so a string `$ref` throws rather than silently
-passing — an unresolvable reference must never read as "valid".
+passing: an unresolvable reference must never read as "valid".
 
 Two places this validator is deliberately *stricter* than ParaBun's,
 both cases where ParaBun is permissive by omission rather than by
 contract: `type: "date"` is checked (ParaBun has no `date` arm, so it
-falls through to permissive — and `date` is what lockstep emits for every
+falls through to permissive, and `date` is what lockstep emits for every
 temporal column), and `additionalProperties: false` is enforced.
 
 ## Notes

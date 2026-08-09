@@ -6,24 +6,24 @@ import { lowerPuiReactivity } from "../../para-preprocess/src/index.ts";
 
 // Golden test: the real Lyku component the C4 precursor hand-mapped.
 // The .svelte source is vendored as a frozen fixture (NOT read from the
-// sibling /raid/lyku checkout) so the test is hermetic — para's CI does
+// sibling /raid/lyku checkout) so the test is hermetic: para's CI does
 // not check out lyku. Refresh it deliberately if the codemod contract
 // changes, the same way you'd update any golden.
 const SRC = fileURLToPath(new URL("./fixtures/NotificationsPage.svelte", import.meta.url));
 const original = readFileSync(SRC, "utf8");
 const { code, notes } = svelteToPui(original);
 
-test("rule 1/2 — $state → signal (typed, generic, uninitialized)", () => {
+test("rule 1/2: $state → signal (typed, generic, uninitialized)", () => {
   expect(code).toContain("signal activeCategory: CategoryFilter = 'all';");
   expect(code).toContain("signal loading = true;");
   expect(code).toContain("signal offset = 0;");
   expect(code).toContain("signal deletingIds = new Set<bigint>();");
-  // uninitialized $state() for bind:this — synthesized `= undefined`
+  // uninitialized $state() for bind:this, synthesized `= undefined`
   expect(code).toContain("signal listEl: HTMLDivElement | undefined = undefined;");
   expect(code).not.toContain("$state(");
 });
 
-test("rule 3 — single-line + multi-line + object $derived", () => {
+test("rule 3: single-line + multi-line + object $derived", () => {
   expect(code).toContain("derived currentUser = stores.users.get(-1n);"); // single-line
   expect(code).toContain("derived allNotifications {"); // multi-line chained → block
   expect(code).toContain("derived filteredNotifications {"); // multi-line ternary → block
@@ -31,14 +31,14 @@ test("rule 3 — single-line + multi-line + object $derived", () => {
   expect(code).not.toMatch(/\$derived\b/);
 });
 
-test("rule 4 — $derived($store) → source + fromStore import", () => {
+test("rule 4: $derived($store) → source + fromStore import", () => {
   expect(code).toContain("source phrasebook = fromStore(phrasebookStore);");
   expect(code).toContain('import { fromStore } from "@lyku/para-signals";');
 });
 
-test("rule 5 — $effect → effect block; onMount left verbatim (keyword retired)", () => {
+test("rule 5: $effect → effect block; onMount left verbatim (keyword retired)", () => {
   // `mount` was retired 2026-05-17: it mapped to onMount(), a library
-  // call, not a Para primitive. The codemod no longer converts it — the
+  // call, not a Para primitive. The codemod no longer converts it: the
   // onMount call survives verbatim and lowerPuiReactivity auto-imports it.
   expect(code).toContain("effect {");
   expect(code).toMatch(/\bonMount\s*\(\s*\(\)\s*=>\s*\{/);
@@ -46,7 +46,7 @@ test("rule 5 — $effect → effect block; onMount left verbatim (keyword retire
   expect(code).not.toMatch(/\$effect\s*\(/);
 });
 
-test("rule 6 — onMount dropped from svelte import (lowering auto-imports it), untrack kept", () => {
+test("rule 6: onMount dropped from svelte import (lowering auto-imports it), untrack kept", () => {
   expect(code).toMatch(/import\s*\{\s*untrack\s*\}\s*from\s*['"]svelte['"]/);
   expect(code).not.toMatch(/import\s*\{[^}]*onMount[^}]*\}\s*from\s*['"]svelte['"]/);
 });

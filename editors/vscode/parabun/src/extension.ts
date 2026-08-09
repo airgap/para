@@ -109,7 +109,7 @@ function findBodyEnd(text: string, openBraceOffset: number): number {
   return len;
 }
 
-/** Find the end of an arrow expression body (no braces — terminated by
+/** Find the end of an arrow expression body (no braces, terminated by
  *  a semicolon, closing paren/bracket at depth 0, or end of statement). */
 function findArrowExprEnd(text: string, startOffset: number): number {
   let parenDepth = 0;
@@ -248,14 +248,14 @@ function findFunctionBodyStart(text: string, from: number): number {
 
   // If we see an identifier (single-param arrow: pure x => ...), find =>
   if (i < len && /[a-zA-Z_$]/.test(text[i]) && text[i] !== "{") {
-    // Could be function name or single-param arrow — scan for ( or =>
+    // Could be function name or single-param arrow: scan for ( or =>
     const scan = text.substring(i);
     const arrowMatch = scan.match(/^\w+\s*=>\s*/);
     if (arrowMatch) {
       const bodyOff = i + arrowMatch[0].length;
       return bodyOff;
     }
-    // Function name — skip it
+    // Function name. Skip it
     while (i < len && /\w/.test(text[i])) i++;
     while (i < len && /\s/.test(text[i])) i++;
   }
@@ -314,7 +314,7 @@ function findFunctionBodyStart(text: string, from: number): number {
           const closeBrace = findBodyEnd(text, i);
           const after = text.substring(closeBrace + 1).match(/^\s*(=>|{)/);
           if (after) {
-            // This `{` is part of the type — skip to matching `}`
+            // This `{` is part of the type. Skip to matching `}`
             i = closeBrace + 1;
             continue;
           }
@@ -375,7 +375,7 @@ function updatePureDecorations(editor: vscode.TextEditor) {
   const nameRanges: vscode.Range[] = [];
 
   // Match pure function/arrow declarations. The `(` / `<` cases use a
-  // lookahead so `m[0]` ends at `pure` (or `pure async`) — findFunctionBodyStart
+  // lookahead so `m[0]` ends at `pure` (or `pure async`): findFunctionBodyStart
   // needs to see the full signature starting at `<` or `(`, not midway through
   // its param list.
   const pureRe = /\b(pure)\s+(?:async\s+)?(?:fun(?:ction)?\b|(?=<[\w\s,=]+>\s*\()|(?=\()|\w+\s*=>)/g;
@@ -510,7 +510,7 @@ async function updatePureCallDecorations(editor: vscode.TextEditor, defNameRange
 
 // Returns the parabun binary's --revision output (e.g. "1.3.14-canary.1+abcdef0"
 // for release, "1.3.14-debug+abcdef0" for debug). Empty string if the binary
-// can't be found or doesn't respond. Synchronous + capped at 5 s — runs once
+// can't be found or doesn't respond. Synchronous + capped at 5 s. Runs once
 // at extension activation, not on hot paths.
 function parabunRevision(lspPath: string): string {
   try {
@@ -529,7 +529,7 @@ export function activate(context: vscode.ExtensionContext) {
   const lspScript = context.asAbsolutePath("server/parabun-lsp.ts");
 
   // Refuse to start against a debug-build parabun. The ASAN + tracing
-  // overhead in debug makes the LSP unusable — typescript module load
+  // overhead in debug makes the LSP unusable: typescript module load
   // alone takes ~10 s (vs 100 ms release), and cold semantic-diagnostic
   // latency on @lyku-sized graphs goes from ~4 s release to ~40 s
   // debug. Better to fail loudly with a clear message than to silently

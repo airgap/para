@@ -1,5 +1,5 @@
 // Browser shim for `parabun:llm`. The upstream is a from-scratch GGUF +
-// Llama runtime with CUDA kernels. Browser-side inference is doable —
+// Llama runtime with CUDA kernels. Browser-side inference is doable.
 // WebGPU compute shaders can run the matVec/attention kernels, but
 // that's a substantial port. V1 of this shim throws on load with a
 // clear explanation; applications should import `parabun:llm` lazily and

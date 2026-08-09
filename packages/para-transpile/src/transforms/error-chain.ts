@@ -5,7 +5,7 @@
 // Left-associative: `p ..> f ..! a ..& b` becomes
 // `p.then(f).catch(a).finally(b)`.
 //
-// Scanner-based, not regex — handlers can be bare arrow functions
+// Scanner-based, not regex: handlers can be bare arrow functions
 // (`p ..> r => r.json()`) which themselves can contain parens, calls and
 // other chain operators inside parens (`..! err => (recover() ..! fb)`).
 // A regex with depth-blind lookaheads either cuts the handler short at
@@ -49,7 +49,7 @@ function rewriteChainsInCode(code: string): string {
 
     // Consume the WHOLE left-associative chain: LHS (..* handler)+
     // The chain ends when we hit a token that is NOT another chain op at
-    // depth 0 — i.e. an expression terminator. We accumulate the LHS
+    // depth 0, i.e. an expression terminator. We accumulate the LHS
     // into `acc` so each subsequent chain op chains onto the rewritten
     // result of the prior one.
     // Recurse into the LHS so an LHS that itself contains chain ops inside
@@ -61,7 +61,7 @@ function rewriteChainsInCode(code: string): string {
       if (here === null) break;
       const handlerStart = cursor + here.len;
       const handlerEnd = scanHandlerEnd(code, handlerStart);
-      // Recurse into the handler — handlers may contain parens whose
+      // Recurse into the handler: handlers may contain parens whose
       // contents themselves include chain ops (`err => (recover() ..! fb)`).
       const handlerRaw = code.slice(handlerStart, handlerEnd).trim();
       const handler = rewriteHandler(handlerRaw, here.method);
@@ -78,13 +78,13 @@ function rewriteChainsInCode(code: string): string {
 
 /**
  * Rewrite a single chain-op handler. For ..> and ..!, a leading `.` after
- * trimming is the leading-dot sugar — `..> .json()` becomes the arrow
+ * trimming is the leading-dot sugar: `..> .json()` becomes the arrow
  * `(__pcv) => __pcv.json()`. ..& deliberately doesn't get the sugar (a
  * `.finally` callback receives no value, so there's no implicit receiver
  * to bind), so a leading-dot handler under ..& is left as-is and will
  * surface as a runtime error / parse error downstream.
  *
- * The synthesized param name (`__pcv` — "para chain value") matches what
+ * The synthesized param name (`__pcv`, "para chain value") matches what
  * the canonical Zig parser emits, so parity-fixture comparisons stay
  * byte-equivalent.
  */
@@ -102,7 +102,7 @@ function rewriteHandler(raw: string, method: "catch" | "finally" | "then"): stri
 
 /**
  * Find the next chain operator anywhere in `code`. We deliberately do NOT
- * track paren depth here — `(recover() ..! fb)` contains a real chain that
+ * track paren depth here: `(recover() ..! fb)` contains a real chain that
  * needs rewriting too. The LHS/handler scanners DO track depth, so the
  * inner chain's LHS won't escape its `(...)` and outer chains stay outside.
  * The lex pass already excluded strings/templates/comments before we got
@@ -120,7 +120,7 @@ function findNextTopLevelChainOp(code: string, from: number): { pos: number; op:
 /**
  * Walk backward from `opPos` through balanced parens to find the start of
  * the LHS expression. Stops at the first depth-0 expression boundary.
- * `=>` is a HARD boundary — a chain op inside an arrow body chains onto
+ * `=>` is a HARD boundary: a chain op inside an arrow body chains onto
  * the body's expression, not back over the `=>`.
  */
 function scanLhsStart(code: string, opPos: number): number {
@@ -147,13 +147,13 @@ function scanLhsStart(code: string, opPos: number): number {
         return i + 1;
       }
       if (c === ">" && code[i - 1] === "=") {
-        // `=>` arrow — LHS starts immediately after.
+        // `=>` arrow: LHS starts immediately after.
         let j = i + 1;
         while (j < code.length && /\s/.test(code[j]!)) j++;
         return j;
       }
       if (c === "=") {
-        // Plain `=` assignment — but skip compound operators.
+        // Plain `=` assignment, but skip compound operators.
         const left = code[i - 1] ?? "";
         const right = code[i + 1] ?? "";
         if (right === ">") {
@@ -163,7 +163,7 @@ function scanLhsStart(code: string, opPos: number): number {
           return j;
         }
         if (/[!<>+\-*/%&|^?.=]/.test(left) || right === "=") {
-          // Compound — keep walking.
+          // Compound: keep walking.
           i--;
           continue;
         }
@@ -183,7 +183,7 @@ function scanLhsStart(code: string, opPos: number): number {
 /**
  * Walk forward from `startPos` through balanced parens to find the end of
  * the handler expression. Stops at the next top-level chain op or
- * statement terminator. Handler bodies may include bare arrow functions —
+ * statement terminator. Handler bodies may include bare arrow functions:
  * a top-level chain op inside an arrow body terminates the body (matches
  * the Zig parser's `in_chain_op_arrow_rhs` behavior). Parens reset depth
  * so a user can opt back in to nested chain ops by wrapping with `(...)`.

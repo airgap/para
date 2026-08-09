@@ -1,13 +1,13 @@
 /**
- * pui-check — batch type-checker for `.pui` Para UI components.
+ * pui-check: batch type-checker for `.pui` Para UI components.
  *
  * svelte-check cannot do this job: it hardcodes the `.svelte` extension
  * for its svelte2tsx projection and its bundled language service is inert
  * against the `@lyku/para-ui` fork (verified: planted errors in both .pui
  * and shadow .svelte files go uncaught). This CLI reuses the pipeline the
- * parabun LSP already trusts for in-editor `.pui` intelligence —
+ * parabun LSP already trusts for in-editor `.pui` intelligence:
  * editors/lsp/pui-transform.ts: Para lowering (magic-string, mapped) →
- * svelte2tsx → typed TSX with a chained bidirectional sourcemap — and
+ * svelte2tsx → typed TSX with a chained bidirectional sourcemap, and
  * packages it as a one-shot program check:
  *
  *   1. Resolve the workspace tsconfig (nearest to --workspace, or
@@ -15,11 +15,11 @@
  *      resolve, which is where SvelteKit's $app/$lib paths and ambient
  *      .d.ts roots live.
  *   2. Project every `.pui`/`.svelte` under the workspace to `<file>.tsx`
- *      (virtual — never written to disk).
+ *      (virtual, never written to disk).
  *   3. Build ONE ts.Program over: the tsconfig's own ambient roots (so
  *      app.d.ts, $types, generated paraglide types all participate), the
  *      svelte2tsx shims (inlined in this bundle as text, served virtually
- *      — the target workspace does not need svelte2tsx installed), and
+ *     , the target workspace does not need svelte2tsx installed), and
  *      the projections. An import of `./X.pui` resolves to the virtual
  *      `X.pui.tsx` through normal extension-appending resolution, so
  *      cross-component prop types are real.
@@ -39,10 +39,10 @@ import * as path from "node:path";
 import { puiTransform, type PuiTransform } from "../../../editors/lsp/pui-transform";
 // Inlined by esbuild (`loader: { ".d.ts": "text" }`): the ambient globals
 // svelte2tsx's generated TSX references (__sveltets_*, svelteHTML, …).
-// Served as virtual .d.ts roots — same move svelte-language-server makes.
-// @ts-expect-error — text import, typed by the bundler not tsc
+// Served as virtual .d.ts roots: same move svelte-language-server makes.
+// @ts-expect-error: text import, typed by the bundler not tsc
 import shimsV4 from "svelte2tsx/svelte-shims-v4.d.ts";
-// @ts-expect-error — text import
+// @ts-expect-error: text import
 import jsxV4 from "svelte2tsx/svelte-jsx-v4.d.ts";
 
 type Ts = typeof import("typescript");
@@ -83,7 +83,7 @@ function loadTypescript(workspace: string): Ts {
   try {
     return require("typescript");
   } catch {
-    console.error("pui-check: typescript not found — install it in the target workspace.");
+    console.error("pui-check: typescript not found. Install it in the target workspace.");
     process.exit(2);
   }
 }
@@ -132,14 +132,14 @@ function main() {
     console.error(`pui-check: failed to read ${cfgPath}: ${ts.flattenDiagnosticMessageText(cfgFile.error.messageText, "\n")}`);
     process.exit(2);
   }
-  // 5th arg (configFileName) is REQUIRED so `extends` resolves — a
+  // 5th arg (configFileName) is REQUIRED so `extends` resolves: a
   // SvelteKit tsconfig extends ./.svelte-kit/tsconfig.json, which is
   // where the $app/$lib/$types paths and ambient roots live.
   const parsed = ts.parseJsonConfigFileContent(cfgFile.config, ts.sys, path.dirname(cfgPath), undefined, cfgPath);
 
   const components = collectComponents(ws);
   if (components.length === 0) {
-    console.log("pui-check: no .pui/.svelte components found — nothing to do.");
+    console.log("pui-check: no .pui/.svelte components found. Nothing to do.");
     process.exit(0);
   }
 
@@ -160,7 +160,7 @@ function main() {
       projections.set(src + ".tsx", { srcPath: src, code: tr.code, tr });
     } catch (e) {
       // A component svelte2tsx cannot parse is a real defect in the file
-      // (or a lowering bug) — either way the check must FAIL, not crash.
+      // (or a lowering bug): either way the check must FAIL, not crash.
       report(src, 1, 1, 0, `failed to project component: ${(e as Error)?.message ?? e}`);
       projections.set(src + ".tsx", { srcPath: src, code: "export {};\n", tr: null });
     }
@@ -169,7 +169,7 @@ function main() {
 
   // The svelte2tsx ambient shims, virtual under the workspace so their
   // `import('svelte')` references resolve against the WORKSPACE's svelte
-  // (the @lyku/para-ui alias there — its .d.ts surface is stock).
+  // (the @lyku/para-ui alias there, its .d.ts surface is stock).
   const shimDir = path.join(ws, ".para-check-virtual");
   const shimFiles = new Map<string, string>([
     [path.join(shimDir, "svelte-shims-v4.d.ts"), shimsV4 as unknown as string],
@@ -184,7 +184,7 @@ function main() {
   // The Para lowering auto-imports lifecycle/context helpers from
   // "@lyku/para-ui". Consumer workspaces usually install the fork AS
   // svelte (`"svelte": "npm:@lyku/para-ui"`), so the bare specifier has
-  // nothing to resolve to. Mirror that alias in reverse — only when
+  // nothing to resolve to. Mirror that alias in reverse: only when
   // @lyku/para-ui is genuinely absent and svelte is present.
   const paraUiPaths: Record<string, string[]> = {};
   if (!fs.existsSync(path.join(ws, "node_modules", "@lyku", "para-ui", "package.json")) && fs.existsSync(path.join(ws, "node_modules", "svelte", "package.json"))) {

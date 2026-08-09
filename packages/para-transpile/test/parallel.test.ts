@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { transpile } from "../src/index";
 
-describe("parallel — expression form `parallel { … }`", () => {
+describe("parallel: expression form `parallel { … }`", () => {
   test("single key", () => {
     expect(transpile("const x = await parallel { user: fetchUser(id) };").trim()).toBe(
       "const x = await Promise.all([fetchUser(id)]).then(([__pb0]) => ({ user: __pb0 }));",
     );
   });
 
-  test("multi key — keys come out in source order", () => {
+  test("multi key: keys come out in source order", () => {
     expect(
       transpile(
         "const x = await parallel { user: fetchUser(id), posts: fetchPosts(id), comments: fetchComments(id) };",
@@ -61,7 +61,7 @@ describe("parallel — expression form `parallel { … }`", () => {
   });
 });
 
-describe("parallel — statement form `parallel let|const … = …, …`", () => {
+describe("parallel: statement form `parallel let|const … = …, …`", () => {
   test("single decl with let", () => {
     expect(transpile("parallel let x = f();").trim()).toBe("const [x] = await Promise.all([f()]);");
   });
@@ -105,16 +105,16 @@ describe("parallel — statement form `parallel let|const … = …, …`", () =
   });
 
   test("does not fire when `parallel` is a plain identifier", () => {
-    // `parallel(x)` — call expression, leave alone.
+    // `parallel(x)`: call expression, leave alone.
     expect(transpile("parallel(x);").trim()).toBe("parallel(x);");
-    // `parallel.foo` — property access, leave alone.
+    // `parallel.foo`: property access, leave alone.
     expect(transpile("parallel.foo;").trim()).toBe("parallel.foo;");
-    // `parallel = 1` — assignment, leave alone.
+    // `parallel = 1`: assignment, leave alone.
     expect(transpile("parallel = 1;").trim()).toBe("parallel = 1;");
   });
 });
 
-describe("para — shorthand alias for parallel", () => {
+describe("para: shorthand alias for parallel", () => {
   test("statement form: `para let` lowers identically to `parallel let`", () => {
     expect(transpile("para let a = f1(), b = f2();").trim()).toBe(transpile("parallel let a = f1(), b = f2();").trim());
   });
@@ -172,7 +172,7 @@ describe("para — shorthand alias for parallel", () => {
   });
 
   test("`para` followed by an unrelated identifier doesn't trigger", () => {
-    // e.g. `paratrooper`, `paragraph` — `\b` keeps these from matching.
+    // e.g. `paratrooper`, `paragraph`: `\b` keeps these from matching.
     expect(transpile("const paragraph = 1; const paratrooper = 2;").trim()).toBe(
       "const paragraph = 1; const paratrooper = 2;",
     );

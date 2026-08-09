@@ -1,12 +1,12 @@
 # @lyku/para-transpile
 
-Standalone transpiler for [Para](https://para.script.dev) — turns `.pts` source into standard JavaScript that imports from the matching `@lyku/para-*` npm packages. No Parabun runtime required at build time.
+Standalone transpiler for [Para](https://para.script.dev). Turns `.pts` source into standard JavaScript that imports from the matching `@lyku/para-*` npm packages. No Parabun runtime required at build time.
 
 The canonical Para transpiler lives inside the [Parabun](https://parabun.script.dev) fork of Bun (Zig). This package is a TypeScript reimplementation, intended for projects that don't (or can't) install Parabun on their build host: browsers, Lambda, Cloudflare Workers, Deno, Node, the [Para playground](https://para.script.dev/play).
 
-## Status — IN DEVELOPMENT, not yet released
+## Status: IN DEVELOPMENT, not yet released
 
-`package.json` is `private: true` and version `0.0.0-dev`. We don't ship a partial transpiler — the npm publish gate stays closed until every Para desugaring listed below works end-to-end and matches the canonical Zig parser's output.
+`package.json` is `private: true` and version `0.0.0-dev`. We don't ship a partial transpiler. The npm publish gate stays closed until every Para desugaring listed below works end-to-end and matches the canonical Zig parser's output.
 
 | Feature | Status |
 | --- | --- |

@@ -2,7 +2,7 @@
 
 Central registry of application ext type IDs (0–127) used by Para's
 schema-driven MessagePack codec and any future Para binary formats.
-**Collisions are forever** — reserve here before emitting a new ext type
+**Collisions are forever**: reserve here before emitting a new ext type
 anywhere in the Para ecosystem (para-schema-recursion-plan.md §5.1).
 
 | ID | Byte | Name | Meaning | Emitter |
@@ -12,8 +12,8 @@ anywhere in the Para ecosystem (para-schema-recursion-plan.md §5.1).
 ## Collision notes
 
 - **msgpackr** (consumer-injectable in para-sync transports) documents its
-  own ext types in the lowercase-letter range — records `0x72`, bundled
-  strings `0x62`, plus structured-clone extensions — and the standard
+  own ext types in the lowercase-letter range: records `0x72`, bundled
+  strings `0x62`, plus structured-clone extensions, and the standard
   timestamp ext `-1`. Para IDs stay out of `0x61`–`0x7a` to keep shared
   pipes unambiguous.
 - The msgpack byte `0xc1` (never-used per spec) is a separate namespace
@@ -22,4 +22,4 @@ anywhere in the Para ecosystem (para-schema-recursion-plan.md §5.1).
 
 ## Reserved for future use
 
-- `identity: preserve` DAG sharing reuses `REF` (plan §5.4) — no new ID.
+- `identity: preserve` DAG sharing reuses `REF` (plan §5.4): no new ID.

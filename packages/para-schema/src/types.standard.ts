@@ -1,5 +1,5 @@
 /**
- * Standard (downgraded) Para schema types — for vanilla TS projects that
+ * Standard (downgraded) Para schema types: for vanilla TS projects that
  * consume schema-bearing packages without opting into the brand machinery.
  *
  * Every constraint brand collapses to its base TS primitive:
@@ -72,7 +72,7 @@ export interface ObjectConstraints {
 
 export type Result<T, E> = { readonly tag: "Ok"; readonly value: T } | { readonly tag: "Err"; readonly error: E };
 
-// The `& S` intersection is NOT part of the brand machinery — it's how the
+// The `& S` intersection is NOT part of the brand machinery: it's how the
 // body's own keys (`properties`, `required`, `version`, …) stay reachable on the
 // schema value, which is what lets a consumer compose a new schema out of an
 // existing one's columns. Standard mode collapses the brands, not the body.

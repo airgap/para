@@ -1,24 +1,24 @@
-// @ts-nocheck — Para browser-lowering pass (canonical home; consumed by Parascape + E)
-// Para Lang — `async { … }` block expressions.
+// @ts-nocheck: Para browser-lowering pass (canonical home; consumed by Parascape + E)
+// Para Lang: `async { … }` block expressions.
 //
 //   async { STMTS }   →   (async () => { STMTS })()
 //
 // An async block runs its body in an async IIFE and evaluates to the
 // resulting Promise. It's the shorthand for the ubiquitous
-// `(async () => { … })()` pattern — fire-and-forget async work from a
+// `(async () => { … })()` pattern: fire-and-forget async work from a
 // sync context, or `await async { … }` to inline-await a block.
 //
 //   // fire-and-forget from a sync handler
 //   onClick={() => { async { await save(); refresh(); }; }}
 //
-//   // value form — `data` is a Promise
+//   // value form: `data` is a Promise
 //   const data = async { const r = await fetch(url); return r.json(); };
 //
 //   // awaited inline
 //   const json = await async { return (await fetch(url)).json(); };
 //
 // Why this is safe to claim: `async` must be followed by `function`,
-// `(`, or an arrow parameter in valid JS/TS — `async {` is a syntax
+// `(`, or an arrow parameter in valid JS/TS: `async {` is a syntax
 // error today, so there's no construct to collide with. (Modelled on
 // Rust's `async { … }` block, which produces a Future the same way
 // this produces a Promise.)
@@ -26,12 +26,12 @@
 // Detection is bracket / string / template / comment aware, and
 // recurses into the block body so nested `async { … }` blocks lower
 // too. We are careful NOT to touch:
-//   async function … {        — `async` followed by `function`
-//   async () => { … }         — `async` followed by `(`
-//   async x => { … }          — `async` followed by an identifier
-//   { async foo() {} }         — object/class async METHOD shorthand
+//   async function … {       : `async` followed by `function`
+//   async () => { … }        : `async` followed by `(`
+//   async x => { … }         : `async` followed by an identifier
+//   { async foo() {} }        : object/class async METHOD shorthand
 //                                (`async` followed by the method name)
-//   someAsync, asyncThing      — `async` as part of a longer identifier
+//   someAsync, asyncThing     : `async` as part of a longer identifier
 
 const isIdentStart = c => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_" || c === "$";
 const isIdentCont = c => isIdentStart(c) || (c >= "0" && c <= "9");
@@ -153,7 +153,7 @@ export function lowerAsyncBlock(src) {
         i = bodyEnd;
         continue;
       }
-      // `async` not followed by `{` — a real async function /
+      // `async` not followed by `{`: a real async function /
       // arrow / method / identifier. Emit the keyword and keep
       // scanning from after it (so its body isn't re-examined as
       // a fresh top-level token, which is harmless but wasteful).

@@ -63,7 +63,7 @@ test("integrates with the `source` lowering pattern (no leak)", () => {
   s.set("b");
   expect(x).toBe("b");
   teardown(); // $effect.pre cleanup on unmount
-  __src.dispose?.(); // onDestroy — no-op
+  __src.dispose?.(); // onDestroy: no-op
   s.set("c");
   expect(x).toBe("b"); // unmounted: stale-free
   expect(s._subCount()).toBe(0);

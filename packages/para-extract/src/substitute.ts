@@ -107,7 +107,7 @@ export function substituteSource(source: string, filePath: string): SubstituteRe
     const start = m.index! + m[1].length;
     let end = m.index! + m[0].length;
     if (!fresh) {
-      // Marker form — consume the previously substituted body too.
+      // Marker form: consume the previously substituted body too.
       const bodyStart = source.indexOf("{", end);
       if (bodyStart === -1) throw new Error("para-extract: marker without a following body");
       end = balancedObjectEnd(source, bodyStart);

@@ -51,7 +51,7 @@ test("`match` inside a string is not rewritten", () => {
 
 test("nested match: outer span covers the whole expression (arms discarded)", () => {
   const src = `const r = match a { 1 => match b { 2 => "x", _ => "y" }, _ => "z" }`;
-  // Outer brace-match swallows the inner match too — fine, arms are
+  // Outer brace-match swallows the inner match too. Fine, arms are
   // discarded into the `any` stub anyway.
   expect(stub(src)).toBe(`const r = ((__pm: any): any => null as any)(a)`);
 });

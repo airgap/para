@@ -5,7 +5,7 @@
  * language service can type-check it.  Position-preserving where
  * possible (pure keyword → same-length whitespace).
  *
- * This is NOT the runtime transpiler — Bun's Zig parser handles
+ * This is NOT the runtime transpiler. Bun's Zig parser handles
  * actual compilation.  This only needs to satisfy the type checker.
  */
 
@@ -14,8 +14,8 @@ const PARABUN_SYNTAX_RE =
 
 // LYK-827: `_` in expression contexts (e.g. `arr.filter(_ > 0)`) wraps
 // in `(__pu => _ > 0)` at parse time in the Zig parser. The ts-plugin
-// doesn't replicate that wrap — too risky with regex on real-world
-// expressions — but it still has to make tsc accept the source as-is
+// doesn't replicate that wrap, too risky with regex on real-world
+// expressions, but it still has to make tsc accept the source as-is
 // for IDE type-checking on unstaged Para code. Pattern matches a `_`
 // token used in expression position (with an operator on at least one
 // side or inside a function-call arg expression), distinguishing from
@@ -26,12 +26,12 @@ const UNDERSCORE_DECL_RE = /(?:^|[\s;{(,])(?:const|let|var)\s+_\b/m;
 
 export function containsParabunSyntax(text: string): boolean {
   // The `_`-lambda check is its own predicate (gated by the declaration
-  // sniff) — we don't want to fire the full Para transform pipeline on
+  // sniff). We don't want to fire the full Para transform pipeline on
   // any file that happens to use lodash with `_.map`, only on files
   // where `_` appears as a free expression-position reference.
   if (PARABUN_SYNTAX_RE.test(text)) return true;
   if (UNDERSCORE_EXPR_RE.test(text) && !UNDERSCORE_DECL_RE.test(text)) {
-    // Defend against import / param forms — same checks
+    // Defend against import / param forms, same checks
     // `injectUnderscoreLambdaHelper` uses, lifted here so the
     // detection and the inject agree.
     if (/import\s*\{[^}]*\b_\b[^}]*\}/.test(text)) return false;
@@ -44,7 +44,7 @@ export function containsParabunSyntax(text: string): boolean {
 export function transformParabunToTS(source: string): string {
   if (!containsParabunSyntax(source)) return source;
 
-  // Whole-source transforms first — these need multi-line awareness
+  // Whole-source transforms first. These need multi-line awareness
   // (`schema X { ... }` body, `match e { ... }` arms).
   source = transformModelDecls(source);
   source = transformSchemaEqualsBlock(source);
@@ -101,7 +101,7 @@ function expandFun(line: string): string {
   return line.replace(/(?<!\.)(\bfun)\b(?=\s*[a-zA-Z_$*(<])/g, "function");
 }
 
-// `(req:: User)` → `(req:  User)` — strip the second `:` so TS sees a normal
+// `(req:: User)` → `(req:  User)`. Strip the second `:` so TS sees a normal
 // type annotation. Position-preserving.
 function stripValidationMarker(line: string): string {
   return line.replace(/(:):/g, "$1 ");
@@ -109,7 +109,7 @@ function stripValidationMarker(line: string): string {
 
 // `expr is Type` / `expr is not Type` → `__paraIs_Type(expr)` /
 // `!__paraIs_Type(expr)`. Helper functions are injected at the top of
-// the source by `injectIsHelpers` — they're typed `(v: any): v is Type`,
+// the source by `injectIsHelpers`. They're typed `(v: any): v is Type`,
 // so TS narrows `expr` inside `if (...) { ... }` bodies.
 function transformIsTypeGuard(line: string): string {
   line = line.replace(
@@ -137,7 +137,7 @@ function injectIsHelpers(source: string): string {
 }
 
 // Single-line `schema X from <expr>` and single-line `schema X = <expr>`
-// (where `<expr>` is NOT an open-brace literal — `transformSchemaEqualsBlock`
+// (where `<expr>` is NOT an open-brace literal: `transformSchemaEqualsBlock`
 // already handled `schema X = { ... }`). Wraps the rhs in
 // `__paraFromSchema(() => (<expr>))` so tsc sees the typed result.
 function transformModelFromLine(line: string): string {
@@ -160,7 +160,7 @@ function transformModelFromLine(line: string): string {
 
 // Emit a TS type alias so a `schema X` declaration is usable in BOTH
 // value AND type position. The alias resolves to `(typeof X)["schema"]`
-// — the unwrapped JSON Schema body — so `PostgresTableModel<X>` and
+// (the unwrapped JSON Schema body) so `PostgresTableModel<X>` and
 // other heavy generics skip the `{...} & S` intersection walk that
 // the full helper return type forces. Measured 1.5-2.2x speedup on
 // warm edits in lyku.
@@ -221,7 +221,7 @@ function transformSchemaEqualsBlock(source: string): string {
   return out.join("");
 }
 
-// `effect { ... }` → `(() => { ... }` — preserves the body for type-check.
+// `effect { ... }` → `(() => { ... }`: preserves the body for type-check.
 // Single-statement `effect EXPR;` → blank `effect` to 6 spaces
 // (column-preserving), leaving a plain expression statement for the TS
 // pass. Same disambiguation as the parser/grammar: `effect(` `effect.`
@@ -245,24 +245,24 @@ function transformWhenLine(line: string): string {
   return line;
 }
 
-// `arena { ... }` → `(() => { ... })()` (sync IIFE) — DeferGC scope is runtime-only.
+// `arena { ... }` → `(() => { ... })()` (sync IIFE). DeferGC scope is runtime-only.
 function transformArenaLine(line: string): string {
   return line.replace(/\b(arena)(\s*\{)/g, (_m, _kw, brace) => `(() =>${brace}`);
 }
 
-// `signal NAME = EXPR` → `let NAME: any = EXPR` — type-check fidelity only.
+// `signal NAME = EXPR` → `let NAME: any = EXPR`: type-check fidelity only.
 function transformSignalLine(line: string): string {
   // Rewrite `signal NAME` to `let NAME: any` so tsc accepts the decl.
-  // Also strip the `every MS_EXPR` postfix — that part of the syntax
+  // Also strip the `every MS_EXPR` postfix. That part of the syntax
   // tells the parser to wrap the binding in a setInterval, but tsc
   // can't parse `=> RHS every MS` as a value-expression. Dropping the
   // postfix at the ts-plugin layer leaves tsc with `let NAME: any =
   // RHS;` which is well-formed. The runtime emission is unaffected
-  // because the Zig parser handles the real lowering — the ts-plugin
+  // because the Zig parser handles the real lowering. The ts-plugin
   // is IDE-only.
   let out = line.replace(/\b(signal)\s+([A-Za-z_$][\w$]*)\b/g, (_m, _kw, name) => `let ${name}: any`);
   // `every <expr>` up to end-of-line / `;` / `,`. The regex is loose
-  // (no nested-paren tracking) — fine for `every 1_000` / `every
+  // (no nested-paren tracking), fine for `every 1_000` / `every
   // config.tickMs` / `every fn()` style postfixes; edge cases with
   // commas inside the MS expression would need a real parser, but
   // those don't show up in practice for an interval period.
@@ -272,7 +272,7 @@ function transformSignalLine(line: string): string {
 
 // Inline `schema { ... }` expression → `__paraFromSchema(() => ({ ... }))`.
 // Wrapping in the typed helper (declared by `injectSchemaHelper`) means
-// tsc sees the expression's type as `SchemaShape & body` — `.parse` /
+// tsc sees the expression's type as `SchemaShape & body`: `.parse` /
 // `.is` / `.schema` / field-accessors all resolve at the call site.
 // Brace-balanced; strings/comments skipped so a `}` inside a literal
 // can't close the body early.
@@ -327,7 +327,7 @@ function transformInlineSchemaExpr(source: string): string {
 
 // Prepend an ambient declaration of `__paraFromSchema` to the source
 // when any of the schema transforms emitted a call. The return type
-// is the JSON Schema literal `S` plus the runtime decoration —
+// is the JSON Schema literal `S` plus the runtime decoration:
 // `.parse` / `.is` / `.schema` / field-accessors resolve naturally at
 // the call site without a per-file `.d.ts` shim. Wide `S` (no `<const>`
 // type parameter) so we don't compound tsc's literal-inference memory
@@ -423,11 +423,11 @@ function injectSchemaHelper(source: string): string {
 // LYK-827: when `_` is used as a lambda shorthand (`arr.filter(_ > 0)`),
 // the Zig parser wraps the surrounding arg expression in a fresh
 // `(__pu => ...)` arrow at parse time. The ts-plugin lives on the
-// IDE side and feeds tsc unstaged Para source — without help, tsc
+// IDE side and feeds tsc unstaged Para source. Without help, tsc
 // would flag every expression-position `_` as "Cannot find name _".
 //
 // Rather than replicate the full expression-tree walk in regex (the
-// arg shapes that need wrapping are arbitrary JS expressions —
+// arg shapes that need wrapping are arbitrary JS expressions,
 // fragile), we inject a single ambient `declare const _: any;`. tsc
 // then accepts `_` as a valid identifier of type `any`, and `any`
 // flows through any operation including being assigned to a callable
@@ -442,7 +442,7 @@ function injectUnderscoreLambdaHelper(source: string): string {
   if (!UNDERSCORE_EXPR_RE.test(source)) return source;
   if (UNDERSCORE_DECL_RE.test(source)) return source;
   // Also bail if `_` is destructured (import { _ }) or a function
-  // parameter — both look like declarations to a human, and our
+  // parameter. Both look like declarations to a human, and our
   // ambient `_` would conflict.
   if (/import\s*\{[^}]*\b_\b[^}]*\}/.test(source)) return source;
   if (/\bfunction\s+[A-Za-z0-9_$]*\s*\([^)]*\b_\b[^)]*\)/.test(source)) return source;
@@ -485,7 +485,7 @@ function isInsideStringOrComment(source: string, offset: number): boolean {
 // is augmented with the const decl. Body lines only get rewritten when
 // they have Para-specific type fragments (refinements, array+bounds,
 // lowercase Para aliases). Plain TS field types pass through verbatim
-// — preserving hover positions for the common pg-models case.
+// Preserving hover positions for the common pg-models case.
 function transformModelDecls(source: string): string {
   return source.replace(
     /\b(export\s+)?schema\s+([A-Za-z_$][\w$]*)(\s*\{)([\s\S]*?)(\n\s*)\}/g,
@@ -550,7 +550,7 @@ function paraTypeFragmentToTs(raw: string): string {
   // Array `[T]` or `[T](min..=max)` → `T[]`.
   const arrayMatch = raw.match(/^\[([A-Za-z_$][\w$]*)\](?:\([^)]*\))?$/);
   if (arrayMatch) return `${paraBaseTypeToTs(arrayMatch[1])}[]`;
-  // Range refinement `int(0..150)` / `str(1..=64)` — strip the parens.
+  // Range refinement `int(0..150)` / `str(1..=64)`. Strip the parens.
   const rangeMatch = raw.match(/^([A-Za-z_$][\w$]*)\([^)]*\)$/);
   if (rangeMatch) return paraBaseTypeToTs(rangeMatch[1]);
   return paraBaseTypeToTs(raw);
@@ -585,7 +585,7 @@ function paraBaseTypeToTs(t: string): string {
 // `match EXPR { arm => result, ... }` → `((__m: any): any => null as any)(EXPR)`
 // Same shape as the runtime emit (IIFE consuming the subject) so TS sees a
 // well-typed expression. Body close is found by depth-balanced scan from
-// the opening `{` — the older regex (`[\s\S]*?\n\s*\}`) couldn't terminate
+// the opening `{`. The older regex (`[\s\S]*?\n\s*\}`) couldn't terminate
 // a single-line `match e { ... }` and swallowed the enclosing function's
 // closing brace, which made tsc parse past EOF.
 function transformMatchExprs(source: string): string {

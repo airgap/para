@@ -6,7 +6,7 @@
 // index statically imports `transformBareRead` + `transformUsingPolyfill`
 // (src/index.ts), which pull `@babel/*`. Bundling that into the LSP
 // pui-transform graph breaks any build without `@babel/*` resolvable
-// (parabun CI — caused build #235's failure). This entry re-exports only
+// (parabun CI: caused build #235's failure). This entry re-exports only
 // the leaf transforms, each of which is `@babel`-free (rewriteCodeRegions
 // / scanner-based, no scope analysis, no helper injection).
 //

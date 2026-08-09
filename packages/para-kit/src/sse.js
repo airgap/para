@@ -1,17 +1,17 @@
-// @lyku/para-kit — SyncEnvelopes over SSE (plan §6 items 2–3, step 5).
+// @lyku/para-kit: SyncEnvelopes over SSE (plan §6 items 2–3, step 5).
 //
 // Server: `createSyncEndpoint` returns SvelteKit-shaped handlers built on
-// web standards only (Request/Response/ReadableStream), so they run — and
-// test — anywhere those exist. GET is the read path: the client names its
+// web standards only (Request/Response/ReadableStream), so they run (and
+// test) anywhere those exist. GET is the read path: the client names its
 // keys (?key=…&key=…), the endpoint ensures any server sources behind them
 // are running (via the host), sends each source's CURRENT envelope as the
 // baseline, then streams every transport publish for those keys as an SSE
 // `sync` event. POST is the §13.1 intent path, delegated to the app's
 // handler. The client cannot tell an L-server key from any other keyed
-// channel — it's all SyncEnvelopes on keys, which is the point.
+// channel. It's all SyncEnvelopes on keys, which is the point.
 //
 // Client: `SseTransport` implements the para-sync dumb-pipe SUBSCRIBE side
-// over an EventSource; `publish` throws — the read path is one-directional,
+// over an EventSource; `publish` throws: the read path is one-directional,
 // writes go through POST intents. The EventSource is injected (a factory),
 // so browsers pass the real one and tests pass a harness that drives the
 // GET handler directly. Key-set changes coalesce per microtask into one
@@ -112,7 +112,7 @@ export function createSyncEndpoint({ transport, host, onIntent }) {
  * client's connection MULTIPLEXER, not the server pipe, and it remembers the
  * last envelope seen per key. A LATE JOINER (a second component binding a
  * key the connection already carries) is replayed that envelope on
- * subscribe — otherwise it would sit valueless until the next server
+ * subscribe, otherwise it would sit valueless until the next server
  * change, since the endpoint's baseline event was consumed by the first
  * subscriber's connection. Replay is idempotent by construction: envelopes
  * carry (schema_version, sequence), so an already-initialized replica
@@ -124,7 +124,7 @@ export function createSyncEndpoint({ transport, host, onIntent }) {
 export function createSseTransport({ url, eventSource }) {
   /** @type {Map<string, Set<(envelope: any) => void>>} */
   const handlers = new Map();
-  /** @type {Map<string, any>} last envelope per key — the late-joiner baseline */
+  /** @type {Map<string, any>} last envelope per key: the late-joiner baseline */
   const lastEnvelope = new Map();
   let es;
   let scheduled = false;
@@ -181,7 +181,7 @@ export function createSseTransport({ url, eventSource }) {
     },
     publish() {
       throw new Error(
-        "SseTransport is the read side — writes cross the boundary as POST intents (§13.1), never as client publishes"
+        "SseTransport is the read side: writes cross the boundary as POST intents (§13.1), never as client publishes"
       );
     },
     close() {

@@ -1,4 +1,4 @@
-// @ts-nocheck — Para browser-lowering pass (canonical home; consumed by Parascape + E)
+// @ts-nocheck: Para browser-lowering pass (canonical home; consumed by Parascape + E)
 function _nullishCoalesce(lhs, rhsFn) {
   if (lhs != null) {
     return lhs;
@@ -106,7 +106,7 @@ function skipBalanced(src, i) {
 
 // Find the offset of the FIRST `|>` token in `src` that isn't
 // inside a string / template literal / comment. Brackets are NOT
-// skipped — a pipeline can validly appear inside `()` (grouping or
+// skipped: a pipeline can validly appear inside `()` (grouping or
 // IIFE), `{}` (function / block body), or `[]` (array element).
 // Returns -1 if none.
 function findTopLevelPipe(src) {
@@ -145,7 +145,7 @@ function findLHSStart(src, pipePos) {
   // Walk backward from pipePos - 1, tracking bracket depth (depth
   // INCREASES as we go back through closing brackets, decreases at
   // opening brackets). When we see an opening bracket with depth=0,
-  // the LHS started AFTER that bracket — return one past the bracket.
+  // the LHS started AFTER that bracket: return one past the bracket.
   let i = pipePos - 1;
   let depth = 0;
   // Skip trailing whitespace just before `|>`.
@@ -185,7 +185,7 @@ function findLHSStart(src, pipePos) {
       continue;
     }
     if (c === "`") {
-      // walk back through ${} interpolations is complex — assume the
+      // walk back through ${} interpolations is complex, assume the
       // template is opaque and just find its matching backtick.
       i--;
       while (i >= 0 && src[i] !== "`") i--;
@@ -197,15 +197,15 @@ function findLHSStart(src, pipePos) {
     if (c === "=") {
       const prev = src[i - 1];
       if (prev === "=" || prev === "!" || prev === "<" || prev === ">") {
-        // == / === / != / <= / >= are operators — continue past them
+        // == / === / != / <= / >= are operators, continue past them
         i--;
         continue;
       }
-      // Assignment — LHS starts after this `=`
+      // Assignment: LHS starts after this `=`
       return i + 1;
     }
     // Keywords that bound the LHS: return / await / yield / => / `in` / `of`
-    // Check if the previous chars form one of these — scan back over
+    // Check if the previous chars form one of these: scan back over
     // an identifier and compare.
     if (isIdentCont(c)) {
       let j = i;
@@ -229,7 +229,7 @@ function findLHSStart(src, pipePos) {
       i = j;
       continue;
     }
-    // Arrow `=>` — already handled by `=` case via the equal sign,
+    // Arrow `=>`: already handled by `=` case via the equal sign,
     // but `>` alone here means a comparison.
     i--;
   }
@@ -419,7 +419,7 @@ export function lowerPipeline(src) {
     const lhs = src.slice(lhsStart, pos).trim();
     const rhs = src.slice(pos + 2, rhsEnd);
     if (lhs.length === 0 || rhs.trim().length === 0) {
-      // Malformed — bail out to avoid infinite loop.
+      // Malformed: bail out to avoid infinite loop.
       return src;
     }
     const folded = fold(lhs, rhs);
@@ -431,7 +431,7 @@ export function lowerPipeline(src) {
 // PreprocessorGroup that wraps lowerPipeline. Runs on every script
 // block (both `<script lang="pts">` and `<script lang="ts">` so a
 // scenario can pipe in either dialect). Markup currently isn't
-// scanned — pipelines in event handler attributes (`onclick={a |> b}`)
+// scanned: pipelines in event handler attributes (`onclick={a |> b}`)
 // would need a markup pass; defer until a demo actually wants that.
 export default function lowerPipelinePreprocess() {
   return {

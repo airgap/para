@@ -1,4 +1,4 @@
-// @ts-nocheck — Para browser-lowering pass (canonical home; consumed by Parascape + E)
+// @ts-nocheck: Para browser-lowering pass (canonical home; consumed by Parascape + E)
  function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) { return lhs; } else { return rhsFn(); } } function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]; let i = 1; while (i < ops.length) { const op = ops[i]; const fn = ops[i + 1]; i += 2; if ((op === 'optionalAccess' || op === 'optionalCall') && value == null) { return undefined; } if (op === 'access' || op === 'optionalAccess') { lastAccessLHS = value; value = fn(value); } else if (op === 'call' || op === 'optionalCall') { value = fn((...args) => value.call(lastAccessLHS, ...args)); lastAccessLHS = undefined; } } return value; }
 
 
@@ -268,7 +268,7 @@ function processJsExpression(src, state) {
       i = stop;
       continue;
     }
-    // Param form `(args) => <JSX>` — only when in expression-start
+    // Param form `(args) => <JSX>`: only when in expression-start
     // position (so we don't mis-lift `f(...)` calls).
     const atBoundary =
       lastSignificant === "" ||
@@ -289,7 +289,7 @@ function processJsExpression(src, state) {
         innermostScope(state).lifted.push(`{#snippet ${id}(${arrow.paramsRaw})}${processedBody}{/snippet}`);
         // Inline the snippet-marker assignment in the use site so it
         // runs BEFORE the consumer (e.g. <Table>) receives the value.
-        // Pure side effect + return-self via the comma operator —
+        // Pure side effect + return-self via the comma operator:
         // the consumer ends up with the same snippet reference, now
         // carrying `.__para_snippet = true`. Lets <Table>'s cell-render
         // path distinguish snippet from plain `(item)=>string` in
@@ -321,9 +321,9 @@ function processJsExpression(src, state) {
 
 /**
  * Walk markup. Recognizes:
- *   • `<script>`, `<style>`, `<!-- … -->` — pass through verbatim
- *   • `{#each … as …}` / `{/each}` — open / close lift scope
- *   • `\sIDENT={…}` attribute body — hand off to processJsExpression
+ *   • `<script>`, `<style>`, `<!-- … -->`: pass through verbatim
+ *   • `{#each … as …}` / `{/each}`: open / close lift scope
+ *   • `\sIDENT={…}` attribute body: hand off to processJsExpression
  *
  * Generated snippets from each handler land in `state.moduleScope` or
  * the innermost open each scope (the latter emitted just before the
@@ -355,7 +355,7 @@ function processMarkup(source, state) {
       i = end;
       continue;
     }
-    // {#each …} — push a scope.
+    // {#each …}: push a scope.
     if (source.startsWith("{#each", i)) {
       const end = source.indexOf("}", i);
       if (end === -1) {
@@ -368,7 +368,7 @@ function processMarkup(source, state) {
       i = end + 1;
       continue;
     }
-    // {/each} — flush this scope's snippets just BEFORE the close,
+    // {/each}: flush this scope's snippets just BEFORE the close,
     // so they live inside the each body and can refer to its
     // iteration bindings.
     if (source.startsWith("{/each}", i)) {

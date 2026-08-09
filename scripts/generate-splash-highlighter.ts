@@ -2,9 +2,9 @@
 // Regenerates the splash demo highlighter's kw-regex pair from the
 // catalog (src/language-surface.ts).
 //
-// The target file is /raid/para-site/public/transpile.js — the
+// The target file is /raid/para-site/public/transpile.js: the
 // inline regex-based highlighter used by the splash demo on
-// para.script.dev. It's NOT TextMate / NOT Shiki — just a small
+// para.script.dev. It's NOT TextMate / NOT Shiki: just a small
 // alternation regex. Catalog drives the keyword list inside a marker
 // block.
 //
@@ -14,7 +14,7 @@
 //
 // The .pts-side regex unions SPLASH_PARA_KEYWORDS with
 // SPLASH_JS_KEYWORDS. The .js-side regex uses SPLASH_JS_KEYWORDS only
-// — the desugared output never contains Para keywords.
+//: the desugared output never contains Para keywords.
 
 import { SPLASH_JS_KEYWORDS, SPLASH_PARA_KEYWORDS } from "../src/language-surface";
 import * as fs from "node:fs";
@@ -56,7 +56,7 @@ function regenerate(content: string, paraKws: string[], jsKws: string[]): string
 
 function main(): void {
   if (!fs.existsSync(TARGET)) {
-    console.log(`⊘ skipping ${TARGET} (file absent — para-site not checked out)`);
+    console.log(`⊘ skipping ${TARGET} (file absent: para-site not checked out)`);
     return;
   }
   const original = fs.readFileSync(TARGET, "utf8");

@@ -24,7 +24,7 @@ mutate toggleLike of post {
   optimistic(_) { post.liked = !post.liked; post.likeCount += post.liked ? 1 : -1; }
 }
 </script>`);
-  // the second statement sees the NEW liked — draft-replay preserves that
+  // the second statement sees the NEW liked: draft-replay preserves that
   expect(out).toContain(
     "let __post_d = { ...__cur }; __post_d.liked = !__post_d.liked; __post_d.likeCount += __post_d.liked ? 1 : -1; return __post_d;"
   );

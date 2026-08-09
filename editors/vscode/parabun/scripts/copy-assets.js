@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, "..");
 
 // Refuse to build a .vsix if the local parabun on PATH is a debug
 // build. The extension's activate() now guards against running with a
-// debug build (the ASAN + tracing overhead makes the LSP unusable —
+// debug build (the ASAN + tracing overhead makes the LSP unusable:
 // 38 s cold start vs 4 s release), but catching it earlier at build
 // time keeps a developer from packaging + installing a .vsix that
 // will then refuse to start.
@@ -14,7 +14,7 @@ const root = path.resolve(__dirname, "..");
 // CI escape hatch: PARABUN_VSIX_SKIP_BINARY_CHECK=1. The Jenkins VSIX
 // stage runs in a docker container that doesn't ship a parabun binary
 // (it's published as a separate artifact by the build stages, paired
-// by SHA in the release notes). Skipping the check there is safe —
+// by SHA in the release notes). Skipping the check there is safe:
 // the local-dev footgun the check is guarding against doesn't apply
 // to CI.
 if (process.env.PARABUN_VSIX_SKIP_BINARY_CHECK === "1") {
@@ -26,7 +26,7 @@ if (process.env.PARABUN_VSIX_SKIP_BINARY_CHECK === "1") {
       console.error(
         `\nERROR: the \`parabun\` binary on PATH is a debug build (${revision}).\n` +
           `Debug builds are 10-100x slower than release and make the installed\n` +
-          `extension unusable — and its activate() now refuses to start.\n\n` +
+          `extension unusable, and its activate() now refuses to start.\n\n` +
           `Fix one of:\n` +
           `  1. Build & symlink release:\n` +
           `       cd /raid/parabun && bun run build:release\n` +
@@ -40,7 +40,7 @@ if (process.env.PARABUN_VSIX_SKIP_BINARY_CHECK === "1") {
     console.error(
       "\nERROR: failed to invoke `parabun --revision` to verify the binary is a release build.\n" +
         "Make sure `parabun` is on PATH and points to a release build.\n" +
-        "(Set PARABUN_VSIX_SKIP_BINARY_CHECK=1 to bypass — only do this in CI.)\n" +
+        "(Set PARABUN_VSIX_SKIP_BINARY_CHECK=1 to bypass: only do this in CI.)\n" +
         `Underlying error: ${e.message ?? e}\n`,
     );
     process.exit(1);
@@ -86,7 +86,7 @@ for (const dep of styleDeps) {
 // LYK-880 Slice B: bundle + ship parabun-pui-transform so the LSP can
 // `require("parabun-pui-transform")` for in-.pui type intelligence. One
 // self-contained file (svelte2tsx + svelte + @lyku/para-preprocess +
-// trace-mapping inlined) — no recursive svelte node_modules ship.
+// trace-mapping inlined): no recursive svelte node_modules ship.
 const lspDir = path.resolve(root, "../../lsp");
 require("node:child_process").execFileSync(process.execPath, ["esbuild-pui-transform.mjs"], {
   cwd: lspDir,
@@ -101,7 +101,7 @@ fs.writeFileSync(
   JSON.stringify({ name: "parabun-pui-transform", version: "0.1.0", main: "index.js" }, null, 2),
 );
 
-// Copy TS plugin (built output only — no symlink, no npm dep)
+// Copy TS plugin (built output only, no symlink, no npm dep)
 const pluginSrc = path.resolve(root, "../../ts-plugin");
 const pluginDest = path.join(root, "node_modules/parabun-ts-plugin");
 
@@ -121,7 +121,7 @@ for (const f of fs.readdirSync(path.join(pluginSrc, "out"))) {
   fs.copyFileSync(path.join(pluginSrc, "out", f), path.join(pluginDest, "out", f));
 }
 
-// (typescript is inlined into the plugin's esbuild bundle — no nested
+// (typescript is inlined into the plugin's esbuild bundle, no nested
 // node_modules copy needed; see editors/ts-plugin/esbuild.mjs)
 
 console.log("copied: server/parabun-lsp.ts, node_modules/parabun-ts-plugin/");

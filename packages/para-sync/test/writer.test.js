@@ -25,7 +25,7 @@ describe("createOpIds", () => {
   });
 });
 
-describe("createIntent — Tier-2 optimistic write machine (§13.1)", () => {
+describe("createIntent: Tier-2 optimistic write machine (§13.1)", () => {
   test("apply flips the local cell, tags (opId,v), emits, and goes pending", () => {
     const { r } = seededReplica({ liked: false, count: 0 });
     const sent = [];
@@ -109,7 +109,7 @@ describe("createIntent — Tier-2 optimistic write machine (§13.1)", () => {
     expect(a.v).toBe(1);
     expect(b.v).toBe(2);
 
-    // stale echo of v1 arrives — a newer local intent (v2) exists → suppress
+    // stale echo of v1 arrives, a newer local intent (v2) exists → suppress
     expect(toggle.onEcho({ opId: a.opId, v: a.v })).toBe("suppress");
     expect(r.peek()).toEqual({ liked: false }); // NOT flipped back to liked
     expect(toggle.stats.suppressed).toBe(1);

@@ -1,4 +1,4 @@
-// @lyku/para-sync — client-side replica reconciler (Tier 1 core).
+// @lyku/para-sync: client-side replica reconciler (Tier 1 core).
 //
 // The heart of the client half of synced<T>: take the SSR seed and the stream
 // of change envelopes, gate every inbound value through the schema `parse`,
@@ -16,14 +16,14 @@ import { mergeFields } from "./authority.js";
 /** @typedef {import('./transport.js').SyncTransport} SyncTransport */
 
 /**
- * A schema's parse result — matches para-schema's Result<T, string>.
+ * A schema's parse result: matches para-schema's Result<T, string>.
  * @typedef {{ tag: 'Ok', value: any } | { tag: 'Err', error: string }} Result
  */
 
 /**
  * Anything with a `parse` returning {@link Result}. In production this is a
  * para-schema `SchemaValue`; in tests it can be a hand-rolled gate. The replica
- * depends only on this shape, never on para-schema directly — which is also why
+ * depends only on this shape, never on para-schema directly, which is also why
  * the client gates branch on `.tag` instead of using the throw-on-Err `::`
  * convention (a malformed delta must trigger recovery, not crash the apply).
  * @typedef {{ parse(v: unknown): Result }} SyncSchema
@@ -54,7 +54,7 @@ import { mergeFields } from "./authority.js";
 /**
  * Compare two "major.minor" version strings by MAJOR only. Returns true iff both
  * are well-formed and their majors differ (a breaking change). Missing/malformed
- * versions return false — let the parse gate be the backstop rather than block on
+ * versions return false: let the parse gate be the backstop rather than block on
  * a version-format quirk.
  * @param {string | undefined} a
  * @param {string | undefined} b
@@ -107,7 +107,7 @@ export function createClientReplica({
   // owns it so the write path (writer.js) and the reconciler share ONE monotonic
   // counter (INV-sync-12). Untouched by Tier-1 ingest; only nextIntent() bumps it.
   let intentVersion = 0;
-  // §13.2: the last server-confirmed value — the common `base` a @merge field
+  // §13.2: the last server-confirmed value, the common `base` a @merge field
   // reconciles against (only used when `authority` is provided).
   let lastConfirmed;
 
@@ -131,7 +131,7 @@ export function createClientReplica({
     stats.applied++;
     // Read-side durability: snapshot the confirmed envelope so a cold start
     // (offline / reload) can seed from it before any network. Only server-
-    // authoritative commits are persisted — never the optimistic overlay
+    // authoritative commits are persisted, never the optimistic overlay
     // (applyLocal), so the persisted value is a clean replay baseline (§13.5).
     if (persist) {
       try {
@@ -152,7 +152,7 @@ export function createClientReplica({
     pending = (async () => {
       try {
         const snap = await refetch();
-        // null is a legitimate server answer — "no envelope for this key"
+        // null is a legitimate server answer: "no envelope for this key"
         // (nothing synced yet, or deleted). Land on stale EXPLICITLY: before
         // this guard it reached ingest, NPE'd on .schema_version, and only
         // ended up stale because the catch swallowed the crash.
@@ -175,7 +175,7 @@ export function createClientReplica({
 
     // ── schema-version gate ──
     // A breaking (major) schema-version difference means the value was produced
-    // against an incompatible shape. Don't apply it — the parse gate would
+    // against an incompatible shape. Don't apply it: the parse gate would
     // likely reject it too, but the version is the explicit, earlier signal and
     // tells us this is "different shape" (refetch), not "behind but compatible".
     // A minor difference (same major) is compatible and falls through to parse.
@@ -194,7 +194,7 @@ export function createClientReplica({
     if (res.tag !== "Ok") {
       stats.parseErrors++;
       setMeta({ status: "skew" });
-      // Don't poison the cell. Recover via a known-good snapshot — but never
+      // Don't poison the cell. Recover via a known-good snapshot, but never
       // refetch in response to a refetch result (avoids an Err→refetch loop).
       if (source !== "refetch") startRefetch();
       return;
@@ -226,7 +226,7 @@ export function createClientReplica({
     // Gap: one or more envelopes were missed. v2 step 5 → refetch the full
     // snapshot and resync. (Under the full-object delta model the gapped
     // envelope already carries the complete current value, so committing it
-    // directly would be correct and cheaper — a documented future optimization;
+    // directly would be correct and cheaper: a documented future optimization;
     // we follow v2's explicit gap→refetch here.)
     stats.gaps++;
     startRefetch();
@@ -255,13 +255,13 @@ export function createClientReplica({
     meta: () => meta.get(),
     /** reconcile metadata (untracked) */
     peekMeta: () => meta.peek(),
-    /** observability counters — read directly */
+    /** observability counters: read directly */
     stats,
     /** resolves when no recovery refetch is in flight (test/await aid) */
     whenIdle: () => pending,
     // ── Tier-2 seams (§13.1 `mutate`) ───────────────────────────────────────
     // The write path (writer.js) drives these; Tier-1-only consumers ignore them.
-    /** Bump + return the per-entity intent version — the optimistic-write counter. */
+    /** Bump + return the per-entity intent version: the optimistic-write counter. */
     nextIntent: () => (disposed ? intentVersion : ++intentVersion),
     /** Current intent version (untracked). */
     peekIntent: () => intentVersion,

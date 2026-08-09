@@ -35,7 +35,7 @@ describe("pipeline operator", () => {
   });
 
   // LYK-914: pipelines inside `{ }` statement blocks must lower (were
-  // silently no-op'd — the `findNextTopLevelPipe` brace-depth bug).
+  // silently no-op'd: the `findNextTopLevelPipe` brace-depth bug).
   describe("inside blocks (LYK-914)", () => {
     test("function body", () => {
       expect(transpile("function r(){ return data |> transform; }")).toBe("function r(){ return transform(data); }");
@@ -73,7 +73,7 @@ describe("pipeline operator", () => {
     });
 
     test("object/expression literal braces are deliberately left alone", () => {
-      // (LHS scan would mis-bound a `:`-keyed property value — separate,
+      // (LHS scan would mis-bound a `:`-keyed property value, separate,
       // rarer concern; leaving it unchanged is a no-op, not a regression.)
       expect(transpile("const o = { k: x |> f };")).toBe("const o = { k: x |> f };");
     });

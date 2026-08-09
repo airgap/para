@@ -1,8 +1,8 @@
-// @lyku/para-sync — Tier-2 optimistic write machine (§13.1 `mutate`).
+// @lyku/para-sync: Tier-2 optimistic write machine (§13.1 `mutate`).
 //
 // The write-side mirror of the Tier-1 read reconciler (client.js). The spine
-// bakes the MECHANICAL state machine — optimistic apply → op-id correlation →
-// server confirm/reject → stale-echo dedupe/suppression → rollback — while the
+// bakes the MECHANICAL state machine: optimistic apply → op-id correlation →
+// server confirm/reject → stale-echo dedupe/suppression → rollback, while the
 // `optimistic`/`rollback` arms stay hand-written typed deltas (INV-sync-12: one
 // monotonic-last-intent-wins discipline shared with the read reconciler; the
 // intent version comes from the replica's `nextIntent()`, the same counter).
@@ -24,7 +24,7 @@ import { guardOptimistic } from "./authority.js";
 
 /**
  * Monotonic, client-local op-id generator. The op-id order is the deterministic
- * replay anchor (§13.5), so ids MUST be issued in a total order — a counter,
+ * replay anchor (§13.5), so ids MUST be issued in a total order, a counter,
  * never randomness. Distinct instances (or a prefix) keep replicas from colliding.
  * @param {string} [prefix]
  * @returns {() => string}
@@ -50,7 +50,7 @@ export function createOpIds(prefix = "op") {
  * @param {object} opts
  * @param {ReplicaWriteSeam} opts.replica  a createClientReplica handle.
  * @param {(input: any, current: any) => any} opts.optimistic  the policy delta:
- *        the local value to show before the server answers. SHOULD be pure — it
+ *        the local value to show before the server answers. SHOULD be pure. It
  *        is re-run on offline replay (§13.5).
  * @param {(baseline: any, current: any) => any} [opts.rollback]  how to revert on
  *        reject; default snapshot-restore (return the pre-run baseline).
@@ -88,7 +88,7 @@ export function createIntent({
   const pending = new Map();
   // The confirmed baseline to revert to when a pending run drains on reject.
   // Captured when pending goes 0 -> 1, so it's the last authoritative value the
-  // optimistic writes started from — not an intermediate optimistic snapshot.
+  // optimistic writes started from, not an intermediate optimistic snapshot.
   let baseline;
   const status = signal(/** @type {WriterStatus} */ ("idle"));
   const stats = {
@@ -116,7 +116,7 @@ export function createIntent({
     const v = replica.nextIntent();
     const cur = replica.peek();
     // §13.2 write gate: a @server field the arm touched is reset to the current
-    // value — the client cannot write server-authoritative fields.
+    // value. The client cannot write server-authoritative fields.
     const value = guardOptimistic(authority, cur, optimistic(input, cur));
     replica.applyLocal(value);
     pending.set(opId, { v });

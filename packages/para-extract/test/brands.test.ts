@@ -1,4 +1,4 @@
-// Brand round-trip + checker-resolution — extractor plan step 4.
+// Brand round-trip + checker-resolution: extractor plan step 4.
 //
 // `para-schema` constraint brands (StringOf<{minLength: 3}> etc.) are
 // intersections with a phantom unique-symbol property carrying the
@@ -6,7 +6,7 @@
 // matching JSON Schema keywords in the Para validator's dialect
 // (integer: true → type "integer", const → enum). Requires the
 // `parabun` custom condition so the EXTENDED para-schema variant is
-// resolved — the standard variant collapses brands to bare primitives.
+// resolved: the standard variant collapses brands to bare primitives.
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import { createExtractorProgram, extractType } from "../src/index.ts";
@@ -67,7 +67,7 @@ describe("constraint brand round-trip", () => {
 });
 
 describe("FromDecl registry linkage (step 5)", () => {
-  test("FromDecl-marked types link to the existing registry node — never re-derived", () => {
+  test("FromDecl-marked types link to the existing registry node: never re-derived", () => {
     expect(extract("Feed")).toEqual({
       type: "object",
       properties: {

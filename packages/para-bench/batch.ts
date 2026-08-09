@@ -1,4 +1,4 @@
-// Batch transpile timer — runs UNDER PARABUN (the canonical Zig parser),
+// Batch transpile timer: runs UNDER PARABUN (the canonical Zig parser),
 // never under system bun. Reads a manifest of .pts paths, feeds each
 // through Bun.Transpiler, and records per-file in-process nanoseconds so
 // the orchestrator can split "compile time" from "spawn + startup
@@ -11,7 +11,7 @@
 //
 // Manifest: { "files": ["/abs/path/a.pts", ...] }
 // Out:      { perFileNs: { path: ns | null }, inProcessTotalNs, failures,
-//             rssBytes }  — null = that file failed to transpile.
+//             rssBytes }  : null = that file failed to transpile.
 
 const [manifestPath, outPath] = process.argv.slice(2);
 if (!manifestPath || !outPath) {

@@ -1,4 +1,4 @@
-// Type-level tests for @lyku/para-schema. These don't run any code — every
+// Type-level tests for @lyku/para-schema. These don't run any code: every
 // assertion is encoded in the type system. The test passes if `bun test`
 // can typecheck this file and the runtime expectations all evaluate true.
 import { describe, test, expect } from "bun:test";
@@ -16,11 +16,11 @@ import type {
 } from "../src/types.ts";
 
 // `Equal<A, B>` resolves to `true` only if A and B are mutually
-// assignable (covariant invariant — the standard ts-toolbelt trick).
+// assignable (covariant invariant: the standard ts-toolbelt trick).
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 type Expect<T extends true> = T;
 
-describe("@lyku/para-schema — extended variant", () => {
+describe("@lyku/para-schema: extended variant", () => {
   test("brands stay structurally distinct from their base type", () => {
     type _A = Expect<Equal<StringOf<{ minLength: 3 }>, StringOf<{ minLength: 3 }>>>;
     // raw string is NOT the same as a constrained brand:
@@ -78,7 +78,7 @@ describe("@lyku/para-schema — extended variant", () => {
     expect(true).toBe(true);
   });
 
-  test("Brand machinery is a phantom — runtime values pass through", () => {
+  test("Brand machinery is a phantom: runtime values pass through", () => {
     // At runtime, `StringOf<...>` is just a string. The brand is purely
     // type-level, so a literal string can be cast through `parse()`.
     const branded = "alice" as StringOf<{ minLength: 1 }>;

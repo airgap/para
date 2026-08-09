@@ -1,4 +1,4 @@
-// Browser shim for `bun:wrap` — the module parse-time desugarings import
+// Browser shim for `bun:wrap`: the module parse-time desugarings import
 // for memoization, defer, and range literals. Mirrors
 // src/runtime.bun.js so behavior matches Parabun's native output.
 
@@ -103,7 +103,7 @@ export const __parabunRangeInclusive = (s, e) => {
 };
 
 // Parabun: `Nd` decimal literals desugar to `__paraDec("N")`. Re-exported
-// from @lyku/para-decimal — the runtime shim resolves to the same Decimal
+// from @lyku/para-decimal: the runtime shim resolves to the same Decimal
 // class shipped natively, so behavior is identical between Parabun and
 // browsers/Node hosts.
 export { Decimal, __paraDec } from "@lyku/para-decimal";

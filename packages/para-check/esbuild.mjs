@@ -1,7 +1,7 @@
 // Bundle the checker into one self-contained CJS file, same pattern as
 // editors/lsp/esbuild-pui-transform.mjs: svelte2tsx + svelte (compiler) +
 // @lyku/para-preprocess + @lyku/para-transpile + magic-string +
-// trace-mapping inlined. TypeScript is the ONE external — the checker
+// trace-mapping inlined. TypeScript is the ONE external. The checker
 // resolves the TARGET workspace's typescript at runtime so diagnostics
 // match the version the project actually builds with (and so we never
 // ship a second copy of tsc).

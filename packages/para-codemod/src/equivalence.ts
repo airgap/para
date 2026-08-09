@@ -1,4 +1,4 @@
-// C4b — compile-equivalence gate. The real "is the migration safe?"
+// C4b: compile-equivalence gate. The real "is the migration safe?"
 // check, far stronger than "the transform didn't throw":
 //
 //   baseline = compile(original .svelte) via the fork Svelte compiler
@@ -9,8 +9,8 @@
 //   safe        := both compile (or both fail identically)
 //
 // This proves the codemod output is valid, compilable Svelte across a
-// real corpus — it does NOT prove identical runtime behaviour (that
-// needs per-component fixtures / the app test-suite — C4c). It is the
+// real corpus. It does NOT prove identical runtime behaviour (that
+// needs per-component fixtures / the app test-suite, C4c). It is the
 // strongest *automatable corpus-wide* gate and catches the codemod
 // producing broken/ill-formed output, the classic codemod failure.
 import { svelteToPui } from "./index.ts";

@@ -31,7 +31,7 @@ const defaultCapture: CaptureFn = async opts => {
  * `parabun:audio`'s `capture()` is async, so we return immediately with
  * an internal para signal seeded at 0 and forward the native
  * `peakLevel` signal into it once capture resolves. `dispose()` is
- * race-safe — if it runs before capture resolves, the stream is closed
+ * race-safe: if it runs before capture resolves, the stream is closed
  * on arrival. Device-unavailable is non-fatal: the meter stays at 0.
  *
  * Usage in a `.pui`:  `source level = audioMeter()`  then  `{level}`.
@@ -54,7 +54,7 @@ export function audioMeter(opts: AudioMeterOptions = {}): SourceHandle<number> {
       unsub = c.peakLevel.subscribe(v => level.set(v));
     })
     .catch(() => {
-      /* device unavailable / no ALSA — meter stays at 0, not fatal */
+      /* device unavailable / no ALSA: meter stays at 0, not fatal */
     });
 
   return {

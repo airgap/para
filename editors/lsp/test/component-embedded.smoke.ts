@@ -1,7 +1,7 @@
 #!/usr/bin/env parabun
 // Smoke test: parabun-lsp serves diagnostics on Svelte-shaped component files.
-// Covers both `.svelte` (legacy preprocessor flow — only `lang="pts"` etc.
-// engages) and `.pui` (Para's native UI format — file extension is the
+// Covers both `.svelte` (legacy preprocessor flow: only `lang="pts"` etc.
+// engages) and `.pui` (Para's native UI format: file extension is the
 // marker; bare `<script>` and `<script lang="ts">` engage too). Verifies
 // type-error diagnostics, clean-script silence, and well-formedness
 // (unclosed `<script>` tag).
@@ -16,7 +16,7 @@ const lspDir = path.resolve(__dirname, "..");
 // parabun-lsp `require("parabun-pui-transform")`s the bundled .pui
 // projection. The packaged .vsix gets it via copy-assets; a source run
 // has no equivalent, so without this the `.pui` cases never actually
-// exercise the projection (silent: they'd just see zero diagnostics —
+// exercise the projection (silent: they'd just see zero diagnostics,
 // which is precisely how the LYK-911/912 .pui bugs went unnoticed).
 // Build + install it into node_modules so the smoke is faithful.
 function ensurePuiTransformModule(): void {
@@ -135,7 +135,7 @@ const cases: Case[] = [
   // transformParabunToTS + PARABUN_SYNTAX_RE and produced a spurious
   // `Expected ";" but found "{"` (source "parabun") on valid .pui.
   {
-    // `mount` was retired as a keyword (2026-05-17) — lifecycle is plain
+    // `mount` was retired as a keyword (2026-05-17): lifecycle is plain
     // Svelte calls now, auto-imported by the projection (no false
     // `Cannot find name 'onMount'`). This also regression-covers that.
     uri: "file:///tmp/SmokeI.pui",
@@ -162,7 +162,7 @@ const cases: Case[] = [
     expect: "no-diag",
   },
   {
-    // Multi-line `derived = …` (ternary wrap) — projection must capture
+    // Multi-line `derived = …` (ternary wrap): projection must capture
     // the whole expression, not truncate at the first newline (was
     // "Unexpected ?"). Regression for the pui-transform derivedInitEnd fix.
     uri: "file:///tmp/SmokeJ2.pui",
@@ -179,7 +179,7 @@ const cases: Case[] = [
   },
   {
     // Single-statement `effect EXPR;` must project to valid TS so the
-    // REST of the file still type-checks — otherwise an unprojected
+    // REST of the file still type-checks, otherwise an unprojected
     // `effect appSync.sync();` poisons parsing and NO undefined-name
     // diagnostics fire anywhere (the +layout.pui `mosudnt`/`mount;`
     // report). Here `effect` line is clean; the typo on the next line
@@ -244,7 +244,7 @@ const cases: Case[] = [
     expectLine: 1,
   },
   // LYK-913: a `fun`-declared function must resolve with REAL types via
-  // the projection (was `any` — `fun` reached svelte2tsx unlowered).
+  // the projection (was `any`: `fun` reached svelte2tsx unlowered).
   // Proof: a type error THROUGH a `fun` function is caught. If `fun`
   // weren't lowered, `add` would be `any`, `add(1,2)` `any`, the
   // string-assignment would be allowed, and there'd be NO diagnostic.

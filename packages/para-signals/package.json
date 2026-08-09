@@ -1,7 +1,7 @@
 {
   "name": "@lyku/para-signals",
   "version": "0.0.1-pre.4",
-  "description": "Reactive primitives — signal / derived / effect / batch / untrack / proxySignal. Pure JS, runs on any JS runtime. Foundation of the para:* library suite; other modules expose their state through this. Pre-release: API may change before 0.1.0.",
+  "description": "Reactive primitives: signal / derived / effect / batch / untrack / proxySignal. Pure JS, runs on any JS runtime. Foundation of the para:* library suite; other modules expose their state through this. Pre-release: API may change before 0.1.0.",
   "publishConfig": {
     "access": "public"
   },

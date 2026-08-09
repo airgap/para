@@ -89,7 +89,7 @@ describe("read-side durability (createClientReplica persist)", () => {
     r3.dispose();
   });
 
-  test("only server-authoritative commits persist — never the optimistic overlay", () => {
+  test("only server-authoritative commits persist: never the optimistic overlay", () => {
     const snap = createMemorySnapshot();
     const t = new InProcessTransport();
     const r = createClientReplica({ key: "c:1", schema: anySchema, transport: t, seed: env(1, { n: 0 }), persist: snap });
@@ -100,7 +100,7 @@ describe("read-side durability (createClientReplica persist)", () => {
   });
 });
 
-describe("createQueuedIntent — offline queued mutations (§13.5)", () => {
+describe("createQueuedIntent: offline queued mutations (§13.5)", () => {
   test("apply persists a durable record; confirm/reject remove it", async () => {
     const store = createMemoryStore();
     const t = new InProcessTransport();

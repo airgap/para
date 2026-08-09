@@ -6,12 +6,12 @@
 //   --target=site     → /raid/para-site/src/grammars/parabun-inject.tmLanguage.json
 //   (no flag)         → emits both
 //
-// Editor and site targets share identical pattern arrays — the only
+// Editor and site targets share identical pattern arrays: the only
 // differences are wrapper fields (name vs displayName, injectTo, and
 // the injectionSelector ordering) that platforms care about.
 //
 // CI gate scripts/codegen/check-clean.ts (TODO) re-runs this and
-// fails if the committed files differ from the regenerated output —
+// fails if the committed files differ from the regenerated output,
 // catching the "added a keyword to the parser, forgot to update the
 // grammar" class of bug.
 
@@ -20,7 +20,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 // Repo-root relative for the editor target (works on dev box AND CI
-// docker workspace). Site target stays absolute — it's a sibling repo
+// docker workspace). Site target stays absolute: it's a sibling repo
 // that may or may not be present; the existsSync guards below handle
 // the "not present" case.
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
@@ -28,7 +28,7 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 type Target = "editor" | "site";
 
 /** Per-extension main grammar metadata. Shape mirrors what Shiki and
- *  VSCode TextMate consumers expect — site target embeds the base TS
+ *  VSCode TextMate consumers expect, site target embeds the base TS
  *  grammar via `embeddedLangs` (Shiki feature), editor target lets
  *  VSCode's TextMate engine load the base TS grammar by scope name. */
 interface PerExtension {
@@ -36,7 +36,7 @@ interface PerExtension {
   /** Grammar `name` field (Shiki uses this as the language id). */
   name: string;
   scopeName: string;
-  /** Shiki `embeddedLangs` — declares grammar dependencies, not a
+  /** Shiki `embeddedLangs`: declares grammar dependencies, not a
    *  fall-through. To actually pick up unmatched tokens (string
    *  literals, base TS/JS keywords, comments) the patterns array
    *  also needs `{ "include": <baseScope> }` as its last entry. */
@@ -96,7 +96,7 @@ const TARGETS: Record<Target, { injectPath: string; injectWrapper: (patterns: an
       // is `source.p*`. `.pui` files: the file is `source.pui` and the
       // `<script>` body is embedded `source.ts`/`source.js` (set by
       // parabun-ui.tmLanguage's contentName) regardless of `lang`, so we
-      // target that embedded scope *within* source.pui — keyword
+      // target that embedded scope *within* source.pui, keyword
       // highlighting then works for bare `<script>` / `lang="ts"` /
       // `lang="pts"` alike, without bleeding into the .pui markup.
       injectionSelector:
@@ -134,7 +134,7 @@ const TARGETS: Record<Target, { injectPath: string; injectWrapper: (patterns: an
 
 /** Build the TextMate `patterns` array for the inject grammar. Each
  *  catalog entry becomes one pattern; entries flagged `inject: false`
- *  (the underscore placeholder, for example — LSP-allowlist only) are
+ *  (the underscore placeholder, for example: LSP-allowlist only) are
  *  skipped. Captures get emitted only when the entry has a `scopes`
  *  map; entries with a `name` get a flat scope on the whole match. */
 function buildInjectPatterns(entries: LanguageEntry[]): any[] {

@@ -1,9 +1,9 @@
 # @lyku/para-mcp
 
-A Model Context Protocol implementation — **client and server**, both shapes of the spec. Two transports:
+A Model Context Protocol implementation, **client and server**, both shapes of the spec. Two transports:
 
-- **stdio** — subprocess over newline-delimited JSON-RPC 2.0
-- **ws** — WebSocket text frames (client only)
+- **stdio**: subprocess over newline-delimited JSON-RPC 2.0
+- **ws**: WebSocket text frames (client only)
 
 ## Client
 
@@ -41,7 +41,7 @@ The `tools` / `resources` / `prompts` arrays are populated by `connect()` and re
 
 ### Composing with `@lyku/para-assistant`
 
-The connection is structurally compatible with `@lyku/para-assistant`'s `tools:` option — the assistant flattens every tool the connection exposes into its own catalog and routes calls back through `conn.call`.
+The connection is structurally compatible with `@lyku/para-assistant`'s `tools:` option. The assistant flattens every tool the connection exposes into its own catalog and routes calls back through `conn.call`.
 
 ```js
 import assistant from "@lyku/para-assistant";
@@ -108,7 +108,7 @@ Throw `mcp.MCPError({ code, message, data? })` to send a specific JSON-RPC error
 ## Out of scope
 
 - HTTP / SSE transports (the WebSocket transport covers most server-push cases)
-- OAuth wrappers — pass credentials through `env` / `args` on stdio, or in the WS URL
+- OAuth wrappers: pass credentials through `env` / `args` on stdio, or in the WS URL
 - Sampling (server-initiated `sampling/createMessage` requests)
 - Completions (`completion/complete`)
 
@@ -118,4 +118,4 @@ Throw `mcp.MCPError({ code, message, data? })` to send a specific JSON-RPC error
 
 ## Status
 
-`private:true / 0.0.0-dev` — pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.
+`private:true / 0.0.0-dev`, pending the workspace split. See [parabun.script.dev](https://parabun.script.dev) for the runtime-bundled story today.

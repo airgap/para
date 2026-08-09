@@ -11,7 +11,7 @@
 // Region-based (skips strings/comments/regex) and position-preserving
 // per match, so it composes with the `.pui` LSP projection's per-line
 // MagicString mapping. `is not` is rewritten before `is` (the bare `is`
-// rule can't match `is not` anyway — `not` isn't Capitalized — but order
+// rule can't match `is not` anyway (`not` isn't Capitalized) but order
 // is explicit for clarity).
 //
 // Known shared limitation (not introduced here): a TS type-predicate
@@ -32,7 +32,7 @@ const RHS = String.raw`[A-Z][\w$]*`;
 //   S is not 'a' | 'b'  → (S !== "a" && S !== "b")
 // Operand restricted to an identifier / property path (mirrors the
 // parser's isSimpleMembershipSubject) so it's side-effect-free to repeat
-// and TS narrows it like a hand-written chain — non-simple operands don't
+// and TS narrows it like a hand-written chain. Non-simple operands don't
 // match (the parser errors on them). String & numeric literals only. The
 // chain is always parenthesised: a textual rewrite needs the parens to
 // keep precedence inside larger exprs (`a && S is 'x'|'y'`); parity's AST
@@ -73,7 +73,7 @@ export function transformIs(src: string): string {
   // Literal membership: the RHS literals are *string regions*, so this
   // can't run inside rewriteCodeRegions' per-code-chunk mapper (the
   // literals are masked from it). Run over the full text, but only rewrite
-  // a match whose operand starts in a CODE region — so an `is` sitting
+  // a match whose operand starts in a CODE region, so an `is` sitting
   // inside a string/comment is left alone. (Same documented toolchain-wide
   // limitation as the schema rule for a `function f(v): v is 'a'|'b'` TS
   // type-predicate annotation; the parity corpus does not cover it.)

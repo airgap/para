@@ -7,7 +7,7 @@ const env = (sequence, value = {}, schema_version = "1.0") => ({
   sequence,
 });
 
-describe("InProcessTransport — SyncTransport contract", () => {
+describe("InProcessTransport: SyncTransport contract", () => {
   test("publish delivers the envelope to a subscriber of that key", () => {
     const t = new InProcessTransport();
     const seen = [];

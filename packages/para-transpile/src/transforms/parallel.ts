@@ -1,16 +1,16 @@
-// `parallel` block — fan-out promise composition with name preservation.
-// `para` is an interchangeable shorthand — both keywords trigger the
+// `parallel` block: fan-out promise composition with name preservation.
+// `para` is an interchangeable shorthand. Both keywords trigger the
 // same lowering (mirrors the `fun` / `function` precedent).
 //
 // Two forms:
 //
-//   Form A — expression form:
+//   Form A (expression form):
 //     parallel { user: fetchUser(id), posts: fetchPosts(id) }
 //     →
 //     Promise.all([fetchUser(id), fetchPosts(id)])
 //       .then(([__pb0, __pb1]) => ({ user: __pb0, posts: __pb1 }))
 //
-//   Form B — statement form:
+//   Form B (statement form):
 //     parallel let user = fetchUser(id), posts = fetchPosts(id);
 //     →
 //     const [user, posts] = await Promise.all([fetchUser(id), fetchPosts(id)]);
@@ -23,10 +23,10 @@
 //
 // In Form B, `let` is kept as the surface keyword (mirrors the multi-decl
 // `let a=…, b=…` shape) but the lowering uses `const` because the binding
-// is an awaited tuple — rebinding doesn't fit. The names ARE in scope as
+// is an awaited tuple. Rebinding doesn't fit. The names ARE in scope as
 // `const`s after the statement.
 //
-// In Form A, the body is an OBJECT LITERAL — keys are identifier or string,
+// In Form A, the body is an OBJECT LITERAL. Keys are identifier or string,
 // values are expressions. NOT a block of statements.
 
 import { findMatchingBrace, scanRegions } from "../lex";
@@ -34,7 +34,7 @@ import { transformErrorChain } from "./error-chain";
 
 export function transformParallel(src: string): string {
   // Statement form must run BEFORE expression form: a `parallel let …` line
-  // contains an `=` whose RHS is an expression — if expression form ran
+  // contains an `=` whose RHS is an expression. If expression form ran
   // first and the keyword scan was lax, we could mis-fire on something like
   // `parallel { x: 1 }` followed by an unrelated `let`. They're independent
   // shapes today, but ordering keeps the door closed.
@@ -44,7 +44,7 @@ export function transformParallel(src: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Form B — `parallel let|const NAME = EXPR, …;`
+// Form B: `parallel let|const NAME = EXPR, …;`
 // ─────────────────────────────────────────────────────────────────────────
 
 function transformStatementForm(src: string): string {
@@ -75,7 +75,7 @@ function transformStatementForm(src: string): string {
       while (i < src.length && /[A-Za-z0-9_$]/.test(src[i]!)) i++;
       const name = src.slice(nameStart, i);
       if (!name) break;
-      // Optional TS type annotation: `: TYPE` — skip until `=` at depth 0.
+      // Optional TS type annotation: `: TYPE`. Skip until `=` at depth 0.
       while (i < src.length && /\s/.test(src[i]!)) i++;
       if (src[i] === ":") {
         // skip until `=` at depth 0
@@ -125,7 +125,7 @@ function transformStatementForm(src: string): string {
       break;
     }
     if (decls.length === 0) {
-      // Empty `parallel let;` — leave as a parse error from downstream JS.
+      // Empty `parallel let;`. Leave as a parse error from downstream JS.
       // We don't rewrite, the source flows through unchanged for this match.
       continue;
     }
@@ -133,7 +133,7 @@ function transformStatementForm(src: string): string {
     //
     // Apply error-chain (and any other per-RHS desugaring that's order-
     // sensitive) to each RHS BEFORE joining with `, `. We can't let the
-    // join string flow into transformErrorChain unprotected — that pass
+    // join string flow into transformErrorChain unprotected. That pass
     // doesn't treat top-level `,` as a chain boundary, so multiple
     // `..!`-bearing RHSes would collapse into one `.catch(…, …)` call.
     const names = decls.map(d => d.name).join(", ");
@@ -148,7 +148,7 @@ function transformStatementForm(src: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Form A — `parallel { key: expr, … }`
+// Form A: `parallel { key: expr, … }`
 // ─────────────────────────────────────────────────────────────────────────
 
 function transformExpressionForm(src: string): string {
@@ -158,9 +158,9 @@ function transformExpressionForm(src: string): string {
 
   // `parallel` (or `para` shorthand) at any position, immediately
   // followed (whitespace allowed) by `{`. We don't restrict to statement
-  // boundaries — expression form can show up after `await`, `=`, `(`,
+  // boundaries: expression form can show up after `await`, `=`, `(`,
   // `,`, `:` in an object, etc. The safety check is `inCode(matchStart)`
-  // — we never fire inside strings/comments.
+  // We never fire inside strings/comments.
   const re = /\b(?:parallel|para)(\s*)\{/g;
   let out = "";
   let last = 0;
@@ -168,7 +168,7 @@ function transformExpressionForm(src: string): string {
   while ((m = re.exec(src)) !== null) {
     const matchStart = m.index;
     if (!inCode(matchStart)) continue;
-    // Validate `parallel` is a standalone token — the prior char must not
+    // Validate `parallel` is a standalone token. The prior char must not
     // be an identifier char (the `\b` does the trailing side already).
     const prior = matchStart > 0 ? src[matchStart - 1]! : "";
     if (/[A-Za-z0-9_$]/.test(prior)) continue;
@@ -188,7 +188,7 @@ function transformExpressionForm(src: string): string {
 }
 
 type ParallelProp = {
-  /** The key text — either an identifier, a string literal (including
+  /** The key text: either an identifier, a string literal (including
    *  quotes), or a computed `[expr]` form. */
   key: string;
   /** Whether the key is a plain identifier (so it can show up bare on
@@ -229,7 +229,7 @@ function parseObjectBody(body: string): ParallelProp[] | null {
       }
       key = body.slice(start, i);
     } else if (c === "[") {
-      // Computed key — span up to matching `]`.
+      // Computed key. Span up to matching `]`.
       const start = i;
       i++;
       let depth = 1;
@@ -246,7 +246,7 @@ function parseObjectBody(body: string): ParallelProp[] | null {
       key = body.slice(start, i);
       identifierKey = key;
     } else {
-      // Unrecognized key shape — bail.
+      // Unrecognized key shape. Bail.
       return null;
     }
     // Expect `:`.
@@ -324,7 +324,7 @@ function parseObjectBody(body: string): ParallelProp[] | null {
 
 function emitParallelObject(props: ParallelProp[]): string {
   if (props.length === 0) {
-    // Empty — `parallel {}` resolves to `{}`.
+    // Empty: `parallel {}` resolves to `{}`.
     return `Promise.all([]).then(() => ({}))`;
   }
   // Per-value error-chain pass for the same reason as the statement form
@@ -336,7 +336,7 @@ function emitParallelObject(props: ParallelProp[]): string {
     .map((p, i) => {
       const k = p.identifierKey ?? p.key;
       // For identifier keys, shorthand-eligible only when name matches the
-      // temp name — ours never do, so always emit `key: __pbN`.
+      // temp name. Ours never do, so always emit `key: __pbN`.
       return `${k}: __pb${i}`;
     })
     .join(", ");

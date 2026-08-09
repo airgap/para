@@ -47,6 +47,6 @@ test("PARABUN_BIN pointing at a missing file throws clearly", () => {
 test("scaffold manifest (empty platforms) forces the escape hatch", () => {
   delete process.env.PARABUN_BIN;
   // Until Jenkins bakes real platform entries, package resolution must
-  // fail with an actionable message naming PARABUN_BIN — never silently.
+  // fail with an actionable message naming PARABUN_BIN: never silently.
   expect(() => resolveParabun()).toThrow(/PARABUN_BIN/);
 });

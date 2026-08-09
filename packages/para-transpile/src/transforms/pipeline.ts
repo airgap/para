@@ -4,7 +4,7 @@
 // `x |> .method()`→ x.method()  (method-shorthand: leading dot binds receiver)
 // `x |> f(_, y)`  → f(x, y)   (placeholder: `_` substitutes the LHS)
 //
-// Scanner-based, not regex — pipeline expressions span balanced parens
+// Scanner-based, not regex: pipeline expressions span balanced parens
 // (`x |> f(_, y)`) and chain through other `|>` operators, both of which
 // regex with depth-blind lookaheads gets wrong. We walk the code with a
 // brace-tracking pass to find the START and END of each pipeline
@@ -15,14 +15,14 @@
 // LYK-914: pipelines inside `{ }` STATEMENT blocks (function / arrow /
 // control / desugared effect|mount bodies) are real and must lower. We
 // recurse into statement-block braces. Object / expression braces are
-// left alone (their `:`-bound property values would mis-scan an LHS — a
-// separate, rarer concern), exactly as before — no regression there.
+// left alone (their `:`-bound property values would mis-scan an LHS, a
+// separate, rarer concern), exactly as before. No regression there.
 //
 // String / comment / regex handling: we can't use `rewriteCodeRegions`
 // (it chunks the source AT non-code spans, so a block containing a
 // string is split and brace-matching breaks). Instead we mask non-code
 // spans to same-length blanks and scan over THAT, while emitting slices
-// from the real source — brace/`|>` tokens inside strings are
+// from the real source: brace/`|>` tokens inside strings are
 // neutralised, positions stay aligned.
 
 import { scanRegions } from "../lex";
@@ -105,7 +105,7 @@ type Event = { kind: "pipe" | "block"; pos: number };
 /**
  * Next thing of interest at the current bracket level: a top-level `|>`,
  * or the `{` of a statement block (to recurse). `(`/`[` raise depth and
- * suppress pipes (operand grouping — unchanged behaviour). A `{` at
+ * suppress pipes (operand grouping, unchanged behaviour). A `{` at
  * paren/bracket depth 0 is either a statement block (→ recurse) or an
  * object/expression literal (→ skip its whole extent, leaving any inner
  * `|>` alone, as before). Braces nested inside `(`/`[` are skipped too.
@@ -124,10 +124,10 @@ function nextEvent(scan: string, from: number, hi: number, lo: number): Event | 
     }
     if (c === "{") {
       // A statement block (arrow/function/control body) must be recursed
-      // REGARDLESS of paren depth — `map(x => { … })`, `effect(() => { …
+      // REGARDLESS of paren depth: `map(x => { … })`, `effect(() => { …
       // })` (transformBlocks already lowered `effect { }` to that form)
       // put the body brace inside call parens. Object/expression braces
-      // are skipped wholesale (their inner `|>` is left alone — separate
+      // are skipped wholesale (their inner `|>` is left alone, separate
       // concern, no regression).
       if (isStatementBlock(scan, i, lo)) return { kind: "block", pos: i };
       i = matchBrace(scan, i, hi);

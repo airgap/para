@@ -1,6 +1,6 @@
 // Hardcoded module "@lyku/para-arrow"
 //
-// Tier 2 — in-memory columnar tables and a few compute primitives. Built
+// Tier 2: in-memory columnar tables and a few compute primitives. Built
 // to pair with @lyku/para-csv (CSV → typed columns → analytical work) and to
 // share buffers with @lyku/para-simd / parabun:gpu when those land.
 //
@@ -24,7 +24,7 @@
 //     spec uses FlatBuffers for schema metadata; landing those means
 //     vendoring or hand-rolling a FlatBuffers decoder. Tracked as the
 //     v2 ship of this module.
-//   - Parquet read/write — its own format, separate from IPC; v3.
+//   - Parquet read/write: its own format, separate from IPC; v3.
 //   - Filter / aggregation pushdown to parabun:gpu. Today the computes are
 //     scalar JS loops; once IPC is in, the SIMD / GPU paths pair with
 //     buffer-residency the same way parabun:image's filters do.
@@ -86,7 +86,7 @@ class Column {
 
   /**
    * Read the value at row `i`. Returns the JS-native form of the column's
-   * type — number / bigint / boolean / string / array (for list) — or null
+   * type: number / bigint / boolean / string / array (for list), or null
    * when the row is masked off by the validity bitmap.
    */
   get(i: number): ColumnGetResult {
@@ -157,7 +157,7 @@ class RecordBatch {
 
   /**
    * Materialize one row as a plain object. Useful for filters and ad-hoc
-   * scans — but for high-throughput code, prefer accessing columns by index
+   * scans, but for high-throughput code, prefer accessing columns by index
    * to skip the per-row property allocation.
    */
   row(i: number): Record<string, number | bigint | boolean | string | null> {
@@ -190,7 +190,7 @@ class Table {
 
   /**
    * Lazy concatenated column view. Reads cross batch boundaries by routing
-   * `get(i)` to the underlying batch — no upfront allocation. For most
+   * `get(i)` to the underlying batch: no upfront allocation. For most
    * compute paths this is fine; for cases where you really want one
    * contiguous typed array, materialize via `arrow.concat(table.column(...))`.
    */
@@ -223,7 +223,7 @@ class ConcatColumn extends Column {
       total += p.length;
       cum.push(total);
     }
-    // ConcatColumn doesn't materialize values — `get()` overrides routing.
+    // ConcatColumn doesn't materialize values: `get()` overrides routing.
     super(type, total, [] as string[]);
     this.#parts = parts;
     this.#cumLengths = cum;
@@ -283,7 +283,7 @@ function inferColumn(name: string, input: ColumnInput): { field: Field; column: 
     };
   }
   if (input instanceof Uint8Array) {
-    // Uint8Array as bool — values must already be 0 or 1.
+    // Uint8Array as bool: values must already be 0 or 1.
     return {
       field: { name, type: { kind: "bool" }, nullable: false },
       column: new Column({ kind: "bool" }, input.length, input),
@@ -291,7 +291,7 @@ function inferColumn(name: string, input: ColumnInput): { field: Field; column: 
   }
   if (Array.isArray(input)) {
     if (input.length === 0) {
-      // Empty arrays default to float64 — caller can override by passing a
+      // Empty arrays default to float64: caller can override by passing a
       // typed array if they need a different shape.
       return {
         field: { name, type: { kind: "float64" }, nullable: false },
@@ -360,7 +360,7 @@ function inferColumn(name: string, input: ColumnInput): { field: Field; column: 
     }
   }
   throw new TypeError(
-    `@lyku/para-arrow.recordBatch: column ${JSON.stringify(name)} has unsupported value type — pass a typed array, string[], boolean[], or number[]`,
+    `@lyku/para-arrow.recordBatch: column ${JSON.stringify(name)} has unsupported value type: pass a typed array, string[], boolean[], or number[]`,
   );
 }
 
@@ -369,7 +369,7 @@ function inferColumn(name: string, input: ColumnInput): { field: Field; column: 
  * are inferred from each value: typed arrays keep their type, `number[]`
  * promotes to Float64, `boolean[]` to Bool, `string[]` to Utf8.
  *
- * All columns must have the same length — otherwise this throws.
+ * All columns must have the same length, otherwise this throws.
  */
 function recordBatch(columns: Record<string, ColumnInput>): RecordBatch {
   const fields: Field[] = [];
@@ -380,7 +380,7 @@ function recordBatch(columns: Record<string, ColumnInput>): RecordBatch {
     if (length < 0) length = column.length;
     else if (column.length !== length) {
       throw new RangeError(
-        `@lyku/para-arrow.recordBatch: column lengths must match — ${JSON.stringify(name)} has ${column.length}, expected ${length}`,
+        `@lyku/para-arrow.recordBatch: column lengths must match: ${JSON.stringify(name)} has ${column.length}, expected ${length}`,
       );
     }
     fields.push(field);
@@ -420,8 +420,8 @@ function table(batches: RecordBatch[]): Table {
 // JS data lives row-major (each object is one record); columnar formats live
 // column-major (each array is one column across every record). Converting
 // between the two is the seam between @lyku/para-csv (yields rows) and @lyku/para-arrow
-// (works on columns). The seam can't live inside either module — bun:* can't
-// cross-import bun:* — so it lives at the call site, with these helpers
+// (works on columns). The seam can't live inside either module (bun:* can't
+// cross-import bun:*) so it lives at the call site, with these helpers
 // taking the boilerplate.
 
 type RowSchema = Partial<Record<string, ArrowKind>>;
@@ -502,7 +502,7 @@ function fromRows<T extends Record<string, any>>(rows: T[], opts: FromRowsOption
       if (inferred) break;
     }
     // If every row is null/missing for this column, default to utf8 (the
-    // most permissive type — the column will be all-null anyway).
+    // most permissive type, the column will be all-null anyway).
     kinds[name] = inferred ?? "utf8";
   }
 
@@ -626,7 +626,7 @@ function fromRows<T extends Record<string, any>>(rows: T[], opts: FromRowsOption
 }
 
 /**
- * The reverse — turn a RecordBatch (or Table) back into an array of plain JS
+ * The reverse: turn a RecordBatch (or Table) back into an array of plain JS
  * objects. Useful for handing data to row-shaped consumers (`fetch` JSON
  * payload, ORM `insertMany`, etc.) after a columnar pipeline. Null rows
  * become `null` for the field.
@@ -658,7 +658,7 @@ function requireNumeric(col: Column, op: string): void {
 
 /**
  * Sum a numeric column (int32 / int64 / float32 / float64). Honors validity
- * bitmap — null rows are skipped. Returns a `bigint` for int64 columns and
+ * bitmap: null rows are skipped. Returns a `bigint` for int64 columns and
  * a `number` for the others.
  */
 function sum(col: Column): number | bigint {
@@ -721,7 +721,7 @@ function mean(col: Column): number {
 /**
  * Min / max over a numeric column. NaN propagates (matching JS Math.min /
  * Math.max). Null rows are skipped. Empty / all-null inputs return +Inf for
- * min, -Inf for max — same conventions as parabun:gpu.reduce.
+ * min, -Inf for max: same conventions as parabun:gpu.reduce.
  */
 function min(col: Column): number | bigint {
   requireNumeric(col, "min");
@@ -767,9 +767,9 @@ function max(col: Column): number | bigint {
 
 /**
  * Row index of the minimum value in a numeric column. Skips null rows;
- * NaN propagates (returns NaN — matches `parabun:gpu.reduce("min")`'s NaN
+ * NaN propagates (returns NaN, matches `parabun:gpu.reduce("min")`'s NaN
  * semantics, just with the index reported in the value's place). Empty
- * or all-null columns throw — there's no meaningful argmin.
+ * or all-null columns throw: there's no meaningful argmin.
  *
  * Tie-break: first occurrence wins (lower index when values are equal).
  */
@@ -857,7 +857,7 @@ function count(target: Column | RecordBatch | Table, opts: { all?: boolean } = {
 }
 
 /**
- * Filter a RecordBatch — keeps rows where `predicate(row, i)` returns truthy.
+ * Filter a RecordBatch: keeps rows where `predicate(row, i)` returns truthy.
  * Materializes the predicate's row-as-object for ergonomic predicates; for
  * high-throughput cases write a column-major filter manually instead.
  */
@@ -883,12 +883,12 @@ function sliceValidity(src: Uint8Array | undefined, keepIdx: number[]): Uint8Arr
  * Materialize a column (typically from a Table's `ConcatColumn` view) into a
  * single contiguous typed array. Numeric columns produce the matching typed
  * array; utf8 produces a fresh `string[]`; bool produces a `Uint8Array` of
- * 0/1 values. Throws on null-bearing columns — callers handle nulls
+ * 0/1 values. Throws on null-bearing columns: callers handle nulls
  * explicitly when they materialize.
  */
 function concat(col: Column): ColumnValues {
   if (col.validity) {
-    throw new TypeError("@lyku/para-arrow.concat: column has nulls — handle them explicitly before materializing");
+    throw new TypeError("@lyku/para-arrow.concat: column has nulls. Handle them explicitly before materializing");
   }
   switch (col.type.kind) {
     case "int32": {
@@ -926,7 +926,7 @@ function concat(col: Column): ColumnValues {
       // For materializing the underlying child buffer, callers can grab
       // `col.child.values` directly.
       throw new TypeError(
-        "@lyku/para-arrow.concat: list columns aren't a flat-typed-array shape — access col.child.values directly, or use col.get(i) per row",
+        "@lyku/para-arrow.concat: list columns aren't a flat-typed-array shape. Access col.child.values directly, or use col.get(i) per row",
       );
     }
   }
@@ -937,15 +937,15 @@ function concat(col: Column): ColumnValues {
 type VarianceOptions = {
   /**
    * Delta degrees of freedom. Divisor is `n - ddof`.
-   *   `0` (default) — population variance, what numpy returns by default.
-   *   `1`           — sample variance (Bessel-corrected, unbiased).
+   *   `0` (default): population variance, what numpy returns by default.
+   *   `1`: sample variance (Bessel-corrected, unbiased).
    * Values >= n return NaN.
    */
   ddof?: number;
 };
 
 /**
- * Population variance (or sample with `{ ddof: 1 }`). Two-pass — Kahan-
+ * Population variance (or sample with `{ ddof: 1 }`). Two-pass: Kahan-
  * compensated mean, then sum of squared deviations. Null rows are skipped.
  * int64 columns widen to f64 internally for the divide.
  */
@@ -994,7 +994,7 @@ function stddev(col: Column, opts: VarianceOptions = {}): number {
 /**
  * Quantile (linear interpolation between adjacent ordered samples). `q` in
  * [0, 1]; q=0.5 is the median, q=0.95 is the 95th percentile. NaN
- * propagates — any NaN in the column produces NaN. Null rows are skipped.
+ * propagates: any NaN in the column produces NaN. Null rows are skipped.
  */
 function quantile(col: Column, q: number): number {
   requireNumeric(col, "quantile");
@@ -1002,7 +1002,7 @@ function quantile(col: Column, q: number): number {
     throw new RangeError(`@lyku/para-arrow.quantile: q must be a number in [0, 1]; got ${q}`);
   }
   // Materialize non-null values into a typed array for sorting. Use Float64
-  // regardless of source type for numerical comparison — int64 widens, the
+  // regardless of source type for numerical comparison: int64 widens, the
   // ordering is preserved within the safe-integer range that anyone calling
   // quantile actually cares about.
   const values: number[] = [];
@@ -1035,7 +1035,7 @@ function median(col: Column): number {
 
 /**
  * Unique values from a column, preserving first-occurrence order. Returns
- * a JS array — for small cardinality columns this is the right shape.
+ * a JS array: for small cardinality columns this is the right shape.
  * Null rows are skipped. Bigint columns return bigint values; bool returns
  * booleans; numeric types return numbers; utf8 returns strings.
  */
@@ -1081,7 +1081,7 @@ function groupBy(batch: RecordBatch, columnName: string): GroupResult {
     bucket.push(i);
   }
   // Build each group's RecordBatch by gathering the column data at the
-  // index list — single pass per column per group, no rescan of the
+  // index list: single pass per column per group, no rescan of the
   // full batch.
   const result: GroupResult = new Map();
   for (const [key, idx] of byKey) {
@@ -1178,7 +1178,7 @@ type SortOptions = {
  * with rows permuted; every column is gathered through the same index
  * permutation so cross-column row alignment is preserved.
  *
- * Uses Array.prototype.sort with a comparator — V8/JSC's sort is TimSort,
+ * Uses Array.prototype.sort with a comparator: V8/JSC's sort is TimSort,
  * which is stable. Equal keys retain their original relative order, so
  * sorting by one column and then another gives the expected lexicographic
  * result.
@@ -1195,7 +1195,7 @@ function sort(batch: RecordBatch, columnName: string, opts: SortOptions = {}): R
   for (let i = 0; i < n; i++) idx[i] = i;
 
   // Comparator returns negative if a should come before b.
-  // Null handling is independent of the descending flag — nullsFirst always
+  // Null handling is independent of the descending flag: nullsFirst always
   // means "nulls at output[0..]" regardless of direction.
   idx.sort((a: number, b: number) => {
     const va = keyCol.get(a);
@@ -1273,13 +1273,13 @@ function cumsum(col: Column): Column {
 
 /**
  * First differences (out[i] = col[i] - col[i-1]). The first row is set to
- * null in the output regardless of input nullity — there's no prior row to
+ * null in the output regardless of input nullity: there's no prior row to
  * subtract from. Subsequent null rows propagate to null in the output.
  */
 function diff(col: Column): Column {
   requireNumeric(col, "diff");
   const n = col.length;
-  // Always emit a validity bitmap — at minimum row 0 is null.
+  // Always emit a validity bitmap: at minimum row 0 is null.
   const validity = new Uint8Array(Math.ceil(n / 8));
   const inputValid = col.validity;
 
