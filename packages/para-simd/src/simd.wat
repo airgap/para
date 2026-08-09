@@ -1,4 +1,4 @@
-;; parabun-browser-shims simd kernels — f32 SIMD (v128) kernels.
+;; parabun-browser-shims simd kernels: f32 SIMD (v128) kernels.
 ;;
 ;; Memory layout: the module exports `mem` as the linear memory; JS
 ;; `alloc()` returns Float32Array views backed by this memory so inputs
@@ -12,7 +12,7 @@
 ;; leftover elements with scalar loads/stores.
 
 (module
-  (memory (export "mem") 64)          ;; 4 MiB initial (64 × 64 KiB pages) — big enough
+  (memory (export "mem") 64)          ;; 4 MiB initial (64 × 64 KiB pages), big enough
                                      ;; for typical call-scoped scratch
                                      ;; without growing (growth detaches
                                      ;; existing `alloc()` views).

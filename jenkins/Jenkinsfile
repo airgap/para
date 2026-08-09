@@ -1,23 +1,23 @@
 // airgap/para CI. Owns the Para ecosystem's verification + the publishes
 // para owns (boundary doc /raid/para-design/para-parabun-boundary.md):
 //
-//   • parity gate (BLOCKING) — corpus vs the PINNED parabun binary (B3).
+//   • parity gate (BLOCKING): corpus vs the PINNED parabun binary (B3).
 //     A mirror that drifts from the pinned parser fails here.
-//   • nightly canary (NON-BLOCKING) — same corpus vs the LATEST parabun
+//   • nightly canary (NON-BLOCKING): same corpus vs the LATEST parabun
 //     release. Early warning for "stale-but-green" pin drift; reports,
 //     never fails (P2-d).
-//   • @lyku/para-preprocess — owns the post-extraction source (the
+//   • @lyku/para-preprocess: owns the post-extraction source (the
 //     .pui lowering: multi-line derived, single-stmt effect, mount
 //     retirement, lifecycle auto-import, ./pui ambient). parabun's copy
 //     is a stale dup pending deletion and no longer published.
 //   • @lyku/para-ui (the para-svelte pnpm fork) + the .vsix
-//     (editors/{vscode,lsp,ts-plugin}) — extracted from parabun
+//     (editors/{vscode,lsp,ts-plugin}), extracted from parabun
 //     2026-05-16; para publishes them now.
 //
 // parabun's Jenkins still owns: the parabun binary, GH release, docker,
 // and the @lyku/parabun-bin-<os>-<arch> carriers + @lyku/para-signals.
 // @lyku/para-transpile stays unpublished (private/0.0.0-dev) until full
-// desugaring + parity completeness — NOT published here.
+// desugaring + parity completeness, NOT published here.
 
 pipeline {
 	agent none
@@ -28,7 +28,7 @@ pipeline {
 
 	triggers {
 		pollSCM('H/5 * * * *')
-		// Nightly canary — drift early-warning, decoupled from parabun's
+		// Nightly canary: drift early-warning, decoupled from parabun's
 		// release cadence.
 		cron('H 3 * * *')
 	}
@@ -104,7 +104,7 @@ pipeline {
 						echo "pinned parabun: $PIN"
 
 						# The pinned-binary parity infra is not operational yet
-						# (scaffold pin `0.0.0-pin.*`, no parabun-* GH release —
+						# (scaffold pin `0.0.0-pin.*`, no parabun-* GH release:
 						# P2-c carrier publish + bake-manifest pending). Parity
 						# CANNOT run without a real pinned binary; that must NOT
 						# hard-block the rest of CI (esp. publishing). Degrade
@@ -113,7 +113,7 @@ pipeline {
 						# a loud warning and still run the non-parabun tests.
 						PARITY_OK=0
 						case "$PIN" in
-							0.0.0-pin.*|"") echo "::warning:: scaffold/placeholder pin ($PIN) — parity skipped (pinned-binary infra not yet live)";;
+							0.0.0-pin.*|"") echo "::warning:: scaffold/placeholder pin ($PIN): parity skipped (pinned-binary infra not yet live)";;
 							*)
 								mkdir -p .parabun
 								TAG="parabun-${PIN##*-}"
@@ -122,7 +122,7 @@ pipeline {
 									export PARABUN_BIN="$PWD/.parabun/parabun-linux-x64"
 									"$PARABUN_BIN" --revision && PARITY_OK=1
 								else
-									echo "::warning:: pinned parabun release $TAG unavailable on airgap/parabun — parity skipped (NOT a parity failure)"
+									echo "::warning:: pinned parabun release $TAG unavailable on airgap/parabun: parity skipped (NOT a parity failure)"
 								fi
 								;;
 						esac
@@ -164,7 +164,7 @@ pipeline {
 					usernameVariable: 'GH_USER',
 					passwordVariable: 'GH_TOKEN',
 				)]) {
-					// Never fail the pipeline on drift — the canary only
+					// Never fail the pipeline on drift. The canary only
 					// reports. runner.ts --canary already exits 0; catchError
 					// is belt-and-suspenders for the fetch/build steps.
 					catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
@@ -189,7 +189,7 @@ pipeline {
 			}
 		}
 
-		// Differential perf trend (NON-BLOCKING) — packages/para-bench.
+		// Differential perf trend (NON-BLOCKING): packages/para-bench.
 		// Times the LATEST parabun release and the @lyku/para-transpile
 		// mirror over the lyku monorepo corpus (the largest Para codebase),
 		// compares against the previous run's baseline kept in this
@@ -217,7 +217,7 @@ pipeline {
 				// ssh only resolves through the host's ssh config (Cloudflare
 				// fronts the DNS name and does not proxy ssh), and GitSCM
 				// checkout executes on the host launcher even under a docker
-				// agent (JENKINS-30600) — which is exactly what we need.
+				// agent (JENKINS-30600), which is exactly what we need.
 				dir('.bench-corpus') {
 					checkout([
 						$class: 'GitSCM',
@@ -243,7 +243,7 @@ pipeline {
 							set -eu
 							export HOME="${WORKSPACE}"
 
-							# LATEST parabun release — the binary about to be pinned
+							# LATEST parabun release: the binary about to be pinned
 							# is the one whose speed we want on the trend line.
 							LATEST=$(gh release list --repo airgap/parabun \
 								--limit 1 --json tagName --jq '.[0].tagName')
@@ -259,7 +259,7 @@ pipeline {
 							bun install
 
 							# Compare against the previous nightly, then advance
-							# the baseline either way — each run is judged against
+							# the baseline either way. Each run is judged against
 							# its predecessor, so a regression is flagged exactly
 							# once instead of forever.
 							BASELINE="$PWD/bench-baseline.json"
@@ -302,7 +302,7 @@ pipeline {
 					echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$HOME/.npmrc"
 					echo "auth ok: $(npm whoami)"
 				'''
-				// @lyku/para-preprocess — airgap/para owns this post-
+				// @lyku/para-preprocess: airgap/para owns this post-
 				// extraction (parabun's packages/para-preprocess is a stale
 				// dup, no longer published from there). tsc build then
 				// publish; idempotent (skip if the version is already on
@@ -325,14 +325,14 @@ pipeline {
 					# Always reconcile the `latest` dist-tag to the version this
 					# build carries. The very first publish (the old parabun job,
 					# pre.0) implicitly set latest=pre.0 and `--tag pre` never
-					# moved it since — so consumers on caret prerelease ranges
+					# moved it since, so consumers on caret prerelease ranges
 					# (Lyku: ^0.0.1-pre.*) kept resolving the OLDEST publish via
 					# bun's latest-following resolver. Idempotent; runs even on
 					# the already-published path so a stale latest self-heals.
 					npm dist-tag add "@lyku/para-preprocess@$PKG_VERSION" latest
 					echo "dist-tags now: $(npm view @lyku/para-preprocess dist-tags)"
 				'''
-				// @lyku/para-ui — pnpm-built Svelte fork. Idempotent: skip
+				// @lyku/para-ui: pnpm-built Svelte fork. Idempotent: skip
 				// if the version is already on npm. @lyku/para-signals is a
 				// `file:../../../para-signals` dep in `dependencies` for local
 				// dev; it MUST be swapped to a real npm semver before publish
@@ -355,14 +355,14 @@ pipeline {
 						SIGNALS_VERSION="^$(npm view @lyku/para-signals version 2>/dev/null || echo 0.0.1-pre.0)"
 						sed -i 's|"@lyku/para-signals": "file:[^"]*"|"@lyku/para-signals": "'"$SIGNALS_VERSION"'"|' package.json
 						if grep -q '"@lyku/para-signals": "file:' package.json; then
-							echo "FATAL: @lyku/para-signals file: dep not swapped — refusing to publish a broken manifest" >&2
+							echo "FATAL: @lyku/para-signals file: dep not swapped, refusing to publish a broken manifest" >&2
 							exit 1
 						fi
 						pnpm install --frozen-lockfile=false
 						pnpm run build
 						npm publish --tag pre
 					fi
-					# Always reconcile `latest` — same rationale as
+					# Always reconcile `latest`, same rationale as
 					# para-preprocess: the first publish pinned latest to the
 					# oldest pre.N and `--tag pre` never moves it, so bun's
 					# latest-following resolver keeps consumers (Lyku's
@@ -371,7 +371,7 @@ pipeline {
 					npm dist-tag add "@lyku/para-ui@$PKG_VERSION" latest
 					echo "dist-tags now: $(npm view @lyku/para-ui dist-tags)"
 				'''
-				// .vsix — editors/{vscode,lsp,ts-plugin}. nx orchestrates the
+				// .vsix: editors/{vscode,lsp,ts-plugin}. nx orchestrates the
 				// install + ts-plugin build + copy-assets bundling; vsce
 				// packages. PARABUN_VSIX_SKIP_BINARY_CHECK=1: CI ships no
 				// parabun on PATH (the check is a local-dev footgun guard).
@@ -402,7 +402,7 @@ pipeline {
 			}
 		}
 
-		// Para owns the VS Code extension as part of ITS offering — parabun
+		// Para owns the VS Code extension as part of ITS offering. Parabun
 		// is a separate product (it natively understands the Para language;
 		// the extension is Para-language editor support: LSP + syntax +
 		// reactive-dependents hover). So the .vsix is published as a release
