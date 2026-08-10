@@ -11,8 +11,16 @@
 // svelte2tsx installed.
 import { build } from "esbuild";
 import { rmSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 rmSync("dist", { recursive: true, force: true });
+
+// The lsp sources this bundle pulls in (../../editors/lsp) sit OUTSIDE the bun
+// workspace and carry their own node_modules with a COPIED para-transpile;
+// nothing refreshes that copy, and a stale one (predating src/syntactic.ts)
+// broke CI. Pin the para packages to workspace source so nested copies can
+// never shadow them.
+const ws = (p) => fileURLToPath(new URL(`../${p}/src`, import.meta.url));
 
 await build({
   entryPoints: ["src/cli.ts"],
@@ -27,6 +35,11 @@ await build({
   // para-preprocess / para-transpile via their `bun` export (src TS) so no
   // prebuild of those packages is needed; esbuild compiles them inline.
   conditions: ["bun", "import", "default"],
+  alias: {
+    "@lyku/para-transpile/syntactic": ws("para-transpile") + "/syntactic.ts",
+    "@lyku/para-transpile": ws("para-transpile") + "/index.ts",
+    "@lyku/para-preprocess": ws("para-preprocess") + "/index.ts",
+  },
   logLevel: "info",
 });
 
