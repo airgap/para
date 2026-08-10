@@ -13,10 +13,16 @@
 // (erased by esbuild); kept external as a belt-and-braces no-op.
 import { build } from "esbuild";
 import { rmSync, mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // Fresh out/: only the single bundled index.js should ship in the vsix.
 rmSync("out", { recursive: true, force: true });
 mkdirSync("out");
+
+// file: installs are COPIED into node_modules and never refreshed (the
+// ADR-0025 mirror keeps this package standalone, so workspace: can't be
+// used). Alias to sibling source so a stale copy can never shadow it.
+const ws = (p) => fileURLToPath(new URL(`../../packages/${p}/src`, import.meta.url));
 
 await build({
   entryPoints: ["src/index.ts"],
@@ -31,5 +37,8 @@ await build({
   // package's dist/ to be prebuilt (CI's VSIX stage only builds this
   // plugin). esbuild compiles the referenced TS source inline.
   conditions: ["bun", "import", "default"],
+  alias: {
+    "@lyku/para-preprocess": ws("para-preprocess") + "/index.ts",
+  },
   logLevel: "info",
 });
