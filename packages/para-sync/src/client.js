@@ -23,7 +23,7 @@ import { mergeFields } from "./authority.js";
 /**
  * Anything with a `parse` returning {@link Result}. In production this is a
  * para-schema `SchemaValue`; in tests it can be a hand-rolled gate. The replica
- * depends only on this shape, never on para-schema directly, which is also why
+ * depends only on this shape, never on para-schema directly: which is also why
  * the client gates branch on `.tag` instead of using the throw-on-Err `::`
  * convention (a malformed delta must trigger recovery, not crash the apply).
  * @typedef {{ parse(v: unknown): Result }} SyncSchema
@@ -74,7 +74,7 @@ function majorMismatch(a, b) {
  * @param {SyncSchema} opts.schema                       the `parse` gate
  * @param {SyncTransport} opts.transport                 change-envelope source
  * @param {SyncEnvelope} [opts.seed]                     SSR-embedded initial envelope
- * @param {() => Promise<SyncEnvelope | null>} [opts.refetch]  Err/skew/gap fallback: fetch
+ * @param {() => Promise<SyncEnvelope | null>} [opts.refetch]  Err/skew fallback: fetch
  *        the current authoritative snapshot. Omit → no recovery (status goes
  *        'stale'). Resolving null ("no envelope for this key") is stale too.
  * @param {Cell} [opts.cell]                             reactive cell (default: a para signal)
@@ -107,7 +107,7 @@ export function createClientReplica({
   // owns it so the write path (writer.js) and the reconciler share ONE monotonic
   // counter (INV-sync-12). Untouched by Tier-1 ingest; only nextIntent() bumps it.
   let intentVersion = 0;
-  // §13.2: the last server-confirmed value, the common `base` a @merge field
+  // §13.2: the last server-confirmed value: the common `base` a @merge field
   // reconciles against (only used when `authority` is provided).
   let lastConfirmed;
 
@@ -131,7 +131,7 @@ export function createClientReplica({
     stats.applied++;
     // Read-side durability: snapshot the confirmed envelope so a cold start
     // (offline / reload) can seed from it before any network. Only server-
-    // authoritative commits are persisted, never the optimistic overlay
+    // authoritative commits are persisted: never the optimistic overlay
     // (applyLocal), so the persisted value is a clean replay baseline (§13.5).
     if (persist) {
       try {
@@ -194,7 +194,7 @@ export function createClientReplica({
     if (res.tag !== "Ok") {
       stats.parseErrors++;
       setMeta({ status: "skew" });
-      // Don't poison the cell. Recover via a known-good snapshot, but never
+      // Don't poison the cell. Recover via a known-good snapshot: but never
       // refetch in response to a refetch result (avoids an Err→refetch loop).
       if (source !== "refetch") startRefetch();
       return;
@@ -223,13 +223,20 @@ export function createClientReplica({
       lastConfirmed = res.value; // the server value is the new base for the next merge
       return;
     }
-    // Gap: one or more envelopes were missed. v2 step 5 → refetch the full
-    // snapshot and resync. (Under the full-object delta model the gapped
-    // envelope already carries the complete current value, so committing it
-    // directly would be correct and cheaper: a documented future optimization;
-    // we follow v2's explicit gap→refetch here.)
+    // Gap: one or more envelopes were missed. Under the full-object delta
+    // model the gapped envelope already carries the complete current value,
+    // so it IS the authoritative snapshot a refetch would return: commit it
+    // directly and resync the sequence (the formerly-documented optimization,
+    // promoted to the behavior 2026-08-10). The end state is identical to a
+    // successful gap→refetch: plain overwrite, @merge base reset to the
+    // server value: three-way merging against a base that predates the
+    // missed envelopes would be unsound, exactly as it would be after a
+    // refetch reseed. `stats.gaps` still counts the discontinuity; transports
+    // that deliver deltas rather than full objects must not reuse this
+    // reconciler path without restoring gap→refetch.
     stats.gaps++;
-    startRefetch();
+    commit(res.value, envelope);
+    lastConfirmed = res.value;
   }
 
   // ── wire up ──

@@ -115,25 +115,42 @@ describe("createClientReplica: Tier 1 reconciler", () => {
     expect(r.peekMeta()).toMatchObject({ sequence: 4, status: "ok" });
   });
 
-  test("sequence gap → refetch full snapshot and resync", async () => {
+  test("sequence gap → the gapped full-object envelope commits directly, no refetch", () => {
     const t = new InProcessTransport();
+    let refetched = 0;
     const r = createClientReplica({
       key: "user:1",
       schema: userSchema,
       transport: t,
       seed: env(1, { name: "base" }),
-      refetch: () => Promise.resolve(env(5, { name: "snap@5" }))
+      refetch: () => {
+        refetched++;
+        return Promise.resolve(env(5, { name: "snap@5" }));
+      }
     });
     t.publish("user:1", env(5, { name: "jumped" })); // cur=1, got 5 → gap
     expect(r.stats.gaps).toBe(1);
-    expect(r.stats.refetches).toBe(1);
-
-    await r.whenIdle();
-    expect(r.peek()).toEqual({ name: "snap@5" });
-    expect(r.peekMeta().sequence).toBe(5);
-    // a later in-order receipt resumes normally
+    expect(refetched).toBe(0); // full-object envelope IS the snapshot
+    expect(r.peek()).toEqual({ name: "jumped" });
+    expect(r.peekMeta()).toMatchObject({ sequence: 5, status: "ok" });
+    // a later in-order receipt resumes normally from the resynced sequence
     t.publish("user:1", env(6, { name: "after" }));
     expect(r.peek()).toEqual({ name: "after" });
+  });
+
+  test("gap commit without refetch configured still lands ok (reconnect self-heals)", () => {
+    const t = new InProcessTransport();
+    const r = createClientReplica({
+      key: "user:1",
+      schema: userSchema,
+      transport: t,
+      seed: env(1, { name: "base" })
+      // no refetch: pre-2026-08-10 this parked the replica on 'stale'
+    });
+    t.publish("user:1", env(9, { name: "rejoined" }));
+    expect(r.stats.gaps).toBe(1);
+    expect(r.peek()).toEqual({ name: "rejoined" });
+    expect(r.peekMeta()).toMatchObject({ sequence: 9, status: "ok" });
   });
 
   test("no refetch available → Err leaves replica stale, uncrashed", () => {

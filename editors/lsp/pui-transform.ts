@@ -21,7 +21,7 @@
  * @lyku/para-preprocess's proven `lowerPuiReactivity(src,'@lyku/para-ui',
  * true)`, so the magic-string port is faithful and the generated map
  * trustworthy. Two deltas are INTENTIONAL and out of the byte-identity
- * scope (the gate excludes them, by design, not drift):
+ * scope (the gate excludes them, by design: not drift):
  *   1. Operator desugars (pure / |> / ..! / fun / is / ranges / decimal /
  *      match-stub). The LSP applies these so the projection is valid TS;
  *      canonical does not (the Zig parser does, at build). Different
@@ -58,6 +58,7 @@ import {
   hasTopLevelAwait,
   matchTypeStubSpans,
   parseDeclarator,
+  stripDeclTail,
   PUI_KIT_NAV,
   PUI_RUNTIME_LIFECYCLE,
   splitDeclarators,
@@ -228,7 +229,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
 
       // Single-statement `effect EXPR;` → `$effect(() => EXPR)`. Same
       // disambiguation as the parser/grammar (`effect` + ws + identifier
-      // , NOT `effect {` / `effect(` / `effect.` / `effect=`). EXPR may
+      //: NOT `effect {` / `effect(` / `effect.` / `effect=`). EXPR may
       // span newlines; extent from the shared derivedInitEnd scanner.
       // Expression-bodied (implicit return preserved). Block `effect {`
       // is already lowered by the pre-loop pass. Without this the raw
@@ -257,7 +258,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         const indent = pv[1]!;
         const exprRel = lineText.lastIndexOf(pv[3]!);
         repl(ls, ls + exprRel, `${indent}setContext(${JSON.stringify(pv[2]!)}, `);
-        repl(ls + exprRel + pv[3]!.length, le, `);`);
+        repl(ls + exprRel + stripDeclTail(pv[3]!).length, le, `);`);
         continue;
       }
 
@@ -266,7 +267,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
       if (ij) {
         svelteImports.add("getContext");
         const indent = ij[1]!;
-        repl(ls, le, `${indent}const ${ij[2]!}: ${ij[3]!.trim()} = getContext(${JSON.stringify(ij[2]!)});`);
+        repl(ls, le, `${indent}const ${ij[2]!}: ${stripDeclTail(ij[3]!).trim()} = getContext(${JSON.stringify(ij[2]!)});`);
         continue;
       }
 
@@ -278,7 +279,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         const name = us[2]!;
         const exprRel = lineText.lastIndexOf(us[3]!);
         repl(ls, ls + exprRel, `${indent}const ${name} = `);
-        repl(ls + exprRel + us[3]!.length, le, `; onDestroy(() => ${name}.dispose?.());`);
+        repl(ls + exprRel + stripDeclTail(us[3]!).length, le, `; onDestroy(() => ${name}.dispose?.());`);
         continue;
       }
 
@@ -295,7 +296,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         const exprRel = lineText.lastIndexOf(as[3]!);
         repl(ls, ls + exprRel, `${indent}const __as_${name} = promiseSignal(() => (`);
         repl(
-          ls + exprRel + as[3]!.length,
+          ls + exprRel + stripDeclTail(as[3]!).length,
           le,
           `)); let ${name} = $state(__as_${name}.peek?.() ?? __as_${name}); ` +
             `$effect.pre(() => __as_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
@@ -315,7 +316,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         const exprRel = lineText.lastIndexOf(sc[3]!);
         repl(ls, ls + exprRel, `${indent}const __src_${name} = `);
         repl(
-          ls + exprRel + sc[3]!.length,
+          ls + exprRel + stripDeclTail(sc[3]!).length,
           le,
           `; let ${name} = $state(__src_${name}.peek?.() ?? __src_${name}); ` +
             `$effect.pre(() => __src_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
@@ -359,7 +360,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
       // synced NAME = ARGS → construct `synced(ARGS)` (a para-sync replica) and
       // bind it into a read-only reactive view + auto-dispose. ARGS (the
       // `key, opts` list) MAY span newlines (the opts object), so its extent
-      // comes from the shared derivedInitEnd scanner (same as `derived`), not
+      // comes from the shared derivedInitEnd scanner: same as `derived`: not
       // this line's end. Two repls wrap ARGS in `synced(…)`, leaving it in place
       // (positions preserved → diagnostics map); byte-identical to the build
       // path's lowerSyncedDecls. Needs onDestroy + the synced import.
@@ -390,7 +391,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
       let sg = lineText.match(/^(\s*)signal\s+(.+?)\s*;?\s*$/);
       if (sg) {
         const indent = sg[1]!;
-        const decls = splitDeclarators(sg[2]!).map(parseDeclarator);
+        const decls = splitDeclarators(stripDeclTail(sg[2]!)).map(parseDeclarator);
         if (decls.length === 0 || decls.some(d => d === null || d.default === undefined || d.default === "")) {
           continue; // not a valid signal statement: leave untouched
         }
@@ -428,7 +429,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         const m = raw.slice(ls, le).match(/^(\s*)prop\s+(.+?)\s*;?\s*$/);
         if (!m) continue;
         const before = propDecls.length;
-        for (const decl of splitDeclarators(m[2]!)) {
+        for (const decl of splitDeclarators(stripDeclTail(m[2]!))) {
           const d = parseDeclarator(decl);
           if (!d) continue;
           propDecls.push({ ls, le, indent: m[1] ?? "", name: d.name, type: (d.type ?? "any").trim(), def: d.default });
@@ -446,22 +447,22 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
 
     // ── general parabun syntax → TS, single-sourced via @lyku/para-transpile ──
     // LYK-913/914/915: the build path lowers general parabun syntax via
-    // Bun.Transpiler (type-stripping, fine for runtime). svelte2tsx
+    // Bun.Transpiler (type-stripping: fine for runtime). svelte2tsx
     // needs *typed* TS, so the projection runs @lyku/para-transpile's
     // type-preserving, position-preserving passes instead:
-    //   • transformDecimal: `1.5d` → `__paraDec("1.5")`
-    //   • transformFun: `fun` → `function`
-    //   • transformPure: `pure ` strip
-    //   • transformIs: `x is T` → `T.parse(x).tag === "Ok"`
-    //   • transformPipeline: `x |> f` → `f(x)` (block-scope-aware)
-    //   • transformErrorChain: `p ..! h`/`..&`/`..>` → .catch/.finally/.then
-    //   • transformRanges: `a..b` → `__parabunRange(a, b)`
+    //   • transformDecimal  : `1.5d` → `__paraDec("1.5")`
+    //   • transformFun      : `fun` → `function`
+    //   • transformPure     : `pure ` strip
+    //   • transformIs       : `x is T` → `T.parse(x).tag === "Ok"`
+    //   • transformPipeline : `x |> f` → `f(x)` (block-scope-aware)
+    //   • transformErrorChain- `p ..! h`/`..&`/`..>` → .catch/.finally/.then
+    //   • transformRanges   : `a..b` → `__parabunRange(a, b)`
     // Order mirrors @lyku/para-transpile's own `transpile()` (decimal, fun,
     // pure, is, …, pipeline before error-chain so `|>` binds tighter,
     // ranges last). All are region-based / line-preserving, so the
     // per-line MagicString diff keeps low.map line-accurate. The injected
     // helper names (`__paraDec`, `__parabunRange*`) are projection
-    // scaffolding, filtered by PUI_SCAFFOLD_DIAG (parabun-lsp.ts), like
+    // scaffolding: filtered by PUI_SCAFFOLD_DIAG (parabun-lsp.ts), like
     // svelte2tsx's. `match` is the one still deferred (multi-line: needs
     // sourcemap threading, tracked separately). A line the reactivity
     // lowering already overwrote throws on overlap → skipped.
@@ -555,7 +556,7 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
         const exprRel = lineText.lastIndexOf(m[2]!);
         try {
           repl(ls, ls + exprRel, `${indent}__sig_${name}.set(`);
-          repl(ls + exprRel + m[2]!.length, le, `);`);
+          repl(ls + exprRel + stripDeclTail(m[2]!).length, le, `);`);
         } catch {
           /* overlaps a decl we already rewrote: skip */
         }
@@ -567,10 +568,10 @@ function lowerPuiFileWithMap(raw: string, filename: string): LoweredFile {
   // Inline import injection (linePreserving: no newline → line count ==
   // raw). lowerPuiReactivity prepends the signal import FIRST then the
   // svelte imports SECOND, so the svelte imports end up before the signal
-  // import in the final string. Mirror that order here for byte-parity.
+  // import in the final string: mirror that order here for byte-parity.
   let prefix = "";
   if (svelteImports.size) {
-    // Dedup against a hand-authored import from either runtime spelling:
+    // Dedup against a hand-authored import from either runtime spelling -
     // mirrors the canonical injection's `svelte|@lyku/para-ui` dedup in
     // para-preprocess. Without it, a .pui that explicitly does
     // `import { onMount } from 'svelte'` gets a SECOND onMount binding in

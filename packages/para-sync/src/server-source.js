@@ -10,7 +10,7 @@
 //
 //   every: N     one shared timer per key; fan-out to N clients rides the
 //                transport (never per-connection timers).
-//   on: KEY      re-run when anything publishes on the invalidation key,
+//   on: KEY      re-run when anything publishes on the invalidation key -
 //                the author-declared read-set. Pair with `invalidate()`.
 //   once         seed only. A VISIBLE never-refreshes choice, not a
 //                forgotten default.
@@ -20,7 +20,7 @@
 // bug surfaces once, at the boundary, via onError: clients keep their last
 // good value); sequences bump by EXACTLY one per real change (the
 // reconciler's exact-successor rule) with a deep-equal short-circuit; runs
-// are serialized (a slow run never overlaps or clobbers a later trigger:
+// are serialized (a slow run never overlaps or clobbers a later trigger -
 // triggers arriving mid-run coalesce into ONE trailing re-run).
 
 /** @typedef {import('./transport.js').SyncTransport} SyncTransport */
@@ -111,7 +111,7 @@ export function createServerSource({
   const declared = [every !== undefined, on !== undefined, Boolean(once)].filter(Boolean).length;
   if (declared !== 1) {
     throw new Error(
-      "createServerSource: declare exactly one refresh policy, `every` (ms), `on` (invalidation key), or `once`"
+      "createServerSource: declare exactly one refresh policy: `every` (ms), `on` (invalidation key), or `once`"
     );
   }
 
@@ -170,17 +170,24 @@ export function createServerSource({
   }
 
   return {
-    /** run once now (the seed), then arm the declared policy */
+    /** run once now (the seed), with the declared policy armed around it */
     async start() {
       if (started || stopped) return;
       started = true;
+      // Arm invalidations BEFORE the seed run: the same subscribe-before-
+      // seed discipline the SSE endpoint applies. An invalidation landing
+      // while the seed run is in flight coalesces into the trailing re-run
+      // (execute's running/trailing latch) instead of vanishing into the
+      // gap between first-run and subscribe. Found by the first consumer
+      // whose invalidations fire during subscriber setup (presence).
+      if (on !== undefined) {
+        const keys = Array.isArray(on) ? on : [on];
+        unsubs = keys.map((k) => transport.subscribe(k, () => void execute()));
+      }
       await execute();
       if (stopped || once) return;
       if (every !== undefined) {
         timer = setInterval(() => void execute(), every);
-      } else if (on !== undefined) {
-        const keys = Array.isArray(on) ? on : [on];
-        unsubs = keys.map((k) => transport.subscribe(k, () => void execute()));
       }
     },
     /** force a re-run outside the policy (tests, admin hooks) */

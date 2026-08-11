@@ -168,3 +168,37 @@ describe("createServerSource: opaque server sources (§13.8)", () => {
     src.stop();
   });
 });
+
+describe("createServerSource: invalidation armed before the seed run", () => {
+  test("an invalidate landing DURING the seed run coalesces into a trailing re-run", async () => {
+    const t = new InProcessTransport();
+    const published = [];
+    t.subscribe("stats", (e) => published.push(e));
+    let state = 1;
+    let release;
+    const gate = new Promise((r) => (release = r));
+    const src = createServerSource({
+      key: "stats",
+      run: async () => {
+        const snapshot = state;
+        await gate; // hold the seed run open
+        return { total: snapshot };
+      },
+      schema: statsSchema,
+      transport: t,
+      on: "stats:bump",
+    });
+    const started = src.start();
+    await tick();
+    state = 2;
+    invalidate(t, "stats:bump"); // lands mid-seed-run: must not vanish
+    release();
+    await started;
+    await sleep(5); // the trailing re-run
+    expect(published.map((e) => [e.sequence, e.value.total])).toEqual([
+      [1, 1],
+      [2, 2],
+    ]);
+    src.stop();
+  });
+});

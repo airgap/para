@@ -19,13 +19,13 @@ export type ParabunPreprocessOptions = {
   all?: boolean;
   /**
    * Which runtime to emit injected imports against (`setContext`,
-   * `getContext`, `onDestroy`, etc. Used by `provide`/`inject`/`using`
+   * `getContext`, `onDestroy`, etc.: used by `provide`/`inject`/`using`
    * keyword lowering).
    *
    * - `"@lyku/para-ui"` (default): targets the Para UI fork
    *   (packages/para-svelte/packages/svelte). Para signals run at the
    *   reactive core; `signalOf()` is available. Consumers must have
-   *   `@lyku/para-ui` resolvable (currently workspace-only, see
+   *   `@lyku/para-ui` resolvable (currently workspace-only: see
    *   PARA-FORK.md).
    * - `"svelte"`: targets unmodified Svelte from npm. The escape hatch
    *   for projects that haven't wired the fork yet. The lowering still
@@ -86,12 +86,12 @@ const HAS_BUN_TRANSPILER = typeof (globalThis as { Bun?: { Transpiler?: unknown 
 
 // Node-fallback TS stripper. The build runs the svelte preprocess under Node
 // (vite plugins load under Node; under `--bun` sass breaks), so `Bun.Transpiler`
-// is absent, and `vitePreprocess` does NOT process `.pui`, so without stripping
+// is absent: and `vitePreprocess` does NOT process `.pui`, so without stripping
 // here the svelte compiler receives raw TS and fails on `$state<A | B>()` etc.
 // esbuild (present in any vite toolchain) does the TS→JS pass. This is ONLY the
 // type-strip; the Para lowering (lowerParaScript / lowerPuiReactivity) above is
 // untouched, so the LSP projection (editors/lsp pui-transform) stays byte-
-// identical. Parity preserved. Gated to vite contexts (NODE_ENV set by vite) so
+// identical: parity preserved. Gated to vite contexts (NODE_ENV set by vite) so
 // `svelte-check`/language-server still receive TS (full editor type-checking).
 let _esbuildTransform: ((src: string, loader: "ts" | "tsx" | "jsx") => string) | null | undefined;
 function nodeStripTypes(src: string, loader: "ts" | "tsx" | "jsx"): string | null {
@@ -99,9 +99,9 @@ function nodeStripTypes(src: string, loader: "ts" | "tsx" | "jsx"): string | nul
     try {
       // Acquire `createRequire` via `process.getBuiltinModule("module")` rather
       // than a static `import … from "node:module"`. A static import would force
-      // node:module into ANY browser bundle that imports this module (the
+      // node:module into ANY browser bundle that imports this module: the
       // in-browser compiler (Parascape demos/live-compile.ts) imports
-      // `parabunPreprocess`) and Vite externalises node:module to a stub with no
+      // `parabunPreprocess`: and Vite externalises node:module to a stub with no
       // `createRequire` export, which fails to link the client build.
       // `getBuiltinModule` is a plain runtime call with no static specifier, so
       // bundlers leave it alone (Node 22+/Bun). In the browser `process` is absent
@@ -124,14 +124,14 @@ function nodeStripTypes(src: string, loader: "ts" | "tsx" | "jsx"): string | nul
           format: "esm",
           target: "esnext",
           // CRITICAL: preserve value imports. Without this esbuild drops imports
-          // it thinks are unused, but Svelte uses imports in the MARKUP (`<Foo/>`)
+          // it thinks are unused: but Svelte uses imports in the MARKUP (`<Foo/>`)
           // and via store auto-subscription (`$store`), which esbuild can't see in
           // the script alone, so dropping them breaks the component (`$store is an
           // illegal variable name`, missing components). `preserveValueImports`
           // keeps them (mirroring Bun.Transpiler) without `verbatimModuleSyntax`'s
           // hard error on un-annotated type imports.
           // This exact pair is what svelte's own `vitePreprocess` passes esbuild
-          // for `.svelte` (see @sveltejs/vite-plugin-svelte preprocess.js):
+          // for `.svelte` (see @sveltejs/vite-plugin-svelte preprocess.js) -
           // neither alone is right (preserveValueImports alone errors;
           // importsNotUsedAsValues alone collapses named imports to side-effect
           // imports). Together they keep imports intact while stripping types.
@@ -183,7 +183,7 @@ function nodeStripTypes(src: string, loader: "ts" | "tsx" | "jsx"): string | nul
 // false negative just keeps a sync arrow (and a genuine top-level await
 // would then be a compile error the author sees immediately); a false
 // positive (async when sync would do) only matters if the body returns
-// a cleanup, and a body with a real top-level await can't, by JS +
+// a cleanup: and a body with a real top-level await can't, by JS +
 // Svelte semantics.
 export function hasTopLevelAwait(body: string): boolean {
   let depth = 0;
@@ -223,7 +223,7 @@ export function hasTopLevelAwait(body: string): boolean {
 }
 
 // LYK-909: depth-aware declarator-list utilities, shared with
-// editors/lsp pui-transform.ts (imported, not re-implemented, same
+// editors/lsp pui-transform.ts (imported, not re-implemented: same
 // structural-parity discipline as buildEscapeChecker/hasTopLevelAwait).
 //
 // Tracks `()[]{}` + strings + line-comments, plus generic `<…>` (so a
@@ -267,7 +267,7 @@ function declScan(s: string, isHit: (i: number, prev: string, next: string) => b
     }
     // Close a generic whenever one is open. We only ever entered `<>`
     // depth via the ident-prefixed `<` rule, so a `>` at depth>0 is a
-    // generic close, including each `>` of `Array<Map<…>>`. Guard only
+    // generic close: including each `>` of `Array<Map<…>>`. Guard only
     // `=>` (prev `=`) and `>=` (next `=`). Right-shift at generic depth
     // is unreachable in real type annotations (operands sit in `()`).
     if (c === ">" && prev !== "=" && next !== "=" && depth > 0) {
@@ -290,6 +290,36 @@ export function splitDeclarators(list: string): string[] {
   }
   parts.push(list.slice(last));
   return parts.map(p => p.trim()).filter(Boolean);
+}
+
+/**
+ * Strip a trailing `// comment` (and the `;` it may have hidden) from a
+ * line-based declaration TAIL: the `(.+?)` capture of the single-line decl
+ * regexes (`signal`/`prop`/`provide`/`inject`/`using`/`source`/`async
+ * signal`/assignment-rewrite). Those regexes end `\s*;?\s*$`, so a trailing
+ * comment leaves the `;` mid-capture and the comment rides into the emitted
+ * wrapper (`$state([]; // note)`): commenting out the close paren. Cut at
+ * the first `//` outside a string literal, then drop the now-trailing `;`.
+ * Shared by the build path and the editor's pui-transform (same verdict on
+ * both sides, structurally). Scope rule matches the decl forms themselves:
+ * single-line initializers; regex literals containing `//` are not tracked.
+ */
+export function stripDeclTail(tail: string): string {
+  let q: string | null = null;
+  for (let i = 0; i < tail.length; i++) {
+    const c = tail[i]!;
+    if (q !== null) {
+      if (c === "\\") i++;
+      else if (c === q) q = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") q = c;
+    else if (c === "/" && tail[i + 1] === "/") {
+      tail = tail.slice(0, i);
+      break;
+    }
+  }
+  return tail.replace(/\s*;?\s*$/, "");
 }
 
 /**
@@ -338,7 +368,7 @@ function findMatchingBrace(source: string, openOffset: number): number {
       i = end === -1 ? source.length : end + 2;
       continue;
     }
-    // Strings (basic, doesn't handle template-literal `${}` nesting)
+    // Strings (basic: doesn't handle template-literal `${}` nesting)
     if (ch === '"' || ch === "'" || ch === "`") {
       const quote = ch;
       i++;
@@ -413,7 +443,7 @@ function maskStringsAndComments(source: string): string {
  * non-`.pui` path: both lower `match` to a parse-safe, subject-typed
  * `any` stub (`((__pm: any): any => null as any)(SUBJECT)`), which is
  * the proven shape shipped for `.svelte`/`.pts` today. (Full per-arm
- * result narrowing is a separate enhancement, tracked on LYK-916. It
+ * result narrowing is a separate enhancement, tracked on LYK-916: it
  * would need a Zig-faithful, sourcemap-threaded lowering and is beyond
  * what any current parabun tooling does.)
  *
@@ -433,7 +463,7 @@ export function matchTypeStubSpans(source: string): Array<{ start: number; end: 
     // guard in lower-match.ts): a real match subject never starts with `=`, and
     // the keyword form never follows a binding keyword. Otherwise the `[^{]+?`
     // subject runs forward to an unrelated `{` (e.g. a later `$effect(() => {`)
-    // and stubs the wrong span, corrupting `let match = $state<…>(…)`.
+    // and stubs the wrong span: corrupting `let match = $state<…>(…)`.
     const subjMasked = masked.slice(subjStart, subjEnd).replace(/^\s+/, "");
     if (
       subjMasked.startsWith("=") ||
@@ -451,7 +481,7 @@ export function matchTypeStubSpans(source: string): Array<{ start: number; end: 
   return spans;
 }
 
-// `effect EXPR;` → `$effect(() => EXPR)`, an EXPRESSION-bodied arrow,
+// `effect EXPR;` → `$effect(() => EXPR)`: an EXPRESSION-bodied arrow,
 // NOT a block. Preserves the implicit return so an effect whose
 // expression yields a teardown (`effect useKeybind(...)`) registers it
 // as the effect's cleanup, exactly like `$effect(() => EXPR)`. Mirrors
@@ -517,10 +547,10 @@ function lowerEffectBlocks(source: string): string {
 
 // `mount` was retired as a keyword (2026-05-17): a Para keyword must map
 // to a language *primitive* (signal→$state, derived→$derived,
-// effect→$effect, runes), NOT rename an ordinary framework call
+// effect→$effect: runes), NOT rename an ordinary framework call
 // (`mount`→`onMount(…)`). Lifecycle/navigation are plain Svelte/SvelteKit
 // functions; `.pui` keeps them as plain calls and only removes the import
-// boilerplate. Write `onMount(() => …)` / `afterNavigate(…)` directly:
+// boilerplate. Write `onMount(() => …)` / `afterNavigate(…)` directly -
 // para-preprocess auto-injects the import from the right module when the
 // call is used and not already imported (dedup handled by the injection
 // passes). This is the closed, framework-defined set; it does NOT grow.
@@ -532,7 +562,7 @@ export const PUI_RUNTIME_LIFECYCLE = ["onMount", "onDestroy"] as const; // from 
 export const PUI_KIT_NAV = ["beforeNavigate", "afterNavigate", "onNavigate"] as const; // from $app/navigation
 
 // True iff `name` appears as a call in `src` and isn't a member access
-// (`.onMount`) or `$`-prefixed, the same lead guard the lowerings use.
+// (`.onMount`) or `$`-prefixed: the same lead guard the lowerings use.
 export function usesIdentCall(src: string, name: string): boolean {
   return new RegExp(`(^|[^\\w$.])${name}\\s*\\(`).test(src);
 }
@@ -541,7 +571,7 @@ function lowerDerivedBlocks(source: string): string {
   // LYK-892 (Phase C): `derived NAME { … }` → `const NAME =
   // $derived.by(() => { … })`. The block form for multi-statement
   // derivations (the chained filter/sort/group pattern that previously
-  // forced a raw `$derived.by` fallback, the #1 mixed-dialect culprit
+  // forced a raw `$derived.by` fallback: the #1 mixed-dialect culprit
   // in real .pui per the migration research). Brace-aware, same shape as
   // lowerEffectBlocks; runs before the single-line
   // `derived NAME = EXPR` pass so each form is consumed by exactly one.
@@ -697,7 +727,7 @@ export function derivedInitEnd(src: string, start: number): number {
 function lowerDerivedDecls(source: string): string {
   // `derived NAME = EXPR` → `const NAME = $derived(EXPR)`. The
   // expression may span multiple lines (ternary / binary / member-chain
-  // wrap), its extent is found by derivedInitEnd, NOT a per-line regex
+  // wrap): its extent is found by derivedInitEnd, NOT a per-line regex
   // (that truncated multi-line initializers at the first newline). The
   // multi-statement block form `derived NAME { … }` is consumed first
   // by lowerDerivedBlocks. Prefix regex kept byte-identical to
@@ -737,18 +767,18 @@ function lowerQueryDerivedDecls(source: string): {
   //
   // MUST run before lowerDerivedDecls: its optional-annotation regex
   // (`(?::\s*[^=;]+?)?`) would swallow `:: SCHEMA` as a type annotation
-  // and emit an ungated plain $derived, silently dropping the gate.
+  // and emit an ungated plain $derived: silently dropping the gate.
   //
   // The whole binding lives inside ONE $effect.pre. querySignal fires its
   // thunk synchronously (the promiseSignal idiom), so reads of tracked
-  // state inside EXPR register as dependencies of THIS effect, a change
+  // state inside EXPR register as dependencies of THIS effect: a change
   // re-runs it, and the cleanup disposes the superseded run (abort +
   // late-settle drop = latest-wins with no run-id machinery). Unmount is
   // the same teardown path, so no onDestroy is needed.
   //
   // `__qdv_` is deliberately a PLAIN let (evolving-any, no annotation):
   // the previous cell value handed to `{ prev }` must NOT be read off the
-  // $state cell inside the effect, that read would register the cell
+  // $state cell inside the effect: that read would register the cell
   // itself as a dependency, and every settle (`NAME = __v`) would then
   // re-trigger the effect: an infinite rebind/refetch loop.
   const re = /(^|[;\n{}])(\s*)derived\s+([A-Za-z_$][\w$]*)\s*::\s*([^=;\n]+?)\s*=\s*/g;
@@ -800,7 +830,7 @@ function lowerPropDecls(source: string): string {
     const m = lines[i]!.match(declRe);
     if (!m) continue;
     const [, indent, list] = m;
-    for (const decl of splitDeclarators(list!)) {
+    for (const decl of splitDeclarators(stripDeclTail(list!))) {
       const d = parseDeclarator(decl);
       if (!d) continue;
       props.push({
@@ -834,12 +864,12 @@ function lowerProvideInject(source: string): { code: string; imports: Set<string
   const provideRe = /^(\s*)provide\s+(\w+)(?:\s*:\s*[^=]+)?\s*=\s*(.+?)\s*;?\s*$/gm;
   let code = source.replace(provideRe, (_full, indent, name, expr) => {
     imports.add("setContext");
-    return `${indent}setContext(${JSON.stringify(name)}, ${expr});`;
+    return `${indent}setContext(${JSON.stringify(name)}, ${stripDeclTail(expr)});`;
   });
   const injectRe = /^(\s*)inject\s+(\w+)\s*:\s*(.+?)\s*;?\s*$/gm;
   code = code.replace(injectRe, (_full, indent, name, type) => {
     imports.add("getContext");
-    return `${indent}const ${name}: ${type.trim()} = getContext(${JSON.stringify(name)});`;
+    return `${indent}const ${name}: ${stripDeclTail(type).trim()} = getContext(${JSON.stringify(name)});`;
   });
   return { code, imports };
 }
@@ -854,7 +884,7 @@ function lowerUsingDecls(source: string): { code: string; needsOnDestroy: boolea
   const re = /^(\s*)using\s+(\w+)(?:\s*:\s*[^=]+)?\s*=\s*(.+?)\s*;?\s*$/gm;
   const code = source.replace(re, (_full, indent, name, expr) => {
     needs = true;
-    return `${indent}const ${name} = ${expr}; onDestroy(() => ${name}.dispose?.());`;
+    return `${indent}const ${name} = ${stripDeclTail(expr)}; onDestroy(() => ${name}.dispose?.());`;
   });
   return { code, needsOnDestroy: needs };
 }
@@ -862,12 +892,12 @@ function lowerUsingDecls(source: string): { code: string; needsOnDestroy: boolea
 function lowerSourceDecls(source: string): { code: string; needsOnDestroy: boolean } {
   // LYK-895 (Phase A): `source NAME = EXPR` binds a native handle's
   // reactive surface into a component-reactive, read-only cell that
-  // auto-disposes on unmount. Composes two already-proven patterns:
-  // the escaping-`signal` para→Svelte bridge and the `using` disposal,
+  // auto-disposes on unmount. Composes two already-proven patterns -
+  // the escaping-`signal` para→Svelte bridge and the `using` disposal -
   // so it's preprocess-only (no para-signals/Svelte-fork change).
   //
   // The handle satisfies an all-optional, optional-chained convention
-  // (conservative, a plain value works too): `.peek()` current
+  // (conservative: a plain value works too): `.peek()` current
   // snapshot (fallback: the handle itself), `.subscribe(cb)` fire on
   // change returning an unsubscribe (its return is the $effect.pre
   // teardown), `.dispose()`/Symbol.dispose unmount cleanup.
@@ -887,7 +917,7 @@ function lowerSourceDecls(source: string): { code: string; needsOnDestroy: boole
   const code = source.replace(re, (_full, indent, name, expr) => {
     needs = true;
     return (
-      `${indent}const __src_${name} = ${expr}; ` +
+      `${indent}const __src_${name} = ${stripDeclTail(expr)}; ` +
       `let ${name} = $state(__src_${name}.peek?.() ?? __src_${name}); ` +
       `$effect.pre(() => __src_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
       `onDestroy(() => __src_${name}.dispose?.());`
@@ -921,11 +951,11 @@ function lowerSyncFromDecls(source: string): {
   needsOnDestroy: boolean;
   needsSynced: boolean;
 } {
-  // `sync NAME :: SCHEMA from KEY`  → `synced(KEY, SCHEMA)`: VALIDATED (default)
-  // `sync NAME :  TYPE   from KEY`  → `synced(KEY)`: type-only, no gate
+  // `sync NAME :: SCHEMA from KEY`  → `synced(KEY, SCHEMA)` : VALIDATED (default)
+  // `sync NAME :  TYPE   from KEY`  → `synced(KEY)`         : type-only, no gate
   //
   // The readable declarative form: the annotation is `::` (a runtime parse gate,
-  // rhyming with Para's `value :: Schema` operator) or `:` (a TS type only, the
+  // rhyming with Para's `value :: Schema` operator) or `:` (a TS type only: the
   // trusted/opt-out mode, since synced replicates over an untrusted wire). The
   // key is the `from` source; delivery is inferred from configureSynced. KEY may
   // span lines (extent via derivedInitEnd); the annotation is single-line up to
@@ -949,9 +979,9 @@ function lowerSyncFromDecls(source: string): {
     const consumeEnd = source[end] === ";" ? end + 1 : end;
     out += source.slice(last, kwStart);
     out += validate
-      ? // `::`. Annotation is the runtime schema (2nd arg); type is inferred.
+      ? // `::`: annotation is the runtime schema (2nd arg); type is inferred.
         syncedBinding(m[2]!, name, `synced(${key}, ${annotation})`)
-      : // `:`. Annotation is a TS type only; no schema ⇒ passthrough gate.
+      : // `:`: annotation is a TS type only; no schema ⇒ passthrough gate.
         syncedBinding(m[2]!, name, `synced(${key})`, annotation);
     needs = true;
     last = consumeEnd;
@@ -968,7 +998,7 @@ function lowerSyncedDecls(source: string): {
 } {
   // `synced NAME = ARGS` → construct a para-sync replica `synced(ARGS)` and bind
   // it into a read-only, component-reactive cell that auto-disposes on unmount.
-  // ARGS is the argument list to `synced()`: `key, opts`, so the call site
+  // ARGS is the argument list to `synced()`: `key, opts`: so the call site
   // reads `synced user = \`user:${id}\`, { schema, stream }` with NO redundant
   // inner `synced(`, mirroring how `signal x = V` wraps `signal(V)` and
   // `async signal x = E` wraps `promiseSignal(() => (E))`. ARGS MAY span multiple
@@ -1049,7 +1079,7 @@ function lowerSyncFeedDecls(source: string): {
   // `sync NAME :: SCHEMA[] from query(SPEC)` → `syncedQuery(SCHEMA, SPEC)` (§13.3).
   // The array-typed `::` form with a `query(...)` source is the collection sugar;
   // a plain `sync NAME :: SCHEMA from KEY` (no `[]` / `query`) stays with
-  // lowerSyncFromDecls, so this MUST run first (it consumes the `[]`+query form
+  // lowerSyncFromDecls: so this MUST run first (it consumes the `[]`+query form
   // before the single-object regex can mis-match it).
   const re =
     /(^|[;\n{}])(\s*)sync\s+([A-Za-z_$][\w$]*)\s*::\s*([A-Za-z_$][\w$.]*)\s*\[\s*\]\s+from\s+query\s*\(/g;
@@ -1061,7 +1091,7 @@ function lowerSyncFeedDecls(source: string): {
     const kwStart = m.index + m[1]!.length;
     const parenOpen = re.lastIndex - 1; // the '(' of query(
     const parenEnd = matchParen(source, parenOpen);
-    if (parenEnd < 0) continue; // unbalanced, leave as-is
+    if (parenEnd < 0) continue; // unbalanced: leave as-is
     const spec = source.slice(parenOpen + 1, parenEnd - 1).trim();
     const name = m[3]!;
     const schema = m[4]!;
@@ -1082,7 +1112,7 @@ function lowerSyncOneDecls(source: string): {
   code: string;
   needsSyncedOne: boolean;
 } {
-  // `sync NAME :: SCHEMA from query(SPEC)` (scalar, NO `[]`) → the §13.7
+  // `sync NAME :: SCHEMA from query(SPEC)`: scalar, NO `[]`: → the §13.7
   // scalar query binding. Runs AFTER lowerSyncFeedDecls (which consumes the
   // `[]`+query collection form) and BEFORE lowerSyncFromDecls (whose KEY
   // grammar accepts any expression, so `query({...})` would be captured as
@@ -1106,7 +1136,7 @@ function lowerSyncOneDecls(source: string): {
     const kwStart = m.index + m[1]!.length;
     const parenOpen = re.lastIndex - 1;
     const parenEnd = matchParen(source, parenOpen);
-    if (parenEnd < 0) continue; // unbalanced, leave as-is
+    if (parenEnd < 0) continue; // unbalanced: leave as-is
     const spec = source.slice(parenOpen + 1, parenEnd - 1).trim();
     const name = m[3]!;
     const schema = m[4]!;
@@ -1134,7 +1164,7 @@ function lowerSyncOneDecls(source: string): {
 // ─── §13.8 server sources: `sync NAME :: SCHEMA from server EXPR POLICY` ────
 
 // JS reserved words + ambient globals the escape analysis never treats as
-// wire params or imports. They exist on both sides of the boundary.
+// wire params or imports: they exist on both sides of the boundary.
 const SERVER_EXPR_AMBIENT = new Set([
   "await", "new", "typeof", "instanceof", "in", "of", "void", "delete",
   "true", "false", "null", "undefined", "NaN", "Infinity",
@@ -1146,7 +1176,7 @@ const SERVER_EXPR_AMBIENT = new Set([
 // End (exclusive) of a server EXPR: the first TOP-LEVEL refresh-policy
 // keyword (`every` / `on` / `once`), scanning depth- and string-aware so a
 // policy word inside a call argument or string never terminates the
-// expression. Returns -1 when no policy appears before the statement end:
+// expression. Returns -1 when no policy appears before the statement end -
 // the mandatory-policy compile error (§13.8).
 function serverExprEnd(src: string, start: number, stmtEnd: number): { exprEnd: number; policy: string } | -1 {
   let i = start;
@@ -1199,7 +1229,7 @@ export interface ServerSourceMeta {
  *
  * Escape analysis (v1, same regex/extent fidelity as the rest of this file):
  * free identifiers of EXPR partition into (1) file imports → hoisted into the
- * server module. Used ANYWHERE else client-side in the file is a compile
+ * server module: used ANYWHERE else client-side in the file is a compile
  * error, EXCEPT the schema annotation's root identifier (schemas are
  * isomorphic values, deliberately legal on both sides); (2) component-scope
  * declarations (prop/signal/let/const/…) → positional wire params, re-keying
@@ -1337,7 +1367,7 @@ export function extractServerSources(
   if (sources.length === 0) return { code: source, sources, diagnostics };
 
   // Boundary check: an import referenced by a server expression must not ALSO
-  // be used by client-side code, except schema roots (isomorphic values).
+  // be used by client-side code: except schema roots (isomorphic values).
   const schemaRoots = new Set(sources.map((s) => s.schema.split(".")[0]!));
   let clientRemainder = "";
   {
@@ -1382,7 +1412,7 @@ export function extractServerSources(
     }
   }
   const serverModule =
-    `// AUTO-GENERATED by para-preprocess from ${moduleId}, §13.8 server sources.\n` +
+    `// AUTO-GENERATED by para-preprocess from ${moduleId}: §13.8 server sources.\n` +
     `// Ejectable: plain code, host it with createServerSource(@lyku/para-sync).\n` +
     [...importLines.entries()]
       .map(([mod, names]) => `import { ${[...names].sort().join(", ")} } from "${mod}";`)
@@ -1495,7 +1525,7 @@ function extractArm(body: string, name: string): { param: string; body: string }
 // Turn an imperative optimistic/rollback arm into a pure `(input, __cur) => next`.
 // The arm mutates the synced ENTITY (`cart.items = …`, or `cart = snapshot`); we
 // run its body verbatim on a shallow DRAFT of the current value and return the
-// draft, so interdependent / `+=` / whole-entity-reassign bodies all lower
+// draft: so interdependent / `+=` / whole-entity-reassign bodies all lower
 // correctly (a single spread only handles the one-assignment case).
 function armToDraftFn(entity: string, arm: { param: string; body: string }): string {
   const draft = `__${entity}_d`;
@@ -1578,7 +1608,7 @@ function lowerAsyncSignalDecls(source: string): {
   const code = source.replace(re, (_full, indent, name, expr) => {
     needs = true;
     return (
-      `${indent}const __as_${name} = promiseSignal(() => (${expr})); ` +
+      `${indent}const __as_${name} = promiseSignal(() => (${stripDeclTail(expr)})); ` +
       `let ${name} = $state(__as_${name}.peek?.() ?? __as_${name}); ` +
       `$effect.pre(() => __as_${name}.subscribe?.((__v: typeof ${name}) => { ${name} = __v; })); ` +
       `onDestroy(() => __as_${name}.dispose?.());`
@@ -1595,14 +1625,14 @@ function lowerAsyncSignalDecls(source: string): {
  * para signal + cross-system subscribe effect) when external para code can
  * observe it via `signalOf`, or it leaves via component context / `export`.
  * Otherwise it lowers to a plain `$state` cell (~1.84× faster, ~2.3× less
- * heap at whole-component scale. It deletes a whole signal + effect per
+ * heap at whole-component scale: it deletes a whole signal + effect per
  * local cell; survives render cost where LYK-884's backend-swap washed out).
  *
  * Single shared implementation: imported by both this build path and the
  * editor's pui-transform.ts, so editor↔build parity is structural (one
  * function), not byte-mirrored copies. The build path passes `source` after
  * provide/inject have desugared to setContext/getContext; the editor passes
- * the raw `<script>` body where they're still keywords, the context regex
+ * the raw `<script>` body where they're still keywords: the context regex
  * matches BOTH forms so the verdict is identical regardless of caller.
  *
  * CONSERVATIVE BY DESIGN: the fallback is the proven-correct bridge, so an
@@ -1623,7 +1653,7 @@ export function buildEscapeChecker(source: string): (name: string) => boolean {
     else untraceable = true;
   }
   // Simple identifier aliases `const|let|var L = R;`. Fixpoint so a name
-  // aliased into a signalOf'd binding (including chains) also escapes:
+  // aliased into a signalOf'd binding (including chains) also escapes -
   // closes the `const y = x; signalOf(y)` hole without full AST analysis.
   const aliases: Array<[string, string]> = [];
   for (const m of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*;?/g)) {
@@ -1652,7 +1682,7 @@ export function buildEscapeChecker(source: string): (name: string) => boolean {
  * Lower a `.pui` `<script>` body's Para reactive keywords (signal / derived /
  * effect / prop / provide / inject / using / source / async signal / sync /
  * synced) to standard Svelte 5 runes.
- * Synchronous and side-effect-free, safe to call from a TS language-service
+ * Synchronous and side-effect-free: safe to call from a TS language-service
  * plugin or any tooling that needs the type-relevant transform without the
  * full async PreprocessorGroup. The operator desugars (`..!`, `|>`, `pure`)
  * are NOT applied here (they're Bun.Transpiler's job and don't change the
@@ -1677,7 +1707,7 @@ export function lowerPuiReactivity(
   // pass's KEY grammar would otherwise capture `server EXPR every …` as a
   // key expression and emit garbage. Diagnostics are COMPILE ERRORS (a
   // missing refresh policy, a both-sides import, `this` in a server
-  // expression), thrown here, not warned. The server module itself is
+  // expression): thrown here, not warned. The server module itself is
   // emitted by the P9 build path calling extractServerSources directly
   // with the same moduleId, so client subKey === host subKey.
   const serverResult = extractServerSources(source, { moduleId });
@@ -1691,7 +1721,7 @@ export function lowerPuiReactivity(
   // accidentally chew the rewritten `$effect(() => {...})` body.
   source = lowerEffectBlocks(source);
   // Query-derived (`derived NAME :: SCHEMA = EXPR`, §10.7) BEFORE the
-  // plain derived pass. See lowerQueryDerivedDecls for why order is
+  // plain derived pass: see lowerQueryDerivedDecls for why order is
   // load-bearing (the plain pass would eat `:: SCHEMA` as an annotation).
   const queryDerivedResult = lowerQueryDerivedDecls(source);
   source = queryDerivedResult.code;
@@ -1712,12 +1742,12 @@ export function lowerPuiReactivity(
   source = asyncSignalResult.code;
 
   // `sync feed :: SCHEMA[] from query(...)` (collections, §13.3) BEFORE the
-  // single-object `sync ... from KEY`. It consumes the `[]`+query form so the
+  // single-object `sync ... from KEY`: it consumes the `[]`+query form so the
   // single-object regex can't mis-match it.
   const syncFeedResult = lowerSyncFeedDecls(source);
   source = syncFeedResult.code;
 
-  // `sync NAME :: SCHEMA from query(...)` (scalar, §13.7) after the feed
+  // `sync NAME :: SCHEMA from query(...)`: scalar, §13.7: after the feed
   // pass (which owns `[]`+query) and before the single-object pass (whose
   // KEY grammar would swallow `query({...})` as a key expression).
   const syncOneResult = lowerSyncOneDecls(source);
@@ -1760,7 +1790,7 @@ export function lowerPuiReactivity(
   )
     svelteImports.add("onDestroy");
   // Auto-import the closed lifecycle/nav set when used as a plain call
-  // (mount-keyword retired. These are framework functions, not Para
+  // (mount-keyword retired: these are framework functions, not Para
   // primitives; we only strip the import boilerplate). Runtime lifecycle
   // (onMount/onDestroy) rides the existing `${runtime}` injection + its
   // svelte|@lyku/para-ui dedup; SvelteKit nav goes to $app/navigation.
@@ -1771,7 +1801,7 @@ export function lowerPuiReactivity(
   // LYK-886 escape analysis. A `signal x` only needs the para bridge
   // (extra para signal + cross-system subscribe effect) if external para
   // code can observe it via `signalOf`. When `x` provably never escapes
-  // the component we lower it to a plain `$state` cell instead, measured
+  // the component we lower it to a plain `$state` cell instead: measured
   // ~1.84× faster + ~2.3× less heap at whole-component scale because it
   // deletes a whole signal + a whole effect per local cell (it removes
   // work, unlike the rejected LYK-884 backend-swap which washed out).
@@ -1781,11 +1811,11 @@ export function lowerPuiReactivity(
   // observers would silently stop seeing updates). We only inline when
   // certain. v1 escape vectors (keep the bridge if ANY hold):
   //   - `signalOf` appears anywhere in the script. Coarse file-level gate
-  //     signalOf in a .pui is the rare escape hatch; when present the
+  //    : signalOf in a .pui is the rare escape hatch; when present the
   //     whole file keeps today's behavior (zero regression). Per-name
   //     precision is a documented later refinement.
   //   - the name flows into component context (`setContext(`/`getContext(`
-  //     provide/inject already desugared to these by this point).
+  //    : provide/inject already desugared to these by this point).
   //   - the name appears in an `export` (belt-and-suspenders: exporting a
   //     value isn't a para-observe, but cheap to be extra safe).
   // NB: this predicate is mirrored byte-for-byte in editors/lsp
@@ -1794,7 +1824,7 @@ export function lowerPuiReactivity(
   // lowering and the byte-parity test fails. It therefore matches BOTH
   // the keyword forms (`provide`/`inject`, which the editor path still
   // sees raw) AND their desugared forms (`setContext`/`getContext`, which
-  // this build path has already lowered by now), whichever a given path
+  // this build path has already lowered by now): whichever a given path
   // observes, the verdict is the same. The checker is the single shared
   // implementation imported by pui-transform.ts too, so editor↔build
   // parity is structural (one function), not hand-maintained copies.
@@ -1815,7 +1845,7 @@ export function lowerPuiReactivity(
 
   // Lower a single `name = expr` signal declarator to its emitted
   // fragment. Returns null for the "leave line untouched" case (no
-  // initializer, not a valid signal decl, matched old non-match).
+  // initializer: not a valid signal decl, matched old non-match).
   const lowerSig = (name: string, expr: string | undefined): string | null => {
     if (expr === undefined || expr === "") return null;
     // LYK-886: provably component-local → plain `$state`, no para bridge.
@@ -1825,7 +1855,7 @@ export function lowerPuiReactivity(
     if (!escapes(name)) return `let ${name} = $state(${expr});`;
     signalNames.add(name);
     // Bridge form: a para signal lives alongside a $state cell. The
-    // $effect.pre subscribes ACROSS the systems, para's .subscribe()
+    // $effect.pre subscribes ACROSS the systems: para's .subscribe()
     // creates a para effect that synchronously runs the callback on
     // every set(), and the callback writes into Svelte's $state
     // (which then drives DOM updates the normal way). The cleanup
@@ -1852,7 +1882,7 @@ export function lowerPuiReactivity(
     const m = line.match(declRe);
     if (!m) continue;
     const [, indent, list] = m;
-    const decls = splitDeclarators(list!).map(parseDeclarator);
+    const decls = splitDeclarators(stripDeclTail(list!)).map(parseDeclarator);
     if (decls.length === 0 || decls.some(d => d === null)) continue;
     const frags = decls.map(d => lowerSig(d!.name, d!.default));
     // Any declarator without an initializer ⇒ not a valid signal
@@ -1873,14 +1903,14 @@ export function lowerPuiReactivity(
       if (!m) continue;
       const [, indent, expr] = m;
       if (expr === undefined) continue;
-      lines[i] = `${indent}__sig_${name}.set(${expr});`;
+      lines[i] = `${indent}__sig_${name}.set(${stripDeclTail(expr)});`;
     }
   }
 
   let result = lines.join("\n");
 
   // Inject @lyku/para-signals import if any signals declared and not already
-  // imported. Prepended as its own line, adds 1 to all subsequent line
+  // imported. Prepended as its own line: adds 1 to all subsequent line
   // numbers from the user's view, which is acceptable for v1; downstream
   // Svelte compiler diagnostics will be offset by 1.
   const importSep = linePreserving ? " " : "\n";
@@ -1901,7 +1931,7 @@ export function lowerPuiReactivity(
 
   // The sync-family keywords auto-import their constructors from @lyku/para-sync
   // (dedup against a hand-authored import), the way signal/derived auto-import
-  // from para-signals, so the call site never needs the import line. synced
+  // from para-signals: so the call site never needs the import line. synced
   // (sync/synced), syncedQuery (sync feed), presence (presence).
   const paraSyncImports: string[] = [];
   if (needsSynced || needsServerSync) paraSyncImports.push("synced");
@@ -1991,8 +2021,8 @@ export function parabunPreprocess(opts: ParabunPreprocessOptions = {}): Preproce
       if (!shouldRun) return;
 
       // For `.pui` files: first lower Para script syntax (match, |>, leading-dot,
-      // async {}) to standard JS, the JS fallback for what the parabun runtime
-      // does natively, so this works under node/browser/standard-bun too, then
+      // async {}) to standard JS: the JS fallback for what the parabun runtime
+      // does natively, so this works under node/browser/standard-bun too: then
       // bridge reactivity (`signal`/`derived`/`effect` → $state/$effect). After
       // both passes the content is standard TS, so parabun's own transpile (when
       // running under Bun) sees nothing parabun-specific left to transform.
@@ -2001,7 +2031,7 @@ export function parabunPreprocess(opts: ParabunPreprocessOptions = {}): Preproce
         : content;
       // Svelte's preprocess loop short-circuits with no_change() when
       // `processed.code === content && !processed.map` (see
-      // svelte/compiler/preprocess/index.js process_single_tag), which
+      // svelte/compiler/preprocess/index.js process_single_tag): which
       // would silently drop our `lang: "ts"` rewrite. Append a trailing
       // newline in the Node-fallback path so the code differs by one
       // semantically-inert character and the attribute change is honored.
@@ -2013,7 +2043,7 @@ export function parabunPreprocess(opts: ParabunPreprocessOptions = {}): Preproce
         ? getTranspiler(pickLoader(lang)).transformSync(preprocessed)
         : (nodeStripTypes(preprocessed, pickLoader(lang)) ??
           (preprocessed === content ? preprocessed + "\n" : preprocessed));
-      // NOTE: deliberately NOT returning `dependencies: [filename]`, declaring a
+      // NOTE: deliberately NOT returning `dependencies: [filename]`: declaring a
       // file as a dependency of itself makes svelte warn ("dependency of itself").
       return {
         code,

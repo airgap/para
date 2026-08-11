@@ -4,7 +4,7 @@
  * demos use; we lower to a `((__pm) => __pm === p1 ? r1 : __pm === p2
  * ? r2 : default)(SUBJECT)` ternary chain. Non-literal patterns
  * (Ok/Err/Some/None, destructure, guards) would need the parabun
- * zig-side lowering — out of scope for the browser live-compile
+ * zig-side lowering: out of scope for the browser live-compile
  * pipeline, which is what the editable demos use.
  *
  * Brace-aware: subjects can be complex expressions ending at `{`; each

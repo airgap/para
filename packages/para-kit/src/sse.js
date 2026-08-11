@@ -1,14 +1,14 @@
 // @lyku/para-kit: SyncEnvelopes over SSE (plan §6 items 2–3, step 5).
 //
 // Server: `createSyncEndpoint` returns SvelteKit-shaped handlers built on
-// web standards only (Request/Response/ReadableStream), so they run (and
-// test) anywhere those exist. GET is the read path: the client names its
+// web standards only (Request/Response/ReadableStream), so they run: and
+// test: anywhere those exist. GET is the read path: the client names its
 // keys (?key=…&key=…), the endpoint ensures any server sources behind them
 // are running (via the host), sends each source's CURRENT envelope as the
 // baseline, then streams every transport publish for those keys as an SSE
 // `sync` event. POST is the §13.1 intent path, delegated to the app's
 // handler. The client cannot tell an L-server key from any other keyed
-// channel. It's all SyncEnvelopes on keys, which is the point.
+// channel: it's all SyncEnvelopes on keys, which is the point.
 //
 // Client: `SseTransport` implements the para-sync dumb-pipe SUBSCRIBE side
 // over an EventSource; `publish` throws: the read path is one-directional,
@@ -48,19 +48,56 @@ export function createSseParser(onEvent) {
 /**
  * @param {{ transport: import('@lyku/para-sync').SyncTransport,
  *           host?: { ensure(key: string): Promise<{ seed(): any } | undefined> },
- *           onIntent?: (intent: unknown) => unknown | Promise<unknown> }} cfg
+ *           onIntent?: (intent: unknown, ctx?: unknown) => unknown | Promise<unknown>,
+ *           authorize?: (ctx: unknown, key: string) => boolean | Promise<boolean>,
+ *           project?: (ctx: unknown, key: string, envelope: any) => any,
+ *           heartbeat?: number }} cfg
+ *
+ * `ctx` is the P8 SecureContext (spec ch. 11 §6): para-kit never resolves
+ * sessions itself; the route/host validates the caller and passes `ctx` on
+ * the RequestEvent (v1 contract: "the route/host supplies it"). Given that:
+ *
+ * - `authorize(ctx, key)` gates the READ path per subscribed key. Fail
+ *   closed: any denied key rejects the whole GET with 403 before a byte
+ *   streams: per-user subKeys (e.g. `view:[room, userId]`) become safe
+ *   instead of merely unguessable. Intents are NOT gated here; `onIntent`
+ *   receives `ctx` and owns its own authorization.
+ * - `project(ctx, key, envelope)` runs at the send point on every frame
+ *   (baseline and live) for per-subscriber shaping. Returning null/undefined
+ *   suppresses the frame. Sequences pass through untouched: they order,
+ *   they don't authenticate. Compose with para-sync's visibility helpers
+ *   (`projectByClass` etc.) for class-cached projections.
+ * - `heartbeat` (ms) emits an SSE comment frame (`: hb`) on an idle stream so
+ *   proxies/LBs don't reap long-lived quiet connections (turn-based apps).
+ *   Comment frames are invisible to EventSource and to createSseParser.
  */
-export function createSyncEndpoint({ transport, host, onIntent }) {
+export function createSyncEndpoint({ transport, host, onIntent, authorize, project, heartbeat }) {
   return {
-    /** @param {{ url: URL }} event  SvelteKit RequestEvent (url is all we read) */
-    GET({ url }) {
+    /** @param {{ url: URL, ctx?: unknown }} event  SvelteKit-shaped RequestEvent */
+    async GET({ url, ctx }) {
       const keys = [...new Set(url.searchParams.getAll("key"))];
+      if (authorize) {
+        for (const key of keys) {
+          if (!(await authorize(ctx, key))) {
+            return new Response(JSON.stringify({ error: "unauthorized key", key }), {
+              status: 403,
+              headers: { "content-type": "application/json" },
+            });
+          }
+        }
+      }
       /** @type {Array<() => void>} */
       let unsubs = [];
+      /** @type {ReturnType<typeof setInterval> | undefined} */
+      let pulse;
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
-          const send = (key, envelope) => controller.enqueue(encoder.encode(formatSyncEvent(key, envelope)));
+          const send = (key, envelope) => {
+            const shaped = project ? project(ctx, key, envelope) : envelope;
+            if (shaped == null) return;
+            controller.enqueue(encoder.encode(formatSyncEvent(key, shaped)));
+          };
           for (const key of keys) {
             // Subscribe BEFORE seeding: a publish landing between the seed
             // read and the subscribe would otherwise be lost; the replica
@@ -71,10 +108,22 @@ export function createSyncEndpoint({ transport, host, onIntent }) {
             if (seed !== undefined) send(key, seed);
           }
           controller.enqueue(encoder.encode(`event: ready\ndata: {}\n\n`));
+          if (heartbeat) {
+            pulse = setInterval(() => {
+              try {
+                controller.enqueue(encoder.encode(`: hb\n\n`));
+              } catch {
+                clearInterval(pulse); // stream already closed server-side
+              }
+            }, heartbeat);
+            // Never hold a process open for a keepalive (harness/CLI hosts).
+            pulse.unref?.();
+          }
         },
         cancel() {
           for (const u of unsubs) u();
           unsubs = [];
+          clearInterval(pulse);
         },
       });
       return new Response(stream, {
@@ -86,8 +135,8 @@ export function createSyncEndpoint({ transport, host, onIntent }) {
       });
     },
 
-    /** @param {{ request: Request }} event */
-    async POST({ request }) {
+    /** @param {{ request: Request, ctx?: unknown }} event */
+    async POST({ request, ctx }) {
       if (!onIntent) {
         return new Response(JSON.stringify({ error: "no intent handler configured" }), {
           status: 501,
@@ -97,7 +146,7 @@ export function createSyncEndpoint({ transport, host, onIntent }) {
       const body = await request.json();
       const intents = Array.isArray(body?.intents) ? body.intents : [body];
       const results = [];
-      for (const intent of intents) results.push(await onIntent(intent));
+      for (const intent of intents) results.push(await onIntent(intent, ctx));
       return new Response(JSON.stringify({ results }), {
         headers: { "content-type": "application/json" },
       });
@@ -112,7 +161,7 @@ export function createSyncEndpoint({ transport, host, onIntent }) {
  * client's connection MULTIPLEXER, not the server pipe, and it remembers the
  * last envelope seen per key. A LATE JOINER (a second component binding a
  * key the connection already carries) is replayed that envelope on
- * subscribe, otherwise it would sit valueless until the next server
+ * subscribe: otherwise it would sit valueless until the next server
  * change, since the endpoint's baseline event was consumed by the first
  * subscriber's connection. Replay is idempotent by construction: envelopes
  * carry (schema_version, sequence), so an already-initialized replica

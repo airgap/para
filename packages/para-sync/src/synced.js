@@ -8,7 +8,7 @@
 // teardown. `synced` collapses that into a single call.
 //
 // What it adds on top of createClientReplica:
-//   1. A default transport, a private InProcessTransport, the client model
+//   1. A default transport: a private InProcessTransport, the client model
 //      (the WS stream is the only producer; there is no server-internal bus to
 //      inject). Caller may still inject one for tests/advanced use.
 //   2. A stream bridge: given `stream` (a factory yielding {listen, close?}),
@@ -23,7 +23,7 @@
 //   4. One teardown: `.dispose()` closes the stream and disposes the replica.
 //
 // It does NOT write (Tier 1 is read-only replication) and does NOT own the
-// schema or the schema version. Those are the caller's, passed straight through.
+// schema or the schema version: those are the caller's, passed straight through.
 
 import { signal } from "@lyku/para-signals";
 import { InProcessTransport } from "./transport.js";
@@ -37,7 +37,7 @@ import { createClientReplica } from "./client.js";
 /** @typedef {import('./client.js').ReplicaMeta} ReplicaMeta */
 
 /**
- * App-wide defaults so call sites can shrink to `synced(key, schema)`, the
+ * App-wide defaults so call sites can shrink to `synced(key, schema)`: the
  * delivery for a key is inferred from here instead of repeated at every call.
  * Set ONCE near app init. Two deployment shapes (use whichever fits; not both):
  *
@@ -54,7 +54,7 @@ let syncDefaults = {};
 
 /**
  * No-validation gate for the type-only `sync x: T from key` form: accept every
- * inbound value verbatim. Used when no schema is supplied, see the schema note
+ * inbound value verbatim. Used when no schema is supplied: see the schema note
  * in {@link synced}.
  * @type {import('./client.js').SyncSchema}
  */
@@ -106,7 +106,8 @@ export function configureSynced(config) {
  * @property {SyncTransport} [transport]        transport override; else the
  *        configured default transport, else a private InProcessTransport.
  * @property {SyncEnvelope} [seed]              SSR-embedded initial envelope.
- * @property {() => Promise<SyncEnvelope>} [refetch]  Err/skew/gap recovery.
+ * @property {() => Promise<SyncEnvelope>} [refetch]  Err/skew recovery (gaps
+ *   commit the full-object envelope directly since 2026-08-10).
  * @property {string} [schemaVersion]          expected schema version.
  * @property {Cell} [cell]                      reactive cell override.
  *
@@ -134,12 +135,12 @@ export function synced(key, schemaOrOpts, maybeOpts) {
       ? schemaOrOpts
       : undefined;
   const opts = (positionalSchema ? maybeOpts : schemaOrOpts) ?? {};
-  // Schema is OPTIONAL: absent ⇒ PASSTHROUGH (no runtime validation), the
+  // Schema is OPTIONAL: absent ⇒ PASSTHROUGH (no runtime validation): the
   // `sync x: T from key` type-only / trusted mode. synced replicates server-
   // authoritative data over an untrusted wire, so a real gate is the default
   // (the `sync x :: Schema from key` form); skipping it is the deliberate
   // opt-out. A schema that is PRESENT but malformed (no `parse`) is still a hard
-  // error. That's a mistake, not an opt-out.
+  // error: that's a mistake, not an opt-out.
   const schema = positionalSchema ?? opts.schema ?? PASSTHROUGH_SCHEMA;
   if (typeof schema.parse !== "function") {
     throw new Error("synced: the provided `schema` has no parse(value) method");
@@ -148,7 +149,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
   const { stream, transport, seed, refetch, schemaVersion, cell } = opts;
 
   // Own the value cell so the handle can expose `.subscribe` (the .pui `source`/
-  // `synced` binding convention). Default: a para signal, the reconciler's own
+  // `synced` binding convention). Default: a para signal: the reconciler's own
   // default, hoisted here so we keep a reference. An injected cell (e.g. a host
   // SvelteMap-backed one) is used as-is; if it has no `.subscribe`, the handle's
   // is a no-op and the host store drives reactivity instead.
@@ -194,7 +195,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
   let disposed = false;
 
   return {
-    /** current value (tracked read), the rune's primary read surface */
+    /** current value (tracked read): the rune's primary read surface */
     get value() {
       return replica.get();
     },
@@ -232,7 +233,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
     peekMeta() {
       return replica.peekMeta();
     },
-    /** observability counters, read directly */
+    /** observability counters: read directly */
     stats: replica.stats,
     /** resolves when no recovery refetch is in flight (test/await aid) */
     whenIdle() {
@@ -245,7 +246,7 @@ export function synced(key, schemaOrOpts, maybeOpts) {
       try {
         sock?.close?.();
       } catch {
-        /* already closed. Teardown must not throw */
+        /* already closed: teardown must not throw */
       }
       replica.dispose();
     },

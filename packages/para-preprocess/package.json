@@ -24,6 +24,12 @@
     },
     "./pui": {
       "types": "./pui.d.ts"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "bun": "./src/vite.ts",
+      "import": "./dist/vite.js",
+      "default": "./dist/vite.js"
     }
   },
   "scripts": {

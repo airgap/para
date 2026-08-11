@@ -6,7 +6,7 @@
 // ONE app-wide manifest module that imports every artifact and exports the
 // flat source list the host consumes. The CLI (cli.js) is the thin fs shell.
 //
-// The moduleId handed to extractServerSources is the .pui path AS GIVEN:
+// The moduleId handed to extractServerSources is the .pui path AS GIVEN -
 // the same id para-preprocess embeds in the client binding (its `filename`),
 // which is what makes client subKey ≡ host subKey. Pass route-relative
 // paths consistently on both sides.
@@ -76,9 +76,16 @@ import { serverSources } from "$lib/para-sync-manifest.js";
 
 const transport = new InProcessTransport();
 const host = createServerSourceHost(serverSources, { transport });
+// ctx is YOUR session (the P8 SecureContext): resolve it in a hook into
+// event.locals, then gate/shape per subscriber here:
+//   createSyncEndpoint({ transport, host,
+//     authorize: (ctx, key) => …,          // fail-closed per-key read gate
+//     project: (ctx, key, envelope) => …,  // per-subscriber shaping
+//     onIntent: (intent, ctx) => …,        // writes; authorize inside
+//     heartbeat: 25_000 })
 const endpoint = createSyncEndpoint({ transport, host });
 
-export const GET = endpoint.GET;
-export const POST = endpoint.POST;
+export const GET = (event) => endpoint.GET({ url: event.url, ctx: event.locals });
+export const POST = (event) => endpoint.POST({ request: event.request, ctx: event.locals });
 `;
 }

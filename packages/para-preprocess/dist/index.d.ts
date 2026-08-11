@@ -14,13 +14,13 @@ export type ParabunPreprocessOptions = {
     all?: boolean;
     /**
      * Which runtime to emit injected imports against (`setContext`,
-     * `getContext`, `onDestroy`, etc. — used by `provide`/`inject`/`using`
+     * `getContext`, `onDestroy`, etc.: used by `provide`/`inject`/`using`
      * keyword lowering).
      *
      * - `"@lyku/para-ui"` (default): targets the Para UI fork
      *   (packages/para-svelte/packages/svelte). Para signals run at the
      *   reactive core; `signalOf()` is available. Consumers must have
-     *   `@lyku/para-ui` resolvable (currently workspace-only — see
+     *   `@lyku/para-ui` resolvable (currently workspace-only: see
      *   PARA-FORK.md).
      * - `"svelte"`: targets unmodified Svelte from npm. The escape hatch
      *   for projects that haven't wired the fork yet. The lowering still
@@ -44,6 +44,19 @@ export declare function hasTopLevelAwait(body: string): boolean;
 /** Split a `prop`/`signal` declarator list on top-level commas. */
 export declare function splitDeclarators(list: string): string[];
 /**
+ * Strip a trailing `// comment` (and the `;` it may have hidden) from a
+ * line-based declaration TAIL: the `(.+?)` capture of the single-line decl
+ * regexes (`signal`/`prop`/`provide`/`inject`/`using`/`source`/`async
+ * signal`/assignment-rewrite). Those regexes end `\s*;?\s*$`, so a trailing
+ * comment leaves the `;` mid-capture and the comment rides into the emitted
+ * wrapper (`$state([]; // note)`): commenting out the close paren. Cut at
+ * the first `//` outside a string literal, then drop the now-trailing `;`.
+ * Shared by the build path and the editor's pui-transform (same verdict on
+ * both sides, structurally). Scope rule matches the decl forms themselves:
+ * single-line initializers; regex literals containing `//` are not tracked.
+ */
+export declare function stripDeclTail(tail: string): string;
+/**
  * Parse one declarator `NAME (: TYPE)? (= DEFAULT)?`. The type/default
  * boundary is the first *top-level* `=` that is a real assignment (not
  * `=>`, `==`, `===`, `<=`, `>=`, `!=`, `!==`, `+=` …).
@@ -57,10 +70,10 @@ export declare function parseDeclarator(decl: string): {
  * Locate every `match SUBJECT { … }` expression and return the span plus
  * the (verbatim) subject text. This is the SINGLE source for the `.pui`
  * LSP projection (pui-transform) and the legacy `transformParabunToTS`
- * non-`.pui` path — both lower `match` to a parse-safe, subject-typed
+ * non-`.pui` path: both lower `match` to a parse-safe, subject-typed
  * `any` stub (`((__pm: any): any => null as any)(SUBJECT)`), which is
  * the proven shape shipped for `.svelte`/`.pts` today. (Full per-arm
- * result narrowing is a separate enhancement, tracked on LYK-916 — it
+ * result narrowing is a separate enhancement, tracked on LYK-916: it
  * would need a Zig-faithful, sourcemap-threaded lowering and is beyond
  * what any current parabun tooling does.)
  *
@@ -94,7 +107,7 @@ export interface ServerSourceMeta {
  *
  * Escape analysis (v1, same regex/extent fidelity as the rest of this file):
  * free identifiers of EXPR partition into (1) file imports → hoisted into the
- * server module — used ANYWHERE else client-side in the file is a compile
+ * server module: used ANYWHERE else client-side in the file is a compile
  * error, EXCEPT the schema annotation's root identifier (schemas are
  * isomorphic values, deliberately legal on both sides); (2) component-scope
  * declarations (prop/signal/let/const/…) → positional wire params, re-keying
@@ -121,14 +134,14 @@ export declare function extractServerSources(source: string, opts?: {
  * para signal + cross-system subscribe effect) when external para code can
  * observe it via `signalOf`, or it leaves via component context / `export`.
  * Otherwise it lowers to a plain `$state` cell (~1.84× faster, ~2.3× less
- * heap at whole-component scale — it deletes a whole signal + effect per
+ * heap at whole-component scale: it deletes a whole signal + effect per
  * local cell; survives render cost where LYK-884's backend-swap washed out).
  *
  * Single shared implementation: imported by both this build path and the
  * editor's pui-transform.ts, so editor↔build parity is structural (one
  * function), not byte-mirrored copies. The build path passes `source` after
  * provide/inject have desugared to setContext/getContext; the editor passes
- * the raw `<script>` body where they're still keywords — the context regex
+ * the raw `<script>` body where they're still keywords: the context regex
  * matches BOTH forms so the verdict is identical regardless of caller.
  *
  * CONSERVATIVE BY DESIGN: the fallback is the proven-correct bridge, so an
@@ -142,7 +155,7 @@ export declare function buildEscapeChecker(source: string): (name: string) => bo
  * Lower a `.pui` `<script>` body's Para reactive keywords (signal / derived /
  * effect / prop / provide / inject / using / source / async signal / sync /
  * synced) to standard Svelte 5 runes.
- * Synchronous and side-effect-free — safe to call from a TS language-service
+ * Synchronous and side-effect-free: safe to call from a TS language-service
  * plugin or any tooling that needs the type-relevant transform without the
  * full async PreprocessorGroup. The operator desugars (`..!`, `|>`, `pure`)
  * are NOT applied here (they're Bun.Transpiler's job and don't change the

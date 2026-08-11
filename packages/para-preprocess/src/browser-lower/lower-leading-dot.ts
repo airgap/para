@@ -39,7 +39,7 @@ function skipString(src, at, quote) {
 }
 
 // A `/` begins a regex literal (not a divide) when the previous significant
-// char is an expression-opener / operator, never after an identifier, `)`,
+// char is an expression-opener / operator: never after an identifier, `)`,
 // `]`, or digit. Mirrors the single-char heuristic used elsewhere in this file.
 function isRegexCtx(prev) {
   if (!prev) return true;
@@ -61,7 +61,7 @@ function skipRegex(src, at) {
       i += 2;
       continue;
     }
-    if (c === "\n") break; // unterminated. Bail rather than run away
+    if (c === "\n") break; // unterminated: bail rather than run away
     if (c === "[") inClass = true;
     else if (c === "]") inClass = false;
     else if (c === "/" && !inClass) {
@@ -151,7 +151,7 @@ function skipBalanced(src, at, closeChar) {
 /**
  * Tell whether the character before index `i` makes `i`'s `.` a
  * placeholder. Placeholders fire when the dot is at the start of an
- * expression, after whitespace from an opener (`(`, `,`, `[`, `{`)
+ * expression: after whitespace from an opener (`(`, `,`, `[`, `{`)
  * or after a binary/unary operator (`&&`, `||`, `==`, `?`, `:`, `!`,
  * `+`, `-`, `*`, etc.). After an identifier / closing bracket / digit,
  * `.` is property access, NOT a placeholder.
@@ -187,7 +187,7 @@ function isPlaceholderDotAt(arg, dotIdx) {
 }
 
 /** Walk arg text, prepending `__x` to every top-level placeholder `.`.
- *  Nested calls aren't recursed here. The outer pass handles them. */
+ *  Nested calls aren't recursed here: the outer pass handles them. */
 function bindPlaceholders(arg, name = "__x") {
   const out = [];
   let i = 0;
@@ -230,7 +230,7 @@ function bindPlaceholders(arg, name = "__x") {
       i = stop;
       continue;
     }
-    // Skip over nested bracket groups verbatim. Those are
+    // Skip over nested bracket groups verbatim: those are
     // sub-expressions that have their own placeholder scope handled
     // by the outer call-pass when this fn is invoked recursively.
     if (c === "(" || c === "[" || c === "{") {
@@ -289,7 +289,7 @@ export function lowerLeadingDot(src, opts) {
       lastSig = "`";
       continue;
     }
-    // Regex literal in expression position. Emit verbatim. Must precede the
+    // Regex literal in expression position: emit verbatim. Must precede the
     // comment checks so `\//` (escaped slash + close) isn't read as `//`.
     if (c === "/" && src[i + 1] !== "/" && src[i + 1] !== "*" && isRegexCtx(lastSig)) {
       const end = skipRegex(src, i);
@@ -314,27 +314,55 @@ export function lowerLeadingDot(src, opts) {
     }
 
     // CALL-OPEN: `(` preceded by an identifier, `)`, or `]` (or after
-    // a property access, `foo.bar(`). Anything else (`(` after an
+    // a property access: `foo.bar(`). Anything else (`(` after an
     // operator) is a paren-group, not a call; we leave those alone.
     if (c === "(" && /[\w$)\].]/.test(lastSig)) {
       const argsStart = i + 1;
       const argsEnd = skipBalanced(src, argsStart, ")") - 1; // index of `)`
       const argsText = src.slice(argsStart, argsEnd);
-      // Split on top-level commas.
+      // Split on top-level commas. Comments and regex literals must pass
+      // through whole here, exactly as in the outer scan: an apostrophe
+      // inside `// can't` would otherwise open a phantom string that
+      // swallows real code (and its brackets) up to the next apostrophe,
+      // desyncing `depth` for everything after.
       const parts = [];
       let buf = "";
       let depth = 0;
       let p = 0;
+      let prevSig = "";
       while (p < argsText.length) {
         const ch = argsText[p];
         if (ch === "'" || ch === '"') {
           const end = skipString(argsText, p, ch);
           buf += argsText.slice(p, end);
           p = end;
+          prevSig = ch;
           continue;
         }
         if (ch === "`") {
           const end = skipTemplate(argsText, p);
+          buf += argsText.slice(p, end);
+          p = end;
+          prevSig = "`";
+          continue;
+        }
+        if (ch === "/" && argsText[p + 1] !== "/" && argsText[p + 1] !== "*" && isRegexCtx(prevSig)) {
+          const end = skipRegex(argsText, p);
+          buf += argsText.slice(p, end);
+          p = end;
+          prevSig = "/";
+          continue;
+        }
+        if (ch === "/" && argsText[p + 1] === "/") {
+          const nl = argsText.indexOf("\n", p);
+          const end = nl === -1 ? argsText.length : nl;
+          buf += argsText.slice(p, end);
+          p = end;
+          continue;
+        }
+        if (ch === "/" && argsText[p + 1] === "*") {
+          const close = argsText.indexOf("*/", p + 2);
+          const end = close === -1 ? argsText.length : close + 2;
           buf += argsText.slice(p, end);
           p = end;
           continue;
@@ -345,9 +373,11 @@ export function lowerLeadingDot(src, opts) {
           parts.push(buf);
           buf = "";
           p++;
+          prevSig = ",";
           continue;
         }
         buf += ch;
+        if (!/\s/.test(ch)) prevSig = ch;
         p++;
       }
       if (buf.length > 0) parts.push(buf);

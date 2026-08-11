@@ -1,12 +1,12 @@
 // The P9 loop, end to end and fully in-memory except the generated artifact
-// (written to a temp dir and imported, proving the emitted code RUNS):
+// (written to a temp dir and imported: proving the emitted code RUNS):
 //
 //   .pui fixture → emitServerArtifacts → artifact on disk → import →
 //   createServerSourceHost → createSyncEndpoint (real Response/stream) →
 //   harness EventSource → createSseTransport → synced(key, Schema) cell.
 //
 // A server-side invalidate() then flows the whole way back down to the
-// client cell, the complete §13.8 story under test in one process.
+// client cell: the complete §13.8 story under test in one process.
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -31,19 +31,24 @@ sync stats :: Stats from server db.total(orgId) on "stats:bump";
 <p>{stats?.total}</p>`;
 
 // EventSource harness: each factory call invokes the real GET handler and
-// pumps its Response stream through the SSE parser.
-function eventSourceHarness(endpoint) {
+// pumps its Response stream through the SSE parser. GET is async (the
+// authorize gate runs before a byte streams), so the pump awaits it; the
+// EventSource-shaped object itself is still handed back synchronously.
+function eventSourceHarness(endpoint, ctx) {
   return (url) => {
     const listeners = new Map();
-    const res = endpoint.GET({ url: new URL(url, "http://test") });
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+    let closed = false;
+    /** @type {ReadableStreamDefaultReader | undefined} */
+    let reader;
     const parse = createSseParser(({ event, data }) => {
       const cbs = listeners.get(event);
       if (cbs) for (const cb of [...cbs]) cb({ data });
     });
-    let closed = false;
     (async () => {
+      const res = await endpoint.GET({ url: new URL(url, "http://test"), ctx });
+      if (closed || !res.body) return;
+      reader = res.body.getReader();
+      const decoder = new TextDecoder();
       while (!closed) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -57,7 +62,7 @@ function eventSourceHarness(endpoint) {
       },
       close() {
         closed = true;
-        reader.cancel().catch(() => {});
+        reader?.cancel().catch(() => {});
       },
     };
   };
@@ -108,7 +113,7 @@ describe("P9 end to end", () => {
     expect(cell.peek()).toEqual({ total: 207 }); // seq 2 streamed + reconciled
 
     // A second client on the SAME subKey shares the host instance (one timer,
-    // one sequence stream, §4.4).
+    // one sequence stream: §4.4).
     const cell2 = synced(key, Stats, { transport: sse });
     await sleep(20);
     expect(cell2.peek()).toEqual({ total: 207 });

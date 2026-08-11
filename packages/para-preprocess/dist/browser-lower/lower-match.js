@@ -1,4 +1,4 @@
-// @ts-nocheck — Para browser-lowering pass (canonical home; consumed by Parascape + E)
+// @ts-nocheck: Para browser-lowering pass (canonical home; consumed by Parascape + E)
 function _nullishCoalesce(lhs, rhsFn) { if (lhs != null) {
     return lhs;
 }
@@ -27,7 +27,7 @@ function _optionalChain(ops) { let lastAccessLHS = undefined; let value = ops[0]
  * demos use; we lower to a `((__pm) => __pm === p1 ? r1 : __pm === p2
  * ? r2 : default)(SUBJECT)` ternary chain. Non-literal patterns
  * (Ok/Err/Some/None, destructure, guards) would need the parabun
- * zig-side lowering — out of scope for the browser live-compile
+ * zig-side lowering: out of scope for the browser live-compile
  * pipeline, which is what the editable demos use.
  *
  * Brace-aware: subjects can be complex expressions ending at `{`; each
@@ -99,11 +99,11 @@ function lowerMatch(src) {
             i = stop;
             continue;
         }
-        // `match` keyword — must be a standalone identifier, NOT a member
+        // `match` keyword: must be a standalone identifier, NOT a member
         // access (`str.match(/re/)`) or a longer name. The keyword form is
         // always `match SUBJECT {`, so the char before must not glue to an
         // identifier or be a `.` (member access), and the char after must be
-        // whitespace separating `match` from its subject — which also rules
+        // whitespace separating `match` from its subject, which also rules
         // out the `.match(`/`match(` method-call shape.
         if (src.startsWith("match", i) && !/[\w$.]/.test(_nullishCoalesce(src[i - 1], () => (""))) && /\s/.test(_nullishCoalesce(src[i + 5], () => ("")))) {
             // Walk the subject expression up to the `{` that opens the arms.
@@ -169,7 +169,7 @@ function lowerMatch(src) {
                     }
                 }
                 else if (ch === "`") {
-                    // template literal — skip
+                    // template literal: skip
                     k++;
                     while (k < len && src[k] !== "`") {
                         if (src[k] === "\\")

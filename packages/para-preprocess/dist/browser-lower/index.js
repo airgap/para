@@ -1,10 +1,10 @@
-// Para browser-lowering — the JS fallback for the lowerings the parabun runtime
+// Para browser-lowering: the JS fallback for the lowerings the parabun runtime
 // does natively. Run by parabunPreprocess so .pui compiles to standard
 // Svelte-5 in ANY environment (browser preview, node/vite, standard bun) without
 // each consumer (Parascape, E, …) vendoring its own copy.
 //
 // These were proven in Parascape's demos/*.js; this is now their canonical home.
-// Fusion (an optimization that pulls in @lyku/fuse) is intentionally not here —
+// Fusion (an optimization that pulls in @lyku/fuse) is intentionally not here:
 // chains compile + run correctly unfused.
 import { lowerAsyncBlock } from "./lower-async-block.js";
 import { lowerPipeline } from "./lower-pipeline.js";

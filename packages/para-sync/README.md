@@ -7,9 +7,9 @@ single-WS-per-browser objectfeed.
 > **Pre-release (0.0.1-pre).** API will change before 0.1.0. The client runtime
 > for the whole authority model (spec/08) now ships here:
 >
-> - **Tier 1, read/reconcile:** `SyncTransport` (`InProcessTransport` /
+> - **Tier 1: read/reconcile:** `SyncTransport` (`InProcessTransport` /
 >   `NatsTransport`), `createClientReplica`, `synced`, `visibility`.
-> - **Tier 2, writes (§13.1):** `createIntent` (optimistic apply → op-id
+> - **Tier 2: writes (§13.1):** `createIntent` (optimistic apply → op-id
 >   correlation → confirm/reject/rollback → echo dedupe/stale-suppression).
 > - **Offline (§13.5):** `createQueuedIntent` + durable stores (`durable.js`) and
 >   read-side durability (the reconciler `persist` seam).
@@ -55,7 +55,7 @@ off(); // idempotent unsubscribe
 The transport is a **dumb pipe**: it does not retain the latest value, does not
 validate the envelope (`parse` gating is the consumer's job at the apply
 boundary), and does not dedupe by sequence. A subscriber receives only publishes
-that happen **after** it subscribes. Initial state arrives via the SSR seed.
+that happen **after** it subscribes: initial state arrives via the SSR seed.
 
 ### Implementations
 
@@ -68,7 +68,7 @@ that happen **after** it subscribes. Initial state arrives via the SSR seed.
   over NATS, matching Lyku's existing full-object-over-NATS convention. Inject a
   `connection` (callback-adapted: `publish(subject, bytes)` /
   `subscribe(subject, onMessage) → unsub`), a wire `codec` (BON/msgpackr in
-  production, bigint IDs rule out JSON), and an optional `subjectOf(key)`.
+  production: bigint IDs rule out JSON), and an optional `subjectOf(key)`.
   N local subscribers to one key share a single bus subscription (local fanout),
   torn down when the last leaves.
 
@@ -102,7 +102,7 @@ Reconcile rules (Tier 1):
 
 - **parse gate** on every inbound value (SSR seed, receipt, refetch). `Err` →
   status `skew`, the cell is **not** poisoned, and a `refetch` recovers a
-  known-good snapshot. Gates branch on `.tag`. They never throw (that is why
+  known-good snapshot. Gates branch on `.tag`: they never throw (that is why
   `::`, which throws on `Err`, is reserved for the server-write gate only).
 - **baseline (re)seed**: hydration, a recovery refetch, or the first value ever
   seen is accepted unconditionally as the authoritative base.
@@ -147,16 +147,16 @@ read-only: Tier 1 replication; writes are the server-write gate's job.
 ### Inferred delivery: `synced(key, schema)`
 
 Configure delivery **once** at client init and call sites shrink to a key + a
-schema, no per-call `stream`/`transport`:
+schema: no per-call `stream`/`transport`:
 
 ```js
 import { configureSynced, synced } from "@lyku/para-sync";
 
-// once, at app init. Choose ONE:
+// once, at app init: choose ONE:
 configureSynced({ transport: objectfeed });                 // shared keyed WS (the end-state)
 configureSynced({ resolveStream: (key) => api.streamFor(key) }); // per-object endpoints (today)
 
-// anywhere. Schema is positional; delivery is inferred from the key:
+// anywhere: schema is positional; delivery is inferred from the key:
 const user = synced("user:123", User);
 const user = synced("user:123", User, { cell, seed }); // + overrides
 ```
@@ -171,6 +171,40 @@ In a `.pui`, the `synced` keyword wraps the call for you, so the minimal form is
 ```svelte
 synced user = `user:${userId}`, User;
 ```
+
+## Recipe: `synced` over your own socket (the stream bridge)
+
+para-sync deliberately ships **no WebSocket transport**: the `stream` option
+*is* the extension point, and it is how production consumers run today (lyku's
+current-user sync rides its own Metasock this way; para-kit's `SseTransport`
+is just this contract over an EventSource). If your app already owns a
+socket, don't wait for a transport package: bridge it:
+
+```js
+import { synced, configureSynced } from "@lyku/para-sync";
+
+// One receipt stream per key over YOUR socket. The bridge's whole contract:
+// { listen(cb), close?() } delivering {value, schema_version, sequence}
+// envelopes. Ordering, dedupe, gap handling: the reconciler's job, not yours.
+configureSynced({
+  resolveStream: (key) => {
+    const un = mySocket.subscribe(key, /* cb set by listen */);
+    let cb;
+    mySocket.on(key, (envelope) => cb?.(envelope));
+    return {
+      listen: (fn) => { cb = fn; },
+      close: () => un(),
+    };
+  },
+});
+
+const game = synced("game:42", { schema: GameView });
+```
+
+Writes go out however your socket sends them (or as HTTP intents); the read
+path stays one-directional. Gaps self-heal: a full-object envelope arriving
+after a disconnect commits directly (no refetch round-trip needed), so a
+reconnecting socket only has to deliver the *current* envelope per key.
 
 ## Tier 2: optimistic writes (`createIntent`, §13.1)
 
@@ -276,7 +310,7 @@ const authority = defineAuthority({
 ```
 
 Class-B (`@merge`) is the only way concurrent multi-writer merge becomes
-reachable, and it is a named pure function, never ambient (the anti-Meteor
+reachable, and it is a named pure function: never ambient (the anti-Meteor
 boundary, §7.2).
 
 ## Transactions (`createTransaction`, §13.6)
