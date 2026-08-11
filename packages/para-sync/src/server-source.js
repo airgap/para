@@ -111,7 +111,7 @@ export function createServerSource({
   const declared = [every !== undefined, on !== undefined, Boolean(once)].filter(Boolean).length;
   if (declared !== 1) {
     throw new Error(
-      "createServerSource: declare exactly one refresh policy: `every` (ms), `on` (invalidation key), or `once`"
+      "createServerSource: declare exactly one refresh policy, `every` (ms), `on` (invalidation key), or `once`"
     );
   }
 

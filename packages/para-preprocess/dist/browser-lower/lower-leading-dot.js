@@ -63,7 +63,7 @@ function skipRegex(src, at) {
             continue;
         }
         if (c === "\n")
-            break; // unterminated: bail rather than run away
+            break; // unterminated. Bail rather than run away
         if (c === "[")
             inClass = true;
         else if (c === "]")

@@ -73,7 +73,7 @@ emitOne(result.manifest.path, result.manifest.code, "manifest");
 if (!existsSync(endpointPath) && !check && result.artifacts.length > 0) {
   mkdirSync(dirname(endpointPath), { recursive: true });
   writeFileSync(endpointPath, endpointTemplate());
-  console.log(`✓ wrote ${relative(process.cwd(), endpointPath)} (once: yours to edit)`);
+  console.log(`✓ wrote ${relative(process.cwd(), endpointPath)} (once, yours to edit)`);
 }
 
 if (check && drift > 0) process.exit(1);
