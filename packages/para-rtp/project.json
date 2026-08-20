@@ -1,19 +1,19 @@
 {
-  "name": "para-rtp",
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "para/packages/para-rtp/src",
-  "projectType": "library",
-  "targets": {
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "bun test",
-        "cwd": "para/packages/para-rtp"
-      }
-    }
-  },
-  "tags": [
-    "no-tests-yet",
-    "scope:para"
-  ]
+	"name": "para-rtp",
+	"$schema": "../../node_modules/nx/schemas/project-schema.json",
+	"sourceRoot": "para/packages/para-rtp/src",
+	"projectType": "library",
+	"targets": {
+		"test": {
+			"executor": "nx:run-commands",
+			"options": {
+				"command": "bun test --pass-with-no-tests",
+				"cwd": "para/packages/para-rtp"
+			}
+		}
+	},
+	"tags": [
+		"no-tests-yet",
+		"scope:para"
+	]
 }

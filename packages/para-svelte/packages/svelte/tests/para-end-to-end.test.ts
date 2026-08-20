@@ -25,7 +25,11 @@ import { parabunPreprocess } from '../../../../para-preprocess/src/index';
  * would for a real .pui file. Returns the lowered script body.
  */
 async function lowerPuiScript(scriptBody: string): Promise<string> {
-	const pp = parabunPreprocess();
+	// hmr: false pins the emission. With hmr on (the default off production),
+	// the bridge is `import.meta.hot ? hmrSignal(...) : signal(0)`, and the
+	// `signal(0)` this test rewrites below is then the one inside the hmrSignal
+	// thunk rather than the allocation.
+	const pp = parabunPreprocess({ hmr: false });
 	const script = (pp as { script?: (a: unknown) => unknown }).script!;
 	const out = (await script({
 		content: scriptBody,
@@ -39,14 +43,23 @@ async function lowerPuiScript(scriptBody: string): Promise<string> {
 describe('para .pui end-to-end', () => {
 	it('preprocess → compile → mount → signalOf observes reactive state', async () => {
 		// ── 1. Source (what a user would write in a .pui file) ──────────────
-		const puiScript = `signal count = 0;`;
+		// `signalOf(count)` is load-bearing, not decoration. LYK-886 added escape
+		// analysis: a signal that provably cannot leave the component lowers to a
+		// plain `$state` with no para bridge and no import, which is the right
+		// output and exactly what this test does NOT want to exercise. signalOf is
+		// the documented "keep this para-observable" intent, so it is what a real
+		// component bridging to para would carry.
+		//
+		// Without it this test asserted a lowering the compiler had stopped
+		// producing, and had been failing since LYK-886.
+		const puiScript = `signal count = 0;\nsignalOf(count);`;
 		const lowered = await lowerPuiScript(puiScript);
 
 		// The lowering emits:
 		//   import { signal } from "@lyku/para-signals";
 		//   const __sig_count = signal(0);
 		//   let count = $state(__sig_count.peek());
-		//   $effect.pre(() => { count = __sig_count.get(); });
+		//   $effect.pre(() => __sig_count.subscribe((v) => { count = v; }));
 		expect(lowered).toMatch(/from\s+["']@lyku\/para-signals["']/);
 		expect(lowered).toContain('__sig_count');
 
@@ -58,11 +71,20 @@ describe('para .pui end-to-end', () => {
   export const externalCount = signal(0);
 </script>
 
-<script>
-${lowered.replace(/import { signal } from "@lyku\/para-signals";\n?/, '').replace(
-	'signal(0)',
-	'externalCount' // alias the in-component signal to the module-level one
-)}
+<!-- lang=ts because the bridge annotates its $effect.pre callback param
+     (__v: typeof count), so the instance script is TypeScript. The old
+     local-only lowering emitted no annotation, which is why a plain script
+     tag was enough before. -->
+<script lang="ts">
+${lowered
+	.replace(/import { signal } from "@lyku\/para-signals";\n?/, '')
+	// The escape marker did its job at lowering time; it is not component code,
+	// and signalOf is not imported here.
+	.replace(/^\s*signalOf\(count\);\s*$/m, '')
+	.replace(
+		'signal(0)',
+		'externalCount' // alias the in-component signal to the module-level one
+	)}
 </script>
 
 <p>{count}</p>
