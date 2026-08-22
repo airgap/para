@@ -622,9 +622,33 @@ export interface PuiTransform {
   toOriginal(line: number, character: number): { line: number; character: number } | null;
 }
 
+/**
+ * `lang="pts"` -> `lang="ts"` for svelte2tsx, PADDED to the same length.
+ *
+ * Svelte parses a script body as TypeScript only when `lang` is exactly `ts` -
+ * not `pts`, not `typescript`, not `ts ` - and by this point the body has been
+ * lowered to plain TypeScript. Left as `pts` it is parsed as JavaScript, so a
+ * single `import type { X } from '...'` fails the whole component with an
+ * unpositioned js_parse_error, which is every .pui in a workspace that imports
+ * a type.
+ *
+ * NOT part of the lowering: `pui-lower-parity` holds the LSP's lowering
+ * byte-identical to @lyku/para-preprocess, and this is a svelte2tsx input
+ * requirement rather than a Para desugaring. It runs after, on the lowered text.
+ *
+ * The extra space keeps the tag the same LENGTH, so `low.map` still describes
+ * every position in the file. A one-character-shorter tag would shift the rest
+ * of that line out from under the map for no benefit.
+ */
+const tsScriptTags = (lowered: string): string =>
+  lowered.replace(
+    /<script(\s+)([^>]*\b)?lang(\s*=\s*)"pts"/gi,
+    (_m, ws: string, before = "", eq: string) => `<script${ws} ${before}lang${eq}"ts"`,
+  );
+
 export function puiTransform(raw: string, filename: string): PuiTransform {
   const low = lowerPuiFileWithMap(raw, filename);
-  const out = svelte2tsx(low.code, { filename, isTsFile: true, mode: "ts" });
+  const out = svelte2tsx(tsScriptTags(low.code), { filename, isTsFile: true, mode: "ts" });
 
   const sv = new TraceMap(out.map as never); // generated ↔ lowered
   const lo = new TraceMap(low.map as never); // lowered ↔ raw

@@ -124,6 +124,44 @@ for (const runtime of ["bun", "node"] as const) {
       expect(out).toMatch(/Bad\.pui\(4,\d+\): error TS2322/); // signal n is number; planted line 4
     });
 
+    test('a `lang="pts"` component with TYPESCRIPT IN ITS MARKUP still projects', () => {
+      // svelte2tsx parses markup expressions with svelte's own parser, which
+      // decides the file is TypeScript from the script tag's `lang` - and
+      // accepts only exactly `ts`, not `pts`. So a typed snippet parameter, or
+      // any other TS syntax outside the script, failed the whole component with
+      // an unpositioned js_parse_error.
+      //
+      // The script alone was fine either way (`isTsFile: true` covers that
+      // path), which is what made this hard to see: it needs TS in the MARKUP.
+      // Lyku's three largest .pui components were unchecked because each has a
+      // `{#snippet name(x: T)}`.
+      //
+      // Both halves matter. The clean one must PASS, or the fix could be "treat
+      // anything unparseable as fine"; the planted error must be found at its
+      // real line, which only happens if the component actually projected.
+      const clean = [
+        '<script lang="pts">',
+        '\tlet n: number = 0;',
+        '</script>',
+        '',
+        '{#snippet row(r: number)}<b>{r + n}</b>{/snippet}',
+        '{@render row(1)}',
+        '',
+      ].join('\n');
+      const bad = clean.replace('let n: number = 0;', 'let n: number = "nope";');
+
+      const okWs = mkFixture(`ptsmarkup-ok-${runtime}`, { "Ok.pui": clean });
+      const okOut = runCheck(runtime, okWs);
+      expect(okOut.out).toContain("0 errors in 1 component");
+      expect(okOut.code).toBe(0);
+
+      const badWs = mkFixture(`ptsmarkup-bad-${runtime}`, { "Bad.pui": bad });
+      const { code, out } = runCheck(runtime, badWs);
+      expect(code).toBe(1);
+      expect(out).toMatch(/Bad\.pui\(2,\d+\): error TS2322/);
+      expect(out).not.toContain("failed to project");
+    });
+
     test("an unparseable component FAILS the check rather than crashing it", () => {
       const ws = mkFixture(`broken-${runtime}`, { "Ok.pui": OK_PUI, "Broken.pui": "<script lang=\"ts\">\nconst x = 1;\n</script>\n{#if}\n" });
       const { code, out } = runCheck(runtime, ws);
