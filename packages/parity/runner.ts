@@ -11,9 +11,30 @@
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { resolveParabun } from "@lyku/parabun-bin";
+import { pinnedVersion, resolveParabun } from "@lyku/parabun-bin";
 import { transpile } from "@lyku/para-transpile";
 import { normalize } from "./normalize";
+
+// Mirror of the parity guard in para/jenkins/Jenkinsfile (~L106): the
+// pinned-binary parity infra is not live yet (scaffold pin `0.0.0-pin.*`,
+// P2-c carrier publish + bake-manifest pending), so parity cannot run
+// without a real pin or a local PARABUN_BIN. Jenkins skips it loudly
+// rather than hard-failing the rest of CI; this bare `nx test` target must
+// agree, or `nx test parity` / `nx affected -t test` fails on an expected,
+// already-handled condition. The escape hatch still runs: an explicit
+// PARABUN_BIN means the caller has a binary and wants parity.
+//
+// Delete this guard the day P2-c lands: a real pin + baked manifest make
+// parity runnable and this branch dead.
+const pin = pinnedVersion();
+if (!process.env.PARABUN_BIN && (pin === "" || pin.startsWith("0.0.0-pin."))) {
+  console.warn(
+    `parity: scaffold/placeholder pin (${pin}): parity skipped ` +
+      `(pinned-binary infra not yet live). ` +
+      `Set PARABUN_BIN=/abs/path/to/parabun to run against a local build.`,
+  );
+  process.exit(0);
+}
 
 let PARABUN: string;
 try {
