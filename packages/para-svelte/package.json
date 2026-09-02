@@ -12,6 +12,7 @@
 	"scripts": {
 		"build": "pnpm -r --filter=./packages/* build",
 		"check": "cd packages/svelte && pnpm build && cd ../../ && pnpm -r check",
+		"pretest": "playwright install chromium",
 		"test": "vitest run",
 		"bench": "NODE_ENV=production node --allow-natives-syntax ./benchmarking/run.js",
 		"bench:compare": "NODE_ENV=production node --allow-natives-syntax ./benchmarking/compare/index.js",
