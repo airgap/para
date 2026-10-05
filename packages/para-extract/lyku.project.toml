@@ -1,0 +1,10 @@
+[project]
+id = "@lyku/para-extract"
+paths = ["para/packages/para-extract"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

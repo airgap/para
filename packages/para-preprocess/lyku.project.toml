@@ -1,0 +1,10 @@
+[project]
+id = "para-preprocess"
+paths = ["para/packages/para-preprocess"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

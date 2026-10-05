@@ -1,0 +1,10 @@
+[project]
+id = "parity"
+paths = ["para/packages/parity"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

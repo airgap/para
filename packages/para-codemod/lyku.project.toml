@@ -1,0 +1,10 @@
+[project]
+id = "para-codemod"
+paths = ["para/packages/para-codemod"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

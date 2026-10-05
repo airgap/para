@@ -1,0 +1,10 @@
+[project]
+id = "parabun-bin"
+paths = ["para/packages/parabun-bin"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

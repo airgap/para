@@ -1,0 +1,10 @@
+[project]
+id = "para-parallel"
+paths = ["para/packages/para-parallel"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

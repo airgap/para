@@ -1,0 +1,10 @@
+[project]
+id = "parabun-vscode"
+paths = ["para/editors/vscode"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

@@ -1,0 +1,10 @@
+[project]
+id = "para-rtp"
+paths = ["para/packages/para-rtp"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

@@ -1,0 +1,10 @@
+[project]
+id = "parabun-browser-shims"
+paths = ["para/packages/parabun-browser-shims"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

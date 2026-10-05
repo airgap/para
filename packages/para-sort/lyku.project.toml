@@ -1,0 +1,10 @@
+[project]
+id = "para-sort"
+paths = ["para/packages/para-sort"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

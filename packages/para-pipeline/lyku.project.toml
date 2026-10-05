@@ -1,0 +1,10 @@
+[project]
+id = "para-pipeline"
+paths = ["para/packages/para-pipeline"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

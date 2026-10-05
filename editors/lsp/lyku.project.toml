@@ -1,0 +1,10 @@
+[project]
+id = "parabun-lsp"
+paths = ["para/editors/lsp"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

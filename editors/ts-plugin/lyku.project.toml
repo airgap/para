@@ -1,0 +1,10 @@
+[project]
+id = "parabun-ts-plugin"
+paths = ["para/editors/ts-plugin"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

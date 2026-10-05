@@ -1,0 +1,10 @@
+[project]
+id = "para-transpile"
+paths = ["para/packages/para-transpile"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

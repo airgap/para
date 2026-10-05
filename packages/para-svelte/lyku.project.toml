@@ -1,0 +1,10 @@
+[project]
+id = "para-svelte"
+paths = ["para/packages/para-svelte"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

@@ -1,0 +1,10 @@
+[project]
+id = "para-mcp"
+paths = ["para/packages/para-mcp"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

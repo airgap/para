@@ -1,0 +1,10 @@
+[project]
+id = "para-ui-native"
+paths = ["para/packages/para-ui-native"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

@@ -1,0 +1,10 @@
+[project]
+id = "para-csv"
+paths = ["para/packages/para-csv"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

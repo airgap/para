@@ -1,0 +1,10 @@
+[project]
+id = "para-gpu"
+paths = ["para/packages/para-gpu"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]

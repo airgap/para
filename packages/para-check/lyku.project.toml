@@ -1,0 +1,10 @@
+[project]
+id = "para-check"
+paths = ["para/packages/para-check"]
+deps = []
+
+[access]
+
+[mirror]
+
+[upstream]
