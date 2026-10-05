@@ -57,7 +57,7 @@ pipeline {
 		// splash highlighter from src/language-surface.ts). Extracted from
 		// parabun 2026-05-17 with editors/*. Fast, no build cost; runs
 		// first so a forgotten `bun run codegen` fails fast. para-site
-		// targets are skipped when /raid/para-site isn't checked out.
+		// targets are only compared when --site names a checkout.
 		stage('Codegen check') {
 			agent {
 				dockerfile {

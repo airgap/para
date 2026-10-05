@@ -31,3 +31,14 @@ docs in `/raid/para-design`, deliberately kept out of any repo).
 
 nx monorepo; packages under `packages/*`. `bun` / `nx run-many` driven
 (same conventions as the Lyku monorepo).
+
+## Codegen
+
+`src/language-surface.ts` drives the editor grammar and the LSP allowlist.
+After editing it, run `parabun run codegen` here. `parabun run codegen:check`
+regenerates into a temp dir and fails on any difference, without writing.
+
+The para-site checkout (site grammars, splash highlighter) is outside this
+workspace, so codegen only touches it when named:
+`parabun run codegen --site=/raid/para-site`. Adding `--site` to
+`codegen:check` compares para-site too, still read-only.

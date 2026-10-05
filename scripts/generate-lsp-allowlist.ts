@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env parabun
 // Regenerates the Para-token section of the LSP's
 // KNOWN_GLOBAL_IDENTIFIERS Set from src/language-surface.ts.
 //
@@ -15,14 +15,18 @@
 // hand-curated JS/Web/Bun globals (window, fetch, Bun, …), is
 // preserved exactly.
 //
-// CI gate scripts/codegen/check-clean.ts (TODO) re-runs this and
-// fails if the regenerated diff is non-empty.
+// `scripts/codegen.ts --check` regenerates this into a temp dir and fails
+// if the result differs from the committed file.
 
 import { LSP_ALLOWLIST_TOKENS } from "../src/language-surface";
+import { codegenRoots } from "./codegen-roots";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-const TARGET = path.resolve(import.meta.dirname, "../editors/lsp/parabun-lsp.ts");
+const REL = "editors/lsp/parabun-lsp.ts";
+const roots = codegenRoots(process.argv);
+const TARGET = path.join(roots.repoIn, REL);
+const OUT = path.join(roots.repoOut, REL);
 const BEGIN_MARKER = "// ─── codegen:lsp-allowlist:begin ──────────────────────────────────";
 const END_MARKER = "// ─── codegen:lsp-allowlist:end ────────────────────────────────────";
 
@@ -46,11 +50,10 @@ function regenerate(content: string, tokens: string[]): string {
   // searched for at arbitrary indentation levels in future variants.
   const lines = [
     BEGIN_MARKER,
-    "// AUTO-GENERATED from src/language-surface.ts. Run `bun scripts/generate-lsp-allowlist.ts`",
-    "// to regenerate. The CI gate at scripts/codegen/check-clean.ts fails",
-    "// if the committed contents drift from the catalog. Do not hand-edit",
-    "// Add new Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts",
-    "// instead.",
+    "// AUTO-GENERATED from src/language-surface.ts. Run `parabun run codegen`",
+    "// in para/ to regenerate. `parabun run codegen:check` fails if the",
+    "// committed contents drift from the catalog. Do not hand-edit; add new",
+    "// Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts instead.",
     ...tokens.map(t => `${JSON.stringify(t)},`),
     END_MARKER,
   ];
@@ -68,12 +71,15 @@ function regenerate(content: string, tokens: string[]): string {
 function main(): void {
   const original = fs.readFileSync(TARGET, "utf8");
   const updated = regenerate(original, LSP_ALLOWLIST_TOKENS);
-  if (updated === original) {
+  // With --out the copy is written even when unchanged: --check compares
+  // whatever lands there, and a missing file would read as drift.
+  if (updated === original && OUT === TARGET) {
     console.log(`✓ ${TARGET} already up to date (${LSP_ALLOWLIST_TOKENS.length} Para tokens)`);
     return;
   }
-  fs.writeFileSync(TARGET, updated);
-  console.log(`✓ regenerated ${TARGET} (${LSP_ALLOWLIST_TOKENS.length} Para tokens)`);
+  fs.mkdirSync(path.dirname(OUT), { recursive: true });
+  fs.writeFileSync(OUT, updated);
+  console.log(`✓ wrote ${OUT} (${LSP_ALLOWLIST_TOKENS.length} Para tokens)`);
 }
 
 main();

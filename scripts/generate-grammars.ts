@@ -1,29 +1,28 @@
-#!/usr/bin/env bun
+#!/usr/bin/env parabun
 // Generates TextMate inject grammars from src/language-surface.ts.
 //
 // Two targets:
 //   --target=editor   → editors/vscode/parabun/syntaxes/parabun-inject.tmLanguage.json
-//   --target=site     → /raid/para-site/src/grammars/parabun-inject.tmLanguage.json
-//   (no flag)         → emits both
+//   --target=site     → <site>/src/grammars/parabun-{inject,ts,tsx,js,jsx}.tmLanguage.json
+//   (no flag)         → editor, plus site when --site is given
+//
+// The site target writes into the para-site checkout, outside this
+// workspace, so it only runs when --site=<checkout> names it.
 //
 // Editor and site targets share identical pattern arrays: the only
 // differences are wrapper fields (name vs displayName, injectTo, and
 // the injectionSelector ordering) that platforms care about.
 //
-// CI gate scripts/codegen/check-clean.ts (TODO) re-runs this and
-// fails if the committed files differ from the regenerated output,
-// catching the "added a keyword to the parser, forgot to update the
+// `scripts/codegen.ts --check` regenerates into a temp dir and fails
+// if the committed files differ from the output, catching the "added a keyword to the parser, forgot to update the
 // grammar" class of bug.
 
 import { LANGUAGE_SURFACE, type LanguageEntry } from "../src/language-surface";
+import { codegenRoots } from "./codegen-roots";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-// Repo-root relative for the editor target (works on dev box AND CI
-// docker workspace). Site target stays absolute: it's a sibling repo
-// that may or may not be present; the existsSync guards below handle
-// the "not present" case.
-const REPO_ROOT = path.resolve(import.meta.dirname, "..");
+const roots = codegenRoots(process.argv);
 
 type Target = "editor" | "site";
 
@@ -85,9 +84,11 @@ const PER_EXTENSION: PerExtension[] = [
   },
 ];
 
+/** `injectPath` and `mainDir` are relative to the target's output root:
+ *  the repo for editor, the para-site checkout for site. */
 const TARGETS: Record<Target, { injectPath: string; injectWrapper: (patterns: any[]) => any; mainDir?: string }> = {
   editor: {
-    injectPath: path.join(REPO_ROOT, "editors/vscode/parabun/syntaxes/parabun-inject.tmLanguage.json"),
+    injectPath: "editors/vscode/parabun/syntaxes/parabun-inject.tmLanguage.json",
     injectWrapper: patterns => ({
       $schema: "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
       name: "Parabun Keyword Injection",
@@ -112,7 +113,7 @@ const TARGETS: Record<Target, { injectPath: string; injectWrapper: (patterns: an
     // same regex from the same source.
   },
   site: {
-    injectPath: "/raid/para-site/src/grammars/parabun-inject.tmLanguage.json",
+    injectPath: "src/grammars/parabun-inject.tmLanguage.json",
     injectWrapper: patterns => ({
       $schema: "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
       displayName: "ParaBun Keyword Injection",
@@ -128,7 +129,7 @@ const TARGETS: Record<Target, { injectPath: string; injectWrapper: (patterns: an
     // for everything we don't claim, so the per-extension files only
     // need: top-level metadata + the same Para-specific patterns the
     // inject grammar emits.
-    mainDir: "/raid/para-site/src/grammars",
+    mainDir: "src/grammars",
   },
 };
 
@@ -182,22 +183,22 @@ function validateCatalog(entries: LanguageEntry[]): void {
   }
 }
 
+function outRoot(target: Target): string {
+  if (target === "editor") return roots.repoOut;
+  if (!roots.siteOut) {
+    console.error("--target=site writes into para-site; pass --site=<para-site checkout>.");
+    process.exit(1);
+  }
+  return roots.siteOut;
+}
+
 /** Write the inject grammar for a target (editor or site). */
 function writeInject(target: Target): void {
   const patterns = buildInjectPatterns(LANGUAGE_SURFACE);
   const grammar = TARGETS[target].injectWrapper(patterns);
   const out = JSON.stringify(grammar, null, 2) + "\n";
-  const outPath = TARGETS[target].injectPath;
-  // Skip with a warning when the target file's directory doesn't
-  // exist. Common on CI agents where /raid/para-site isn't checked
-  // out, or in fresh clones that haven't pulled the sibling repo.
-  // The catalog-driven --check still catches drift on whatever
-  // targets ARE present.
-  const dir = path.dirname(outPath);
-  if (!fs.existsSync(dir)) {
-    console.log(`⊘ skipping ${outPath} (directory absent; target=${target})`);
-    return;
-  }
+  const outPath = path.join(outRoot(target), TARGETS[target].injectPath);
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, out);
   console.log(`✓ wrote ${outPath} (${patterns.length} patterns)`);
 }
@@ -208,12 +209,8 @@ function writeInject(target: Target): void {
  *  `embeddedLangs` lets us fall back to the base TS/JS grammar for
  *  anything the catalog doesn't claim. */
 function writeSiteMainGrammars(): void {
-  const mainDir = TARGETS.site.mainDir;
-  if (!mainDir) return;
-  if (!fs.existsSync(mainDir)) {
-    console.log(`⊘ skipping site main grammars (${mainDir} absent)`);
-    return;
-  }
+  const mainDir = path.join(outRoot("site"), TARGETS.site.mainDir!);
+  fs.mkdirSync(mainDir, { recursive: true });
   const catalogPatterns = buildInjectPatterns(LANGUAGE_SURFACE);
   for (const ext of PER_EXTENSION) {
     // Top-level patterns: a single `include` to a repository group
@@ -259,8 +256,11 @@ function main(): void {
     writeInject(target);
     if (target === "site") writeSiteMainGrammars();
   } else {
-    for (const t of Object.keys(TARGETS) as Target[]) writeInject(t);
-    writeSiteMainGrammars();
+    writeInject("editor");
+    if (roots.siteOut) {
+      writeInject("site");
+      writeSiteMainGrammars();
+    }
   }
 }
 

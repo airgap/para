@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env parabun
 // para-kit CLI: the fs shell around the pure emitter (emit.js).
 //
 //   para-kit emit <srcDir> [--manifest <path>] [--endpoint <path>] [--check]

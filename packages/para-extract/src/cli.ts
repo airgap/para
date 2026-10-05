@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env parabun
 // para-extract CLI: substitute `ts<import('./x').T>` directives in .pts
 // files with extracted schema bodies (committed-artifact flow, mirroring
 // scripts/codegen.ts):

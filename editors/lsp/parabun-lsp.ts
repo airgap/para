@@ -3998,11 +3998,10 @@ function findUnknownIdentifierDiagnostics(content: string, sourceUri: string): L
 // squiggle (annoying); a wrongly-allowed identifier = missed real error.
 const KNOWN_GLOBAL_IDENTIFIERS = new Set<string>([
   // ─── codegen:lsp-allowlist:begin ──────────────────────────────────
-  // AUTO-GENERATED from src/language-surface.ts. Run `bun scripts/generate-lsp-allowlist.ts`
-  // to regenerate. The CI gate at scripts/codegen/check-clean.ts fails
-  // if the committed contents drift from the catalog. Do not hand-edit
-  // : add new Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts
-  // instead.
+  // AUTO-GENERATED from src/language-surface.ts. Run `parabun run codegen`
+  // in para/ to regenerate. `parabun run codegen:check` fails if the
+  // committed contents drift from the catalog. Do not hand-edit; add new
+  // Para tokens to LSP_ALLOWLIST_TOKENS in language-surface.ts instead.
   "_",
   "signal",
   "derived",
