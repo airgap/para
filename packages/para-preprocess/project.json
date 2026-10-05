@@ -14,7 +14,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun test test/",
+        "command": "parabun test test/",
         "cwd": "para/packages/para-preprocess"
       }
     }

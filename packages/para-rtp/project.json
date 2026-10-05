@@ -7,7 +7,7 @@
 		"test": {
 			"executor": "nx:run-commands",
 			"options": {
-				"command": "bun test --pass-with-no-tests",
+				"command": "parabun test --pass-with-no-tests",
 				"cwd": "para/packages/para-rtp"
 			}
 		}

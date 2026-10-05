@@ -8,8 +8,8 @@
 		"test": "nx run-many --target=test --skip-nx-cache --parallel=99 --output-style=stream",
 		"lint": "nx run-many --target=lint --skip-nx-cache --parallel=99 --output-style=stream",
 		"typecheck": "nx run-many --target=typecheck --skip-nx-cache --parallel=99 --output-style=stream",
-		"codegen": "bun scripts/codegen.ts",
-		"codegen:check": "bun scripts/codegen.ts --check"
+		"codegen": "parabun scripts/codegen.ts",
+		"codegen:check": "parabun scripts/codegen.ts --check"
 	},
 	"//": "Demoted workspace root (ADR-0025): the monorepo root owns workspace membership and toolchain deps; scripts kept for para-scoped runs. airgap/para remains the CI/publish source until the Jenkins cutover."
 }

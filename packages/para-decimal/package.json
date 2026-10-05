@@ -14,7 +14,7 @@
     "README.md"
   ],
   "scripts": {
-    "test": "USE_SYSTEM_BUN=1 bun test"
+    "test": "USE_SYSTEM_BUN=1 parabun test"
   },
   "license": "MIT",
   "repository": {

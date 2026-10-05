@@ -7,14 +7,14 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun runner.ts",
+        "command": "parabun runner.ts",
         "cwd": "para/packages/parity"
       }
     },
     "canary": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun runner.ts --canary",
+        "command": "parabun runner.ts --canary",
         "cwd": "para/packages/parity"
       }
     }

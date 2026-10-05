@@ -7,14 +7,14 @@
     "bench": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun bench.ts",
+        "command": "parabun bench.ts",
         "cwd": "para/packages/para-bench"
       }
     },
     "bench-check": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun bench.ts --check ${BENCH_BASELINE:-bench-baseline.json}",
+        "command": "parabun bench.ts --check ${BENCH_BASELINE:-bench-baseline.json}",
         "cwd": "para/packages/para-bench"
       }
     }

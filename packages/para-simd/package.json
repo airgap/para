@@ -15,7 +15,7 @@
     "README.md"
   ],
   "scripts": {
-    "build:wasm": "bun ../parabun-browser-shims/scripts/build-wasm.ts && cp ../parabun-browser-shims/src/simd.wasm src/simd.wasm && cp ../parabun-browser-shims/src/simd.wat src/simd.wat"
+    "build:wasm": "parabun ../parabun-browser-shims/scripts/build-wasm.ts && cp ../parabun-browser-shims/src/simd.wasm src/simd.wasm && cp ../parabun-browser-shims/src/simd.wat src/simd.wat"
   },
   "license": "MIT",
   "repository": {

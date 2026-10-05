@@ -18,7 +18,7 @@
   "scripts": {
     "build": "node esbuild.mjs",
     "prepublishOnly": "node esbuild.mjs",
-    "test": "bun test test/"
+    "test": "parabun test test/"
   },
   "devDependencies": {
     "@jridgewell/trace-mapping": "^0.3.31",

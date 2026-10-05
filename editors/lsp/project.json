@@ -13,7 +13,7 @@
     "install": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun install",
+        "command": "parabun install",
         "cwd": "para/editors/lsp"
       }
     },

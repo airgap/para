@@ -82,7 +82,7 @@ function diffSnapshots(before: Map<string, string>, after: Map<string, string>):
 }
 
 function runOne(gen: Generator): void {
-  const result = spawnSync("bun", [gen.script], {
+  const result = spawnSync("parabun", [gen.script], {
     cwd: REPO_ROOT,
     stdio: "inherit",
   });

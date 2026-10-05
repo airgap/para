@@ -17,8 +17,8 @@
     "README.md"
   ],
   "scripts": {
-    "build:wasm": "bun scripts/build-wasm.ts",
-    "test": "USE_SYSTEM_BUN=1 bun test"
+    "build:wasm": "parabun scripts/build-wasm.ts",
+    "test": "USE_SYSTEM_BUN=1 parabun test"
   },
   "license": "MIT",
   "repository": {
